@@ -1,0 +1,58 @@
+@page "/products/detail/{Id:int}"
+@using StoreApp.Shared
+@inject IProductClientService ProductService
+@inject NavigationManager Navigation
+
+<PageTitle>Chi tiết sản phẩm</PageTitle>
+
+<div class="container mt-4">
+    <h3>Thông tin sản phẩm</h3>
+
+    @if (product == null)
+    {
+        <p><em>Đang tải dữ liệu...</em></p>
+    }
+    else
+    {
+        <div class="card" style="width: 18rem;">
+            <div class="card-body">
+                @* --- YÊU CẦU CỦA BẠN: HIỂN THỊ ID VÀ TÊN --- *@
+                <h5 class="card-title">Tên: @product.ProductName</h5>
+                <h6 class="card-subtitle mb-2 text-muted">ID: @product.Id</h6>
+                @* ------------------------------------------- *@
+                
+                <hr/>
+                <p>Giá: @product.Price.ToString("N0") đ</p>
+                
+                <button class="btn btn-secondary" @onclick="GoBack">Quay lại</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    // Nhận ID từ URL
+    [Parameter]
+    public int Id { get; set; }
+
+    private ProductDTO? product;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Gọi Service lấy thông tin chi tiết
+        try 
+        {
+            product = await ProductService.GetProductById(Id);
+        }
+        catch
+        {
+            // Xử lý nếu không tìm thấy (ví dụ ID sai)
+            Navigation.NavigateTo("/products");
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/products");
+    }
+}

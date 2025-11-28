@@ -1,0 +1,252 @@
+@page "/products"
+@using StoreApp.Shared
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject IProductClientService ProductService
+
+<PageTitle>Quản lý sản phẩm</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        @* --- CỘT TRÁI: CHỨC NĂNG & BỘ LỌC --- *@
+        <div class="col-md-3 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-gear-fill"></i> Chức năng</h5>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-success w-100 mb-3" @onclick="GoToCreate">
+                        <i class="bi bi-plus-circle"></i> Thêm sản phẩm mới
+                    </button>
+
+                    <hr />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tìm kiếm</label>
+                        <input type="text" class="form-control" placeholder="Tên sản phẩm..." 
+                               @bind="searchTerm" @bind:event="oninput" @onkeyup="HandleSearch" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Khoảng giá</label>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">Min</span>
+                            <input type="number" class="form-control" @bind="minPrice" />
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text">Max</span>
+                            <input type="number" class="form-control" @bind="maxPrice" />
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary w-100" @onclick="LoadProducts">
+                        <i class="bi bi-funnel"></i> Áp dụng bộ lọc
+                    </button>
+                    
+                    <button class="btn btn-outline-secondary w-100 mt-2" @onclick="ResetFilters">
+                        Xóa lọc
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @* --- CỘT PHẢI: BẢNG DỮ LIỆU --- *@
+        <div class="col-md-9">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary fw-bold">Danh sách sản phẩm</h5>
+                    <span class="badge bg-info text-dark">Tổng: @totalItems sản phẩm</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (products == null)
+                    {
+                        <div class="p-4 text-center">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2">Đang tải dữ liệu...</p>
+                        </div>
+                    }
+                    else if (products.Count == 0)
+                    {
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-box-seam display-4"></i>
+                            <p class="mt-2">Không tìm thấy sản phẩm nào.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 50px;">#</th>
+                                        <th style="width: 80px;">Ảnh</th>
+                                        <th>Tên sản phẩm</th>
+                                        <th>SKU</th>
+                                        <th class="text-end">Giá bán</th>
+                                        <th class="text-center">Trạng thái</th>
+                                        <th class="text-center" style="width: 150px;">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in products)
+                                    {
+                                        <tr>
+                                            <td>@p.Id</td>
+                                            <td>
+                                                <img src="@(string.IsNullOrEmpty(p.ImageUrl) ? "/assets/images/products/default.jpg" : p.ImageUrl)" 
+                                                     class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;" />
+                                            </td>
+                                            <td class="fw-bold">@p.ProductName</td>
+                                            <td><small class="text-muted">@p.Sku</small></td>
+                                            <td class="text-end text-danger fw-bold">
+                                                @p.Price.ToString("N0") đ
+                                            </td>
+                                            <td class="text-center">
+                                                @if (p.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Hiện</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Ẩn</span>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="products/detail/@p.Id" class="btn btn-sm btn-info me-1" title="Chi tiết">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditProduct(p.Id)" title="Sửa">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteProduct(p.Id)" title="Xóa">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+                
+                <div class="card-footer bg-white d-flex justify-content-center py-3">
+                    <nav>
+                        <ul class="pagination mb-0">
+                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                <button class="page-link" @onclick="() => ChangePage(currentPage - 1)">Trước</button>
+                            </li>
+                            <li class="page-item active">
+                                <span class="page-link">Trang @currentPage / @totalPages</span>
+                            </li>
+                            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                <button class="page-link" @onclick="() => ChangePage(currentPage + 1)">Sau</button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Biến lưu dữ liệu
+    private List<ProductDTO>? products;
+    private int totalItems;
+    private int totalPages = 1;
+
+    // Biến bộ lọc (State)
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private string searchTerm = "";
+    private decimal? minPrice;
+    private decimal? maxPrice;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    // Hàm gọi API lấy danh sách (Kết nối với GET api/products/paginated)
+    private async Task LoadProducts()
+    {
+        try
+        {
+            // Chỉ cần 1 dòng gọi hàm, không quan tâm URL là gì
+            var result = await ProductService.GetProducts(currentPage, pageSize, searchTerm, minPrice, maxPrice);
+
+            if (result != null)
+            {
+                products = result.Items.ToList();
+                totalItems = result.TotalItems;
+                totalPages = result.TotalPages;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    // Xử lý tìm kiếm (Debounce hoặc Enter)
+    private async Task HandleSearch(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            currentPage = 1; // Reset về trang 1 khi tìm kiếm mới
+            await LoadProducts();
+        }
+    }
+
+    private async Task ResetFilters()
+    {
+        searchTerm = "";
+        minPrice = null;
+        maxPrice = null;
+        currentPage = 1;
+        await LoadProducts();
+    }
+
+    private async Task ChangePage(int newPage)
+    {
+        if (newPage < 1 || newPage > totalPages) return;
+        currentPage = newPage;
+        await LoadProducts();
+    }
+
+    // Điều hướng trang thêm mới
+    private void GoToCreate()
+    {
+        Navigation.NavigateTo("/products/create"); // Bạn cần tạo trang này sau
+    }
+
+    // Điều hướng trang sửa
+    private void EditProduct(int id)
+    {
+        Navigation.NavigateTo($"/products/edit/{id}"); // Bạn cần tạo trang này sau
+    }
+
+    // Xử lý xóa (Kết nối với DELETE api/products/{id})
+    private async Task DeleteProduct(int id)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Bạn có chắc chắn muốn xóa sản phẩm ID: {id} không?");
+        if (confirmed)
+        {
+            bool isSuccess = await ProductService.DeleteProduct(id);
+
+            if (isSuccess)
+            {
+                // Xóa thành công thì tải lại trang 1 hoặc trang hiện tại tùy ý
+                await LoadProducts(); 
+                // Có thể thêm Toast thông báo thành công ở đây
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "Xóa thất bại! Vui lòng thử lại.");
+            }
+        }
+    }
+}
