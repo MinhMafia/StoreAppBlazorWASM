@@ -1,0 +1,148 @@
+@* Components/Categories/CategoryDetailModal.razor *@
+@using StoreApp.Shared
+@inject ICategoryClientService CategoryService
+
+@if (IsOpen)
+{
+    <!-- Backdrop -->
+    <div class="modal-backdrop fade show"></div>
+
+    <!-- Modal -->
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow">
+
+                <!-- Header -->
+                <div class="modal-header py-3">
+                    <h5 class="modal-title fw-bold">Chi Tiết Danh Mục</h5>
+
+                    <button type="button" class="btn btn-sm btn-light" aria-label="Close" @onclick="OnClose">
+                        <!-- X icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+                             class="bi bi-x-lg" viewBox="0 0 16 16">
+                            <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body">
+                    @if (isLoading)
+                    {
+                        <div class="text-center py-4 text-secondary">Đang tải...</div>
+                    }
+                    else if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger border" role="alert">
+                            @errorMessage
+                        </div>
+                    }
+                    else if (category != null)
+                    {
+                        <div class="vstack gap-3">
+                            <div class="row">
+                                <div class="col-12 col-sm-4 fw-semibold text-secondary">ID:</div>
+                                <div class="col-12 col-sm-8 text-dark">@category.Id</div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12 col-sm-4 fw-semibold text-secondary">Tên Danh Mục:</div>
+                                <div class="col-12 col-sm-8 text-dark">@category.Name</div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12 col-sm-4 fw-semibold text-secondary">Slug:</div>
+                                <div class="col-12 col-sm-8 text-dark">@(category.Slug ?? "-")</div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12 col-sm-4 fw-semibold text-secondary">Mô Tả:</div>
+                                <div class="col-12 col-sm-8 text-dark">@(string.IsNullOrEmpty(category.Description) ? "-" : category.Description)</div>
+                            </div>
+
+                            <div class="row align-items-center">
+                                <div class="col-12 col-sm-4 fw-semibold text-secondary">Trạng Thái:</div>
+                                <div class="col-12 col-sm-8">
+                                    @if (category.IsActive)
+                                    {
+                                        <span class="badge rounded-pill text-bg-success">Hoạt Động</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill text-bg-danger">Ngừng Hoạt Động</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12 col-sm-4 fw-semibold text-secondary">Ngày Tạo:</div>
+                                <div class="col-12 col-sm-8 text-dark">@category.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12 col-sm-4 fw-semibold text-secondary">Cập Nhật Lần Cuối:</div>
+                                <div class="col-12 col-sm-8 text-dark">@category.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="OnClose">
+                        Đóng
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public int? CategoryId { get; set; }
+
+    private CategoryResponseDTO? category;
+    private bool isLoading = false;
+    private string? errorMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsOpen && CategoryId.HasValue)
+        {
+            await LoadCategory();
+        }
+        else if (IsOpen)
+        {
+            category = null;
+            errorMessage = null;
+        }
+    }
+
+    private async Task LoadCategory()
+    {
+        if (!CategoryId.HasValue) return;
+
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            category = await CategoryService.GetCategoryById(CategoryId.Value);
+            if (category == null)
+            {
+                errorMessage = "Không tìm thấy danh mục";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi khi tải thông tin: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

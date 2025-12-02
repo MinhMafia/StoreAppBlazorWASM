@@ -1,0 +1,151 @@
+@* Components/Categories/CategoryAddModal.razor *@
+@using StoreApp.Shared
+@inject ICategoryClientService CategoryService
+@inject IJSRuntime JS
+
+@if (IsOpen)
+{
+    <!-- Backdrop -->
+    <div class="modal-backdrop fade show"></div>
+
+    <!-- Modal -->
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow">
+
+                <!-- Header -->
+               <div class="modal-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="modal-title fw-bold mb-0">Thêm Danh Mục Mới</h5>
+
+                    <button type="button" class="btn btn-sm btn-light ms-auto" aria-label="Close" @onclick="OnClose">
+                        <!-- X icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+                             class="bi bi-x-lg" viewBox="0 0 16 16">
+                            <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body">
+
+                    @if (!string.IsNullOrEmpty(successMessage))
+                    {
+                        <div class="alert alert-success border mb-3" role="alert">
+                            @successMessage
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger border mb-3" role="alert">
+                            @errorMessage
+                        </div>
+                    }
+
+                    <EditForm Model="@categoryDto" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Tên Danh Mục <span class="text-danger">*</span>
+                            </label>
+
+                            <InputText class="form-control"
+                                       placeholder="Nhập tên danh mục"
+                                       @bind-Value="categoryDto.Name" />
+
+                            <ValidationMessage For="@(() => categoryDto.Name)" />
+                        </div>
+
+                        <div class="mb-0">
+                            <label class="form-label fw-semibold">
+                                Mô Tả <span class="text-muted fw-normal small">(Không bắt buộc)</span>
+                            </label>
+
+                            <InputTextArea class="form-control"
+                                          rows="4"
+                                          placeholder="Nhập mô tả (nếu có)"
+                                          @bind-Value="categoryDto.Description" />
+
+                            <ValidationMessage For="@(() => categoryDto.Description)" />
+                        </div>
+                    </EditForm>
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="OnClose" disabled="@isSaving">
+                        Hủy
+                    </button>
+
+                    @if (isSaving)
+                    {
+                        <button type="button" class="btn btn-primary" disabled>
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Đang thêm...
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="HandleSubmit">
+                            Thêm Danh Mục
+                        </button>
+                    }
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnSave { get; set; }
+
+    private CategoryCreateDTO categoryDto = new();
+    private bool isSaving = false;
+    private string? successMessage;
+    private string? errorMessage;
+
+    protected override void OnParametersSet()
+    {
+        if (IsOpen)
+        {
+            // Reset form when modal opens
+            categoryDto = new CategoryCreateDTO();
+            successMessage = null;
+            errorMessage = null;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(categoryDto.Name))
+        {
+            errorMessage = "Tên danh mục là bắt buộc";
+            return;
+        }
+
+        isSaving = true;
+        successMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            await CategoryService.CreateCategory(categoryDto);
+            successMessage = "Thêm danh mục thành công!";
+            await Task.Delay(1000); // Show success message briefly
+            await OnSave.InvokeAsync();
+            await OnClose.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi khi thêm danh mục: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}
