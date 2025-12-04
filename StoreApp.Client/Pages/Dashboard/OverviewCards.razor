@@ -1,0 +1,53 @@
+@using StoreApp.Shared
+@using System.Globalization
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <!-- Doanh thu hôm nay -->
+    <div class="bg-white p-6 rounded-lg shadow">
+        <p class="text-gray-500 text-sm">Doanh thu hôm nay</p>
+        <p class="text-3xl font-bold text-blue-600">@FormatCurrency(Overview?.TodayRevenue ?? 0)</p>
+        <p class="text-sm mt-2 @(RevenueChangeClass)">
+            @RevenueChangeIcon @Math.Abs(Overview?.RevenueChange ?? 0).ToString("F1")% so với hôm qua
+        </p>
+    </div>
+
+    <!-- Số đơn hàng -->
+    <div class="bg-white p-6 rounded-lg shadow">
+        <p class="text-gray-500 text-sm">Số đơn hàng</p>
+        <p class="text-3xl font-bold text-green-600">@(Overview?.TodayOrders ?? 0)</p>
+        <p class="text-sm mt-2 @(OrdersChangeClass)">
+            @OrdersChangeIcon @Math.Abs(Overview?.OrdersChange ?? 0).ToString("F1")% so với hôm qua
+        </p>
+    </div>
+
+    <!-- Sản phẩm bán được -->
+    <div class="bg-white p-6 rounded-lg shadow">
+        <p class="text-gray-500 text-sm">Sản phẩm bán được</p>
+        <p class="text-3xl font-bold text-purple-600">@(Overview?.TodayProductsSold ?? 0)</p>
+    </div>
+
+    <!-- Đơn trung bình -->
+    <div class="bg-white p-6 rounded-lg shadow">
+        <p class="text-gray-500 text-sm">Đơn trung bình (7 ngày)</p>
+        <p class="text-3xl font-bold text-orange-600">@FormatCurrency(Overview?.AverageOrderValue ?? 0)</p>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public OverviewStatsDTO? Overview { get; set; }
+
+    private string RevenueChangeClass => (Overview?.RevenueChange ?? 0) >= 0 ? "text-green-500" : "text-red-500";
+    private string RevenueChangeIcon => (Overview?.RevenueChange ?? 0) >= 0 ? "↑" : "↓";
+    
+    private string OrdersChangeClass => (Overview?.OrdersChange ?? 0) >= 0 ? "text-green-500" : "text-red-500";
+    private string OrdersChangeIcon => (Overview?.OrdersChange ?? 0) >= 0 ? "↑" : "↓";
+
+    private static readonly CultureInfo VietnameseCulture = new("vi-VN");
+    
+    private string FormatCurrency(decimal amount)
+    {
+        return amount.ToString("N0", VietnameseCulture) + "đ";
+    }
+}
+

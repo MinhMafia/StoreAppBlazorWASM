@@ -38,7 +38,10 @@ namespace StoreApp.Controllers
         [HttpGet("paginated")]
         public async Task<ActionResult<PaginationResult<PromotionDTO>>> GetPaginatedPromotions(
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 12
+            [FromQuery] int pageSize = 12,
+            [FromQuery] string? search = null,
+            [FromQuery] string? status = null,
+            [FromQuery] string? type = null
         )
         {
             if (page < 1) page = 1;
@@ -46,7 +49,7 @@ namespace StoreApp.Controllers
 
             try
             {
-                var result = await _promotionService.GetPaginatedPromotionsAsync(page, pageSize);
+                var result = await _promotionService.GetPaginatedPromotionsAsync(page, pageSize, search, status, type);
                 return Ok(result);
             }
             catch (Exception ex)

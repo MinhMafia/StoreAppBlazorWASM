@@ -168,13 +168,13 @@ namespace StoreApp.Repository
             return new OrderStatsDTO
             {
                 TotalOrders = orders.Count,
-                CompletedOrders = orders.Count(o => o.Status == "paid" || o.Status == "completed"),
                 PendingOrders = orders.Count(o => o.Status == "pending"),
-                ProcessingOrders = 0, // No processing status in ENUM
+                PaidOrders = orders.Count(o => o.Status == "paid"),
+                CompletedOrders = orders.Count(o => o.Status == "completed"),
                 CancelledOrders = orders.Count(o => o.Status == "cancelled"),
-                TotalRevenue = orders.Where(o => o.Status == "paid").Sum(o => o.TotalAmount),
-                AverageOrderValue = orders.Where(o => o.Status == "paid").Any()
-                    ? orders.Where(o => o.Status == "paid").Average(o => o.TotalAmount)
+                TotalRevenue = orders.Where(o => o.Status == "paid" || o.Status == "completed").Sum(o => o.TotalAmount),
+                AverageOrderValue = orders.Where(o => o.Status == "paid" || o.Status == "completed").Any()
+                    ? orders.Where(o => o.Status == "paid" || o.Status == "completed").Average(o => o.TotalAmount)
                     : 0
             };
         }

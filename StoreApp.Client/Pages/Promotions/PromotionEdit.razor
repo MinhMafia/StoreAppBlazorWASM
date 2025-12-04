@@ -1,0 +1,204 @@
+@using StoreApp.Client.Services
+@using StoreApp.Shared
+@inject IPromotionService PromotionService
+@inject IJSRuntime JS
+
+<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <!-- Header -->
+        <div class="bg-blue-600 p-6 rounded-t-xl">
+            <h2 class="text-2xl font-bold text-white">Chỉnh sửa khuyến mãi</h2>
+            <p class="text-white mt-1 font-mono">@FormData.Code</p>
+        </div>
+
+        <!-- Form -->
+        <EditForm Model="@FormData" OnValidSubmit="HandleSubmit" class="p-6 space-y-6">
+            @if (!string.IsNullOrEmpty(Error))
+            {
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex">
+                        <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p class="ml-3 text-sm text-red-800">@Error</p>
+                    </div>
+                </div>
+            }
+
+            <!-- Mã khuyến mãi (disabled) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Mã khuyến mãi
+                </label>
+                <input type="text" value="@FormData.Code" disabled
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 uppercase cursor-not-allowed" />
+                <p class="text-xs text-gray-500 mt-1">Mã khuyến mãi không thể thay đổi</p>
+            </div>
+
+            <!-- Loại và giá trị -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Loại giảm giá <span class="text-red-500">*</span>
+                    </label>
+                    <select @bind="FormData.Type"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="percent">Giảm theo %</option>
+                        <option value="fixed">Giảm cố định (VNĐ)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Giá trị @(FormData.Type == "percent" ? "(%)" : "(VNĐ)") <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" @bind="FormData.Value" min="0"
+                        step="@(FormData.Type == "percent" ? "1" : "1000")"
+                        max="@(FormData.Type == "percent" ? "100" : "")"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required />
+                </div>
+            </div>
+
+            <!-- Điều kiện đơn hàng -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Đơn hàng tối thiểu (VNĐ) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" @bind="FormData.MinOrderAmount" min="0" step="1000"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Giảm tối đa (VNĐ) @if (FormData.Type == "percent") { <span class="text-gray-500 text-xs">(nếu có)</span> }
+                    </label>
+                    <input type="number" @bind="FormData.MaxDiscount" min="0" step="1000"
+                        disabled="@(FormData.Type == "fixed")"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100" />
+                </div>
+            </div>
+
+            <!-- Thời gian -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ngày bắt đầu</label>
+                    <input type="date" @bind="FormData.StartDate"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ngày kết thúc</label>
+                    <input type="date" @bind="FormData.EndDate" min="@FormData.StartDate?.ToString("yyyy-MM-dd")"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+            </div>
+
+            <!-- Giới hạn sử dụng -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Giới hạn lượt sử dụng <span class="text-gray-500 text-xs">(để trống = không giới hạn)</span>
+                </label>
+                <input type="number" @bind="FormData.UsageLimit" min="@FormData.UsedCount"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                <p class="text-xs text-gray-500 mt-1">
+                    Đã sử dụng: @FormData.UsedCount lượt
+                </p>
+            </div>
+
+            <!-- Mô tả -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
+                <textarea @bind="FormData.Description" rows="3"
+                    placeholder="Mô tả chi tiết về chương trình khuyến mãi..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </textarea>
+            </div>
+
+            <!-- Trạng thái -->
+            <div class="flex items-center">
+                <input type="checkbox" @bind="FormData.Active"
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
+                <label class="ml-2 block text-sm text-gray-700">Kích hoạt</label>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3 pt-4 border-t">
+                <button type="button" @onclick="OnCancel" disabled="@Loading"
+                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                    Hủy
+                </button>
+                <button type="submit" disabled="@Loading"
+                    class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-semibold">
+                    @(Loading ? "Đang cập nhật..." : "Cập nhật")
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter] public PromotionDTO Promotion { get; set; } = new();
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback OnSuccess { get; set; }
+
+    private PromotionDTO FormData { get; set; } = new();
+    private bool Loading { get; set; }
+    private string? Error { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // Copy promotion to form data
+        FormData = new PromotionDTO
+        {
+            Id = Promotion.Id,
+            Code = Promotion.Code,
+            Type = Promotion.Type,
+            Value = Promotion.Value,
+            MinOrderAmount = Promotion.MinOrderAmount,
+            MaxDiscount = Promotion.MaxDiscount,
+            UsageLimit = Promotion.UsageLimit,
+            StartDate = Promotion.StartDate,
+            EndDate = Promotion.EndDate,
+            Active = Promotion.Active,
+            Description = Promotion.Description,
+            UsedCount = Promotion.UsedCount
+        };
+    }
+
+    private async Task HandleSubmit()
+    {
+        Loading = true;
+        Error = null;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(FormData.Code) || FormData.Value <= 0 || FormData.MinOrderAmount <= 0)
+            {
+                Error = "Vui lòng điền đầy đủ thông tin bắt buộc";
+                Loading = false;
+                return;
+            }
+
+            var success = await PromotionService.UpdatePromotion(FormData.Id, FormData);
+            if (success)
+            {
+                await JS.InvokeVoidAsync("alert", "Cập nhật khuyến mãi thành công!");
+                await OnSuccess.InvokeAsync();
+            }
+            else
+            {
+                Error = "Có lỗi xảy ra khi cập nhật khuyến mãi";
+            }
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+}
+
+

@@ -1,0 +1,61 @@
+@using StoreApp.Shared
+
+<div class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-xl font-bold mb-4 text-gray-900">Doanh thu 7 ngày gần đây</h2>
+    
+    @if (Data == null || !Data.Any())
+    {
+        <div class="h-[300px] flex items-center justify-center text-gray-500">
+            Không có dữ liệu
+        </div>
+    }
+    else
+    {
+        <ApexChart TItem="RevenueDataPoint"
+                   Title=""
+                   Height="300"
+                   Options="chartOptions">
+
+            <ApexPointSeries TItem="RevenueDataPoint"
+                             Items="Data"
+                             Name="Doanh thu"
+                             SeriesType="SeriesType.Line"
+                             XValue="@(e => e.Label)"
+                             YValue="@(e => e.Revenue)" />
+        </ApexChart>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<RevenueDataPoint>? Data { get; set; }
+
+    private ApexChartOptions<RevenueDataPoint> chartOptions = new()
+    {
+        Yaxis = new List<YAxis>
+        {
+            new YAxis
+            {
+                Min = 0,
+                Labels = new YAxisLabels
+                {
+                    Formatter = "function(value) { return (value / 1000000).toFixed(1) + 'M'; }"
+                }
+            }
+        },
+        Tooltip = new Tooltip
+        {
+            Y = new TooltipY
+            {
+                Formatter = "function(value) { return value.toLocaleString('vi-VN') + 'đ'; }"
+            }
+        },
+        Chart = new Chart
+        {
+            Toolbar = new Toolbar { Show = false },
+            Zoom = new Zoom { Enabled = false }
+        },
+        Colors = new List<string> { "#3b82f6" },
+        Stroke = new Stroke { Width = 3, Curve = Curve.Smooth }
+    };
+}

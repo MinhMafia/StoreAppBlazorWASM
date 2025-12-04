@@ -11,6 +11,7 @@ using StoreApp.Repository;
 using StoreApp.Services;
 using StoreApp.Middlewares;
 using StoreApp.Components;
+using StoreApp.Client.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,8 +62,8 @@ builder.Services.AddScoped<ActivityLogService>();
 builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<UserService>();
-builder.Services.AddScoped<PromotionService>();
-builder.Services.AddScoped<StatisticsService>();
+builder.Services.AddScoped<StoreApp.Services.PromotionService>();
+builder.Services.AddScoped<StoreApp.Services.StatisticsService>();
 builder.Services.AddScoped<OrderItemService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<PaymentService>();
@@ -106,6 +107,11 @@ builder.Services.AddScoped(sp => new HttpClient
 {
     BaseAddress = new Uri(sp.GetRequiredService<NavigationManager>().BaseUri)
 });
+
+// --- Blazor Client Services (cho prerendering) ---
+builder.Services.AddScoped<IStatisticsService, StoreApp.Client.Services.StatisticsService>();
+builder.Services.AddScoped<IPromotionService, StoreApp.Client.Services.PromotionService>();
+builder.Services.AddScoped<IProductClientService, ProductClientService>();
 
 var app = builder.Build();
 

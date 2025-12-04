@@ -1,0 +1,31 @@
+@using StoreApp.Shared
+
+<div class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-xl font-bold mb-4 text-gray-900">Top 5 sản phẩm bán chạy</h2>
+    
+    @if (Data == null || !Data.Any())
+    {
+        <div class="h-[300px] flex items-center justify-center text-gray-500">
+            Không có dữ liệu
+        </div>
+    }
+    else
+    {
+        <ApexChart TItem="ProductSalesDTO"
+                   Title=""
+                   Height="300">
+
+            <ApexPointSeries TItem="ProductSalesDTO"
+                             Items="Data.Take(5).ToList()"
+                             Name="Số lượng bán"
+                             SeriesType="SeriesType.Bar"
+                             XValue="@(e => e.ProductName)"
+                             YValue="@(e => (decimal)e.QuantitySold)" />
+        </ApexChart>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<ProductSalesDTO>? Data { get; set; }
+}

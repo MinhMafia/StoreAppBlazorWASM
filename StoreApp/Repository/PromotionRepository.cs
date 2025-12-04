@@ -24,18 +24,58 @@ namespace StoreApp.Repository
                 .ToListAsync();
         }
 
-        // Get paginated promotions
-        public async Task<PaginationResult<Promotion>> GetPaginatedAsync(int page, int pageSize)
+        // Get paginated promotions with filters
+        public async Task<PaginationResult<Promotion>> GetPaginatedAsync(
+            int page, 
+            int pageSize, 
+            string? search = null, 
+            string? status = null, 
+            string? type = null)
         {
             if (page < 1) page = 1;
             if (pageSize <= 0) pageSize = 20;
 
-            var totalItems = await _context.Promotions.Where(p => !p.IsDeleted).CountAsync();
+            var now = DateTime.UtcNow;
+            IQueryable<Promotion> query = _context.Promotions
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted);
+
+            // Search by code or description
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchLower = search.ToLower();
+                query = query.Where(p => 
+                    p.Code.ToLower().Contains(searchLower) || 
+                    (p.Description != null && p.Description.ToLower().Contains(searchLower)));
+            }
+
+            // Filter by status
+            if (!string.IsNullOrWhiteSpace(status) && status != "all")
+            {
+                switch (status.ToLower())
+                {
+                    case "active":
+                        query = query.Where(p => p.Active && (!p.EndDate.HasValue || p.EndDate >= now));
+                        break;
+                    case "inactive":
+                        query = query.Where(p => !p.Active);
+                        break;
+                    case "expired":
+                        query = query.Where(p => p.EndDate.HasValue && p.EndDate < now);
+                        break;
+                }
+            }
+
+            // Filter by type
+            if (!string.IsNullOrWhiteSpace(type) && type != "all")
+            {
+                query = query.Where(p => p.Type == type);
+            }
+
+            var totalItems = await query.CountAsync();
             var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
-            var items = await _context.Promotions
-                .AsNoTracking()
-                .Where(p => !p.IsDeleted)
+            var items = await query
                 .OrderByDescending(p => p.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)

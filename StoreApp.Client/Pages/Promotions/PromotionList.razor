@@ -1,0 +1,443 @@
+@page "/promotions"
+@using StoreApp.Client.Services
+@using StoreApp.Shared
+@inject IPromotionService PromotionService
+@inject IJSRuntime JS
+
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    Quản lý Khuyến mãi
+                </h1>
+                <button @onclick="() => ShowCreateModal = true"
+                    class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl">
+                    <span class="flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Tạo khuyến mãi mới
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Statistics -->
+        <div class="flex flex-wrap -mx-3 mb-8">
+            <StatCard Icon="tag" Label="Tổng số" Value="@(Stats?.Total ?? 0)" Color="blue" />
+            <StatCard Icon="check" Label="Đang hoạt động" Value="@(Stats?.Active ?? 0)" Color="green" />
+            <StatCard Icon="clock" Label="Hết hạn" Value="@(Stats?.Expired ?? 0)" Color="red" />
+            <StatCard Icon="x" Label="Không hoạt động" Value="@(Stats?.Inactive ?? 0)" Color="gray" />
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+            <div class="flex flex-col lg:flex-row gap-6">
+                <div class="relative flex-1 min-w-0">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input type="text" placeholder="Tìm kiếm mã khuyến mãi..."
+                        @bind="SearchTerm" @bind:event="oninput" @onkeyup="OnSearchKeyUp"
+                        class="block w-full pl-12 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+                <select @bind="FilterStatus" @bind:after="OnFilterChange"
+                    class="block w-full lg:w-64 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="inactive">Không hoạt động</option>
+                    <option value="expired">Hết hạn</option>
+                </select>
+                <select @bind="FilterType" @bind:after="OnFilterChange"
+                    class="block w-full lg:w-56 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    <option value="all">Tất cả loại</option>
+                    <option value="percent">Giảm theo %</option>
+                    <option value="fixed">Giảm cố định</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        @if (Loading)
+        {
+            <div class="flex items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span class="ml-3 text-gray-600">Đang tải dữ liệu...</span>
+            </div>
+        }
+
+        <!-- Error -->
+        @if (!string.IsNullOrEmpty(Error))
+        {
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div class="flex">
+                    <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="ml-3 text-sm text-red-800">Có lỗi xảy ra: @Error</p>
+                </div>
+            </div>
+        }
+
+        <!-- Empty State -->
+        @if (!Loading && string.IsNullOrEmpty(Error) && (Items == null || !Items.Any()))
+        {
+            <div class="bg-white rounded-xl shadow-sm border p-12 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">Không tìm thấy khuyến mãi nào</h3>
+                <p class="mt-1 text-sm text-gray-500">Thử thay đổi điều kiện tìm kiếm hoặc tạo khuyến mãi mới.</p>
+            </div>
+        }
+
+        <!-- Table -->
+        @if (!Loading && string.IsNullOrEmpty(Error) && Items != null && Items.Any())
+        {
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã KM</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá trị</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ĐH tối thiểu</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lượt dùng</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            @foreach (var (promo, idx) in Items.Select((p, i) => (p, i)))
+                            {
+                                <tr class="@(idx % 2 == 0 ? "bg-white" : "bg-gray-50")">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm font-medium text-gray-900 font-mono bg-blue-50 px-2 py-1 rounded">
+                                            @promo.Code
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="@GetTypeBadgeClass(promo.Type) px-2.5 py-0.5 rounded-full text-xs font-medium">
+                                            @(promo.Type == "percent" ? "Giảm theo %" : "Giảm cố định")
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                                        @(promo.Type == "percent" ? $"{promo.Value}%" : $"{promo.Value:N0}đ")
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        @promo.MinOrderAmount.ToString("N0")đ
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <div>@FormatDate(promo.StartDate)</div>
+                                        <div class="text-xs text-gray-400">đến @FormatDate(promo.EndDate)</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center text-sm">
+                                            <span class="font-medium text-gray-900">@promo.UsedCount</span>
+                                            <span class="text-gray-400 mx-1">/</span>
+                                            <span class="text-gray-500">@(promo.UsageLimit?.ToString() ?? "∞")</span>
+                                        </div>
+                                        @if (promo.UsageLimit.HasValue)
+                                        {
+                                            var percent = Math.Min((double)promo.UsedCount / promo.UsageLimit.Value * 100, 100);
+                                            <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                                <div class="bg-blue-600 h-1.5 rounded-full" style="width: @(percent)%"></div>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @GetStatusBadge(promo)
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button @onclick="() => HandleToggle(promo.Id)"
+                                                class="@GetToggleButtonClass(promo.Active) px-3 py-1.5 rounded-md text-xs font-medium">
+                                                @(promo.Active ? "Tắt" : "Bật")
+                                            </button>
+                                            <button @onclick="() => OpenEditModal(promo)"
+                                                class="px-3 py-1.5 bg-orange-100 text-orange-800 rounded-md text-xs font-medium hover:bg-orange-200">
+                                                Sửa
+                                            </button>
+                                            <button @onclick="() => OpenDetailModal(promo.Id)"
+                                                class="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-md text-xs font-medium hover:bg-blue-200">
+                                                Chi tiết
+                                            </button>
+                                            <button @onclick="() => HandleDelete(promo.Id)"
+                                                class="px-3 py-1.5 bg-red-100 text-red-800 rounded-md text-xs font-medium hover:bg-red-200">
+                                                Xóa
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            @if (TotalPages > 1)
+            {
+                <div class="mt-6 flex justify-center">
+                    <nav class="flex items-center gap-2">
+                        <button @onclick="() => GoToPage(Page - 1)" disabled="@(Page <= 1)"
+                            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            ← Trước
+                        </button>
+                        
+                        @for (int i = 1; i <= TotalPages; i++)
+                        {
+                            var pageNum = i;
+                            <button @onclick="() => GoToPage(pageNum)"
+                                class="@(pageNum == Page ? "bg-blue-600 text-white" : "text-gray-700 bg-white hover:bg-gray-50") px-4 py-2 text-sm font-medium border rounded-lg">
+                                @pageNum
+                            </button>
+                        }
+                        
+                        <button @onclick="() => GoToPage(Page + 1)" disabled="@(Page >= TotalPages)"
+                            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Sau →
+                        </button>
+                    </nav>
+                </div>
+            }
+        }
+    </div>
+
+    <!-- Modal tạo khuyến mãi -->
+    @if (ShowCreateModal)
+    {
+        <PromotionCreate OnCancel="() => ShowCreateModal = false" OnSuccess="OnCreateSuccess" />
+    }
+
+    <!-- Modal chi tiết khuyến mãi -->
+    @if (SelectedPromotionId.HasValue)
+    {
+        <PromotionDetail PromotionId="@SelectedPromotionId.Value" 
+            OnClose="() => SelectedPromotionId = null" 
+            OnEdit="OpenEditFromDetail" />
+    }
+
+    <!-- Modal chỉnh sửa khuyến mãi -->
+    @if (EditingPromotion != null)
+    {
+        <PromotionEdit Promotion="@EditingPromotion" 
+            OnCancel="() => EditingPromotion = null" 
+            OnSuccess="OnEditSuccess" />
+    }
+</div>
+
+@code {
+    private bool Loading { get; set; } = true;
+    private string? Error { get; set; }
+    private List<PromotionDTO>? Items { get; set; }
+    private PromotionOverviewStats? Stats { get; set; }
+    
+    private int Page { get; set; } = 1;
+    private int PageSize { get; set; } = 12;
+    private int TotalPages { get; set; } = 1;
+    
+    private string SearchTerm { get; set; } = "";
+    private string FilterStatus { get; set; } = "all";
+    private string FilterType { get; set; } = "all";
+    
+    private bool ShowCreateModal { get; set; }
+    private int? SelectedPromotionId { get; set; }
+    private PromotionDTO? EditingPromotion { get; set; }
+    
+    private System.Timers.Timer? _debounceTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        await LoadStats();
+    }
+
+    private async Task LoadData()
+    {
+        Loading = true;
+        Error = null;
+        
+        try
+        {
+            var result = await PromotionService.GetPromotionsPaginated(Page, PageSize, SearchTerm, FilterStatus, FilterType);
+            Items = result.Items;
+            TotalPages = result.TotalPages;
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        
+        Loading = false;
+    }
+
+    private async Task LoadStats()
+    {
+        Stats = await PromotionService.GetPromotionOverviewStats();
+    }
+
+    private void OnSearchKeyUp()
+    {
+        _debounceTimer?.Stop();
+        _debounceTimer?.Dispose();
+        
+        _debounceTimer = new System.Timers.Timer(300);
+        _debounceTimer.Elapsed += async (sender, e) =>
+        {
+            _debounceTimer?.Stop();
+            Page = 1;
+            await InvokeAsync(async () =>
+            {
+                await LoadData();
+                StateHasChanged();
+            });
+        };
+        _debounceTimer.Start();
+    }
+
+    private async Task OnFilterChange()
+    {
+        Page = 1;
+        await LoadData();
+    }
+
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || page > TotalPages) return;
+        Page = page;
+        await LoadData();
+    }
+
+    private async Task HandleDelete(int id)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Bạn có chắc muốn xóa khuyến mãi này?");
+        if (!confirmed) return;
+        
+        var success = await PromotionService.DeletePromotion(id);
+        if (success)
+        {
+            await LoadData();
+            await LoadStats();
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("alert", "Lỗi khi xóa khuyến mãi");
+        }
+    }
+
+    private async Task HandleToggle(int id)
+    {
+        var success = await PromotionService.TogglePromotionActive(id);
+        if (success)
+        {
+            await LoadData();
+            await LoadStats();
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("alert", "Lỗi khi thay đổi trạng thái");
+        }
+    }
+
+    private void OpenEditModal(PromotionDTO promo)
+    {
+        EditingPromotion = promo;
+    }
+
+    private void OpenDetailModal(int id)
+    {
+        SelectedPromotionId = id;
+    }
+
+    private void OpenEditFromDetail(PromotionDTO promo)
+    {
+        SelectedPromotionId = null;
+        EditingPromotion = promo;
+    }
+
+    private async Task OnCreateSuccess()
+    {
+        ShowCreateModal = false;
+        await LoadData();
+        await LoadStats();
+    }
+
+    private async Task OnEditSuccess()
+    {
+        EditingPromotion = null;
+        await LoadData();
+        await LoadStats();
+    }
+
+    private string FormatDate(DateTime? date)
+    {
+        if (!date.HasValue) return "N/A";
+        // Convert UTC to Vietnam time (UTC+7)
+        var vnTime = date.Value.AddHours(7);
+        return vnTime.ToString("dd/MM/yyyy");
+    }
+
+    private string GetTypeBadgeClass(string type)
+    {
+        return type == "percent" 
+            ? "bg-purple-100 text-purple-800" 
+            : "bg-blue-100 text-blue-800";
+    }
+
+    private string GetToggleButtonClass(bool active)
+    {
+        return active 
+            ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200" 
+            : "bg-green-100 text-green-800 hover:bg-green-200";
+    }
+
+    private RenderFragment GetStatusBadge(PromotionDTO promo)
+    {
+        var now = DateTime.Now;
+        string badgeClass;
+        string text;
+        
+        if (!promo.Active)
+        {
+            badgeClass = "bg-gray-100 text-gray-800";
+            text = "Không hoạt động";
+        }
+        else if (promo.EndDate.HasValue && promo.EndDate.Value < now)
+        {
+            badgeClass = "bg-red-100 text-red-800";
+            text = "Hết hạn";
+        }
+        else if (promo.StartDate.HasValue && promo.StartDate.Value > now)
+        {
+            badgeClass = "bg-yellow-100 text-yellow-800";
+            text = "Chưa bắt đầu";
+        }
+        else if (promo.UsageLimit.HasValue && promo.UsedCount >= promo.UsageLimit.Value)
+        {
+            badgeClass = "bg-orange-100 text-orange-800";
+            text = "Hết lượt";
+        }
+        else
+        {
+            badgeClass = "bg-green-100 text-green-800";
+            text = "Đang hoạt động";
+        }
+        
+        return @<span class="@badgeClass px-3 py-1 rounded-full text-xs font-medium">@text</span>;
+    }
+
+    public void Dispose()
+    {
+        _debounceTimer?.Dispose();
+    }
+}
+

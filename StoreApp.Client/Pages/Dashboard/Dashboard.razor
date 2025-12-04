@@ -1,0 +1,64 @@
+@page "/dashboard"
+@using StoreApp.Client.Services
+@using StoreApp.Shared
+@inject IStatisticsService StatisticsService
+
+<div class="p-6 bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-gray-900">Dashboard POS</h1>
+
+        @if (Loading)
+        {
+            <div class="p-6 text-gray-500">Đang tải dashboard...</div>
+        }
+        else
+        {
+            <OverviewCards Overview="@Overview" />
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <RevenueChart Data="@Revenue" />
+                <TopProductsChart Data="@BestSellers" />
+                <OrderStatusChart OrderStats="@OrderStats" />
+                <LowStockAlert Items="@LowStock" />
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private bool Loading { get; set; } = true;
+    private OverviewStatsDTO? Overview { get; set; }
+    private List<RevenueDataPoint> Revenue { get; set; } = new();
+    private List<ProductSalesDTO> BestSellers { get; set; } = new();
+    private List<ProductInventoryDTO> LowStock { get; set; } = new();
+    private OrderStatsDTO? OrderStats { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        Loading = true;
+        
+        // Load all data in parallel
+        var overviewTask = StatisticsService.GetOverviewStats();
+        var revenueTask = StatisticsService.GetRevenueByPeriod(7);
+        var bestSellersTask = StatisticsService.GetBestSellers(5, 7);
+        var lowStockTask = StatisticsService.GetLowStockProducts(10);
+        var orderStatsTask = StatisticsService.GetOrderStats(7);
+
+        await Task.WhenAll(overviewTask, revenueTask, bestSellersTask, lowStockTask, orderStatsTask);
+
+        Overview = await overviewTask;
+        Revenue = await revenueTask;
+        BestSellers = await bestSellersTask;
+        LowStock = await lowStockTask;
+        OrderStats = await orderStatsTask;
+
+        Loading = false;
+    }
+}
+
+

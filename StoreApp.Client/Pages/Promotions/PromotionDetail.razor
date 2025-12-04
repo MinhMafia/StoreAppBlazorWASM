@@ -1,0 +1,372 @@
+@using StoreApp.Client.Services
+@using StoreApp.Shared
+@inject IPromotionService PromotionService
+
+<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    @if (Loading)
+    {
+        <div class="bg-white rounded-xl p-8 shadow-2xl">
+            <div class="flex items-center gap-3">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span class="text-gray-600">Đang tải...</span>
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(Error) || Promotion == null)
+    {
+        <div class="bg-white rounded-xl p-8 shadow-2xl max-w-md">
+            <div class="text-center">
+                <svg class="mx-auto h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 class="mt-4 text-lg font-medium text-gray-900">Có lỗi xảy ra</h3>
+                <p class="mt-2 text-sm text-gray-500">@Error</p>
+                <button @onclick="OnClose"
+                    class="mt-6 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Header -->
+            <div class="bg-blue-600 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Chi tiết khuyến mãi</h2>
+                        <p class="text-white mt-1 font-mono text-lg">@Promotion.Code</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        @GetStatusBadge()
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="border-b bg-gray-50">
+                <div class="flex">
+                    <button @onclick="SetTabInfo"
+                        class="@GetTabClass("info") px-6 py-3 font-medium transition-colors">
+                        Thông tin
+                    </button>
+                    <button @onclick="SetTabStats"
+                        class="@GetTabClass("stats") px-6 py-3 font-medium transition-colors">
+                        Thống kê
+                    </button>
+                    <button @onclick="SetTabHistory"
+                        class="@GetTabClass("history") px-6 py-3 font-medium transition-colors">
+                        Lịch sử (@Redemptions.Count)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-6">
+                @if (ActiveTab == "info")
+                {
+                    <div class="space-y-6">
+                        <!-- Thông tin cơ bản -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h3 class="text-sm font-semibold text-blue-900 mb-3">Thông tin cơ bản</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs font-medium text-blue-700">Mã khuyến mãi</label>
+                                    <p class="mt-1 text-base font-bold text-blue-900 font-mono">@Promotion.Code</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-blue-700">ID</label>
+                                    <p class="mt-1 text-base text-blue-900">#@Promotion.Id</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Thông tin giảm giá -->
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-900 mb-3">Thông tin giảm giá</h3>
+                            <div class="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Loại giảm giá</label>
+                                    <p class="mt-1 text-lg font-semibold text-gray-900">
+                                        @(Promotion.Type == "percent" ? "Giảm theo %" : "Giảm cố định")
+                                    </p>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Giá trị</label>
+                                    <p class="mt-1 text-lg font-semibold text-gray-900">
+                                        @(Promotion.Type == "percent" ? $"{Promotion.Value}%" : FormatCurrency(Promotion.Value))
+                                    </p>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Đơn hàng tối thiểu</label>
+                                    <p class="mt-1 text-lg font-semibold text-gray-900">@FormatCurrency(Promotion.MinOrderAmount)</p>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Giảm tối đa</label>
+                                    <p class="mt-1 text-lg font-semibold text-gray-900">
+                                        @(Promotion.MaxDiscount.HasValue ? FormatCurrency(Promotion.MaxDiscount.Value) : "Không giới hạn")
+                                    </p>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Ngày bắt đầu</label>
+                                    <p class="mt-1 text-gray-900">@FormatDate(Promotion.StartDate)</p>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Ngày kết thúc</label>
+                                    <p class="mt-1 text-gray-900">@FormatDate(Promotion.EndDate)</p>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Lượt sử dụng</label>
+                                    <p class="mt-1 text-gray-900">
+                                        <span class="font-semibold text-lg">@Promotion.UsedCount</span>
+                                        <span class="text-gray-400 mx-2">/</span>
+                                        <span>@(Promotion.UsageLimit?.ToString() ?? "∞")</span>
+                                    </p>
+                                    @if (Promotion.UsageLimit.HasValue)
+                                    {
+                                        var percent = Math.Min((double)Promotion.UsedCount / Promotion.UsageLimit.Value * 100, 100);
+                                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                            <div class="bg-blue-600 h-2 rounded-full" style="width: @(percent)%"></div>
+                                        </div>
+                                    }
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Trạng thái</label>
+                                    <div class="mt-1">@GetStatusBadge()</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Thông tin thời gian -->
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-900 mb-3">Thông tin thời gian</h3>
+                            <div class="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Ngày tạo</label>
+                                    <p class="mt-1 text-gray-900">@FormatDateTime(Promotion.CreatedAt)</p>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Cập nhật lần cuối</label>
+                                    <p class="mt-1 text-gray-900">@FormatDateTime(Promotion.UpdatedAt)</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mô tả -->
+                        @if (!string.IsNullOrEmpty(Promotion.Description))
+                        {
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-900 mb-3">Mô tả</h3>
+                                <p class="text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">@Promotion.Description</p>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (ActiveTab == "stats")
+                {
+                    @if (Stats == null)
+                    {
+                        <div class="text-center py-12">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                            <p class="mt-3 text-gray-500">Đang tải thống kê...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="space-y-6">
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div class="bg-blue-50 p-4 rounded-lg">
+                                    <p class="text-sm text-blue-600 font-medium">Tổng lượt dùng</p>
+                                    <p class="text-2xl font-bold text-blue-900 mt-1">@Stats.TotalRedemptions</p>
+                                </div>
+                                <div class="bg-green-50 p-4 rounded-lg">
+                                    <p class="text-sm text-green-600 font-medium">Tổng giảm giá</p>
+                                    <p class="text-2xl font-bold text-green-900 mt-1">@FormatCurrency(Stats.TotalDiscountAmount)</p>
+                                </div>
+                                <div class="bg-purple-50 p-4 rounded-lg">
+                                    <p class="text-sm text-purple-600 font-medium">Số khách hàng</p>
+                                    <p class="text-2xl font-bold text-purple-900 mt-1">@Stats.UniqueCustomers</p>
+                                </div>
+                                <div class="bg-orange-50 p-4 rounded-lg">
+                                    <p class="text-sm text-orange-600 font-medium">Giá trị TB/đơn</p>
+                                    <p class="text-2xl font-bold text-orange-900 mt-1">@FormatCurrency(Stats.AverageOrderValue)</p>
+                                </div>
+                            </div>
+
+                        </div>
+                    }
+                }
+                else if (ActiveTab == "history")
+                {
+                    @if (!Redemptions.Any())
+                    {
+                        <div class="text-center py-12">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p class="mt-2 text-gray-500">Chưa có lịch sử sử dụng</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="space-y-3">
+                            @foreach (var item in Redemptions)
+                            {
+                                <div class="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium text-gray-900">Đơn hàng #@item.OrderNumber</p>
+                                        <p class="text-sm text-gray-500">@(item.CustomerName ?? "Khách vãng lai")</p>
+                                        <p class="text-xs text-gray-400">@FormatDateTime(item.RedeemedAt)</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-semibold text-blue-600">@FormatCurrency(item.OrderAmount)</p>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- Footer -->
+            <div class="border-t p-4 bg-gray-50 flex gap-3">
+                <button @onclick="OnClose"
+                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100">
+                    Đóng
+                </button>
+                <button @onclick="HandleEdit"
+                    class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
+                    Chỉnh sửa
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int PromotionId { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<PromotionDTO> OnEdit { get; set; }
+
+    private bool Loading { get; set; } = true;
+    private string? Error { get; set; }
+    private PromotionDTO? Promotion { get; set; }
+    private PromotionDetailStats? Stats { get; set; }
+    private List<PromotionRedemption> Redemptions { get; set; } = new();
+    private string ActiveTab { get; set; } = "info";
+
+    private void SetTabInfo() => ActiveTab = "info";
+    private void SetTabStats() => ActiveTab = "stats";
+    private void SetTabHistory() => ActiveTab = "history";
+    
+    private string GetTabClass(string tab)
+    {
+        return ActiveTab == tab 
+            ? "text-blue-600 border-b-2 border-blue-600 bg-white" 
+            : "text-gray-600 hover:text-gray-900";
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        Loading = true;
+        Error = null;
+
+        try
+        {
+            var promoTask = PromotionService.GetPromotionById(PromotionId);
+            var statsTask = PromotionService.GetPromotionStats(PromotionId);
+            var redemptionsTask = PromotionService.GetPromotionRedemptions(PromotionId);
+
+            await Task.WhenAll(promoTask, statsTask, redemptionsTask);
+
+            Promotion = await promoTask;
+            Stats = await statsTask;
+            Redemptions = await redemptionsTask;
+
+            if (Promotion == null)
+            {
+                Error = "Không tìm thấy khuyến mãi";
+            }
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private async Task HandleEdit()
+    {
+        if (Promotion != null)
+        {
+            await OnEdit.InvokeAsync(Promotion);
+        }
+    }
+
+    private RenderFragment GetStatusBadge()
+    {
+        if (Promotion == null) return @<span></span>;
+
+        var now = DateTime.Now;
+        string badgeClass;
+        string text;
+
+        if (!Promotion.Active)
+        {
+            badgeClass = "bg-gray-100 text-gray-800";
+            text = "Không hoạt động";
+        }
+        else if (Promotion.EndDate.HasValue && Promotion.EndDate.Value < now)
+        {
+            badgeClass = "bg-red-100 text-red-800";
+            text = "Hết hạn";
+        }
+        else if (Promotion.StartDate.HasValue && Promotion.StartDate.Value > now)
+        {
+            badgeClass = "bg-yellow-100 text-yellow-800";
+            text = "Chưa bắt đầu";
+        }
+        else if (Promotion.UsageLimit.HasValue && Promotion.UsedCount >= Promotion.UsageLimit.Value)
+        {
+            badgeClass = "bg-orange-100 text-orange-800";
+            text = "Hết lượt";
+        }
+        else
+        {
+            badgeClass = "bg-green-100 text-green-800";
+            text = "Đang hoạt động";
+        }
+
+        return @<span class="@badgeClass px-3 py-1 rounded-full text-sm font-medium">@text</span>;
+    }
+
+    private string FormatCurrency(decimal amount)
+    {
+        return amount.ToString("N0") + "đ";
+    }
+
+    private string FormatDate(DateTime? date)
+    {
+        if (!date.HasValue) return "Không giới hạn";
+        // Convert UTC to Vietnam time (UTC+7)
+        var vnTime = date.Value.AddHours(7);
+        return vnTime.ToString("dd/MM/yyyy");
+    }
+
+    private string FormatDateTime(DateTime date)
+    {
+        // Convert UTC to Vietnam time (UTC+7)
+        var vnTime = date.AddHours(7);
+        return vnTime.ToString("dd/MM/yyyy HH:mm");
+    }
+}
+

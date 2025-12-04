@@ -20,10 +20,15 @@ namespace StoreApp.Services
             return promotions.Select(MapToDTO).ToList();
         }
 
-        // Get paginated promotions
-        public async Task<PaginationResult<PromotionDTO>> GetPaginatedPromotionsAsync(int page, int pageSize)
+        // Get paginated promotions with filters
+        public async Task<PaginationResult<PromotionDTO>> GetPaginatedPromotionsAsync(
+            int page, 
+            int pageSize, 
+            string? search = null, 
+            string? status = null, 
+            string? type = null)
         {
-            var result = await _promotionRepository.GetPaginatedAsync(page, pageSize);
+            var result = await _promotionRepository.GetPaginatedAsync(page, pageSize, search, status, type);
             return new PaginationResult<PromotionDTO>
             {
                 Items = result.Items.Select(MapToDTO).ToList(),

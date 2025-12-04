@@ -1,0 +1,41 @@
+@using StoreApp.Shared
+
+<div class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-xl font-bold mb-4 text-gray-900">⚠️ Sản phẩm sắp hết hàng</h2>
+    
+    <div class="space-y-3 max-h-[300px] overflow-y-auto">
+        @if (Items == null || !Items.Any())
+        {
+            <p class="text-gray-500">Tất cả sản phẩm đều còn đủ hàng</p>
+        }
+        else
+        {
+            @foreach (var item in Items)
+            {
+                <div class="flex justify-between items-center border-b pb-2">
+                    <div>
+                        <p class="font-semibold text-sm text-gray-900">@item.ProductName</p>
+                        <p class="text-xs text-gray-500">@item.Sku</p>
+                    </div>
+                    <span class="@GetBadgeClass(item.Quantity) px-2 py-1 rounded text-xs font-semibold">
+                        Còn @item.Quantity
+                    </span>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public List<ProductInventoryDTO>? Items { get; set; }
+
+    private string GetBadgeClass(int quantity)
+    {
+        return quantity < 5 
+            ? "bg-red-100 text-red-700" 
+            : "bg-yellow-100 text-yellow-700";
+    }
+}
+
+
