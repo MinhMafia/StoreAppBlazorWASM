@@ -1,0 +1,414 @@
+@page "/store"
+@layout StoreLayout
+@using StoreApp.Shared
+@inject IProductClientService ProductService
+@inject ICategoryClientService CategoryService
+@inject NavigationManager Navigation
+
+<PageTitle>Cửa Hàng Tiện Lợi</PageTitle>
+
+<!-- Breadcrumb -->
+<div class="breadcrumb-bar">
+    <div class="container">
+        <nav class="breadcrumb-nav">
+            <a href="/store">TRANG CHỦ</a> / 
+            <span>CỬA HÀNG</span>
+        </nav>
+    </div>
+</div>
+
+<div class="store-home">
+    <div class="container">
+        <div class="store-content">
+            <!-- Sidebar Left -->
+            <aside class="store-sidebar">
+                <!-- Product Categories -->
+                <div class="categories-section">
+                    <h3 class="filter-title">DANH MỤC SẢN PHẨM</h3>
+                    <div class="categories-list">
+                        @if (categories == null)
+                        {
+                            <p class="text-muted">Đang tải danh mục...</p>
+                        }
+                        else if (!categories.Any())
+                        {
+                            <p class="text-muted">Chưa có danh mục nào.</p>
+                        }
+                        else
+                        {
+                            @foreach (var category in categories)
+                            {
+                                <a href="/store/products?category=@category.Id" class="category-item">
+                                    <i class="bi bi-chevron-right category-icon"></i>
+                                    <span>@category.Name</span>
+                                </a>
+                            }
+                        }
+                    </div>
+                </div>
+
+                <!-- Filter by Price -->
+                <div class="filter-section">
+                    <h3 class="filter-title">LỌC THEO GIÁ</h3>
+                    <div class="price-filter">
+                        <div class="price-range">
+                            <label>
+                                Giá @(minPrice.HasValue ? $"{minPrice.Value:N0} ₫" : "0 ₫")
+                                - @(maxPrice.HasValue ? $"{maxPrice.Value:N0} ₫" : "Không giới hạn")
+                            </label>
+                            <div class="range-inputs">
+                                <input type="number" class="form-control" @bind="minPrice" placeholder="Từ" />
+                                <span>-</span>
+                                <input type="number" class="form-control" @bind="maxPrice" placeholder="Đến" />
+                            </div>
+                        </div>
+                        <button class="btn-filter" @onclick="ApplyPriceFilter">
+                            LỌC
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recommended Products -->
+                <div class="recommended-section">
+                    <h3 class="filter-title">CÓ THỂ BẠN SẼ THÍCH</h3>
+                    <div class="recommended-products">
+                        @if (recommendedProducts != null && recommendedProducts.Any())
+                        {
+                            @foreach (var product in recommendedProducts.Take(5))
+                            {
+                                <div class="recommended-item" @onclick="() => GoToProduct(product.Id)">
+                                    <img src="@(string.IsNullOrEmpty(product.ImageUrl) ? "/assets/images/products/product.jpg" : product.ImageUrl)" 
+                                         alt="@product.ProductName" />
+                                    <div class="recommended-info">
+                                        <h4>@product.ProductName</h4>
+                                        <div class="recommended-price">
+                                            @if (product.Price > 0)
+                                            {
+                                                <span class="current-price">@product.Price.ToString("N0") ₫</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted">Đang tải sản phẩm...</p>
+                        }
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="store-main-content">
+                <!-- Promotional Banner -->
+                <div class="promo-banner">
+                    <div class="banner-content">
+                        <div class="banner-text">
+                            <h2 class="banner-title">Mừng khai Trương</h2>
+                            <div class="banner-discount">Giảm 50%</div>
+                            <p class="banner-subtitle">Thực phẩm vàng cho sức khỏe</p>
+                        </div>
+                    </div>
+                    <div class="banner-dots">
+                        <span class="dot active"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>
+                </div>
+
+                <!-- Bestselling Products Section -->
+                <div class="bestselling-section">
+                    <h2 class="section-title">SẢN PHẨM BÁN CHẠY</h2>
+                    <div class="bestselling-images">
+                        <div class="bestselling-item">
+                            <img src="/assets/images/products/banner2.jpg" alt="Bestselling Product 1" />
+                        </div>
+                        <div class="bestselling-item">
+                            <img src="/assets/images/products/banner3.jpg" alt="Bestselling Product 2" />
+                        </div>
+                        <div class="bestselling-item">
+                            <img src="/assets/images/products/banner4.jpg" alt="Bestselling Product 3" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sort and Display Options -->
+                <div class="products-header-bar">
+                    <div class="display-info">
+                        Hiển thị @(products?.Count ?? 0) / @totalItems kết quả
+                    </div>
+                    <div class="sort-options">
+                        <select class="form-select" 
+                                @bind="sortOrder" 
+                                @bind:event="onchange"
+                                @bind:after="OnSortOrderChanged">
+                            <option value="default">Thứ tự mặc định</option>
+                            <option value="price-asc">Giá: Thấp đến Cao</option>
+                            <option value="price-desc">Giá: Cao đến Thấp</option>
+                            <option value="name-asc">Tên: A-Z</option>
+                            <option value="name-desc">Tên: Z-A</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="products-grid">
+                    @if (isLoading)
+                    {
+                        <div class="loading-state">
+                            <p>Đang tải sản phẩm...</p>
+                        </div>
+                    }
+                    else if (products == null || !products.Any())
+                    {
+                        <div class="empty-state">
+                            <p>Không tìm thấy sản phẩm nào.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var product in products)
+                        {
+                            <ProductCard 
+                                ProductId="@product.Id"
+                                ProductName="@product.ProductName"
+                                ImageUrl="@(string.IsNullOrEmpty(product.ImageUrl) ? "/assets/images/products/product.jpg" : product.ImageUrl)"
+                                Price="@product.Price"
+                                OriginalPrice="@(product.Price)"
+                                HasPromotion="true" />
+                        }
+                    }
+                </div>
+
+                <!-- Pagination -->
+                @if (totalPages > 0)
+                {
+                    <div class="pagination">
+                        @for (int i = 1; i <= totalPages; i++)
+                        {
+                            var pageNum = i; // Capture giá trị để tránh closure issue
+                            <button class="page-btn @(currentPage == pageNum ? "active" : "")" 
+                                    @onclick="() => ChangePage(pageNum)"
+                                    disabled="@isLoading">
+                                @pageNum
+                            </button>
+                        }
+                    </div>
+                }
+            </main>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="store-footer">
+    <div class="container">
+        <div class="footer-content">
+            <p>Dữ liệu trên website demo là tham khảo, không bán hàng hay cung cấp dịch vụ</p>
+            <div class="footer-info">
+                <span>Thiết kế Web khởi Nghiệp</span>
+                <span>Hotline: 09 3574 3575</span>
+                <a href="#">Đăng ký làm đối tác</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+@code {
+    private List<ProductDTO>? products;
+    private List<ProductDTO>? recommendedProducts;
+    private List<CategoryResponseDTO>? categories;
+    private int currentPage = 1;
+    private int pageSize = 12;
+    private int totalPages = 1;
+    private int totalItems = 0;
+    private decimal? minPrice;
+    private decimal? maxPrice;
+    private string sortOrder = "default";
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(
+            LoadProducts(),
+            LoadRecommendedProducts(),
+            LoadCategories()
+        );
+    }
+
+    private async Task LoadCategories()
+    {
+        try
+        {
+            var result = await CategoryService.GetCategories(1, 50, null, "active");
+            categories = result?.Items
+                .Where(c => c.IsActive)
+                .ToList() ?? new List<CategoryResponseDTO>();
+        }
+        catch
+        {
+            categories = new List<CategoryResponseDTO>();
+        }
+    }
+
+    private async Task LoadProducts()
+    {
+        isLoading = true;
+        StateHasChanged();  
+        
+        try
+        {
+            // Convert sortOrder to server format
+            string? serverSortBy = sortOrder switch
+            {
+                "price-asc" => "price_asc",
+                "price-desc" => "price_desc",
+                "name-asc" => "name_asc",
+                "name-desc" => "name_desc",
+                _ => null
+            };
+
+            // Validate currentPage before calling API
+            if (totalPages > 0 && currentPage > totalPages)
+            {
+                Console.WriteLine($"Warning: currentPage ({currentPage}) > totalPages ({totalPages}), resetting to page 1");
+                currentPage = 1;
+            }
+            
+            var result = await ProductService.GetProducts(currentPage, pageSize, null, minPrice, maxPrice, serverSortBy, null);
+            
+            // Debug logging
+            Console.WriteLine($"LoadProducts - Page: {currentPage}, PageSize: {pageSize}, Result: TotalItems={result?.TotalItems}, TotalPages={result?.TotalPages}, ItemsCount={result?.Items?.Count ?? 0}");
+            
+            if (result != null)
+            {
+                // Luôn cập nhật totalItems từ API
+                totalItems = result.TotalItems;
+                
+                // Tính toán totalPages - ƯU TIÊN GIỮ NGUYÊN NẾU ĐÃ CÓ GIÁ TRỊ HỢP LỆ
+                // Chỉ cập nhật totalPages khi API trả về giá trị hợp lệ (> 0)
+                if (result.TotalPages > 0)
+                {
+                    // API trả về TotalPages hợp lệ -> cập nhật
+                    totalPages = result.TotalPages;
+                }
+                else if (totalItems > 0)
+                {
+                    // API không trả TotalPages nhưng có totalItems -> tính từ totalItems
+                    int calculatedPages = (int)Math.Ceiling((double)totalItems / pageSize);
+                    // Chỉ cập nhật nếu chưa có giá trị hợp lệ trước đó
+                    if (totalPages <= 0 || totalPages == 1)
+                    {
+                        totalPages = calculatedPages;
+                    }
+                }
+                // Nếu cả TotalPages và totalItems đều = 0, giữ nguyên totalPages hiện tại
+                
+                // Cập nhật danh sách sản phẩm
+                if (result.Items != null && result.Items.Any())
+                {
+                    products = result.Items.ToList();
+                }
+                else
+                {
+                    // Không có items -> set rỗng nhưng GIỮ NGUYÊN totalPages
+                    products = new List<ProductDTO>();
+                    Console.WriteLine($"No items but TotalItems={totalItems}, TotalPages={totalPages} - Keeping pagination");
+                    
+                    // Nếu không có items và currentPage > totalPages, reset về trang 1 và reload
+                    if (totalPages > 0 && currentPage > totalPages)
+                    {
+                        Console.WriteLine($"CurrentPage ({currentPage}) > TotalPages ({totalPages}), resetting to page 1");
+                        currentPage = 1;
+                        // Gọi lại LoadProducts với trang 1
+                        var retryResult = await ProductService.GetProducts(1, pageSize, null, minPrice, maxPrice, serverSortBy);
+                        if (retryResult != null && retryResult.Items != null && retryResult.Items.Any())
+                        {
+                            products = retryResult.Items.ToList();
+                            totalItems = retryResult.TotalItems;
+                            if (retryResult.TotalPages > 0) totalPages = retryResult.TotalPages;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // API trả về null -> chỉ reset products, GIỮ NGUYÊN totalPages
+                products = new List<ProductDTO>();
+                Console.WriteLine($"API returned null - Keeping TotalPages={totalPages}, TotalItems={totalItems}");
+                // Chỉ reset totalPages nếu chưa có dữ liệu (lần đầu load)
+                if (totalPages == 0 && totalItems == 0)
+                {
+                    totalPages = 1;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading products: {ex.Message}");
+            Console.WriteLine($"Exception details: {ex}");
+            // Khi lỗi, chỉ reset products, GIỮ NGUYÊN totalPages và totalItems
+            products = new List<ProductDTO>();
+            // KHÔNG BAO GIỜ reset totalPages/totalItems khi lỗi để giữ phân trang
+            Console.WriteLine($"After error - TotalPages={totalPages}, TotalItems={totalItems}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadRecommendedProducts()
+    {
+        try
+        {
+            var result = await ProductService.GetProducts(1, 5, null, null, null);
+            recommendedProducts = result?.Items.Take(5).ToList() ?? new List<ProductDTO>();
+        }
+        catch
+        {
+            recommendedProducts = new List<ProductDTO>();
+        }
+    }
+
+    private async Task ApplyPriceFilter()
+    {
+        currentPage = 1;
+        await LoadProducts();
+    }
+
+    private async Task ChangePage(int page)
+    {
+        // Prevent multiple clicks while loading
+        if (isLoading) return;
+        
+        // Validate page number
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) 
+        {
+            Console.WriteLine($"ChangePage: Invalid page {page}, max is {totalPages}, resetting to 1");
+            page = 1;
+        }
+        
+        // Don't reload if already on that page
+        if (currentPage == page) return;
+        
+        Console.WriteLine($"ChangePage called: requested={page}, current={currentPage}, totalPages={totalPages}");
+        
+        currentPage = page;
+        await LoadProducts();
+    }
+
+    private void GoToProduct(int productId)
+    {
+        Navigation.NavigateTo($"/store/products/{productId}");
+    }
+
+    private async Task OnSortOrderChanged()
+    {
+        currentPage = 1; // Reset về trang đầu khi đổi sort
+        await LoadProducts();
+    }
+}

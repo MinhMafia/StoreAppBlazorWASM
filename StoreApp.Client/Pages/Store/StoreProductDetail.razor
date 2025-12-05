@@ -1,0 +1,54 @@
+@page "/store/products/{ProductId:int}"
+@layout StoreLayout
+
+<PageTitle>Chi tiết sản phẩm - Cửa Hàng Tiện Lợi</PageTitle>
+
+<div class="store-product-detail">
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="/store">Trang chủ</a> / 
+            <a href="/store/products">Sản phẩm</a> / 
+            <span>Chi tiết</span>
+        </nav>
+
+        <!-- Product Info -->
+        <div class="product-detail-content">
+            <div class="product-images">
+                <!-- Hình ảnh sản phẩm -->
+            </div>
+
+            <div class="product-info">
+                <h1>@productName</h1>
+                <div class="product-price">
+                    <!-- Giá sản phẩm -->
+                </div>
+                <div class="product-description">
+                    <!-- Mô tả sản phẩm -->
+                </div>
+                <div class="product-actions">
+                    <!-- Nút thêm vào giỏ hàng -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Products -->
+        <section class="related-products">
+            <h2>Sản phẩm liên quan</h2>
+            <!-- Danh sách sản phẩm liên quan -->
+        </section>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int ProductId { get; set; }
+    
+    private string productName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load chi tiết sản phẩm theo ProductId
+        await Task.CompletedTask;
+    }
+}
+

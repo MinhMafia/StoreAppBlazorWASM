@@ -1,0 +1,66 @@
+@page "/store/orders"
+@layout StoreLayout
+@using StoreApp.Shared
+
+<PageTitle>Đơn hàng của tôi - Cửa Hàng Tiện Lợi</PageTitle>
+
+<div class="store-orders">
+    <div class="container">
+        <h1>Đơn hàng của tôi</h1>
+
+        @if (orders == null)
+        {
+            <div class="loading">
+                <p>Đang tải...</p>
+            </div>
+        }
+        else if (orders.Count == 0)
+        {
+            <div class="empty-orders">
+                <p>Bạn chưa có đơn hàng nào</p>
+                <a href="/store/products" class="btn btn-primary">Mua sắm ngay</a>
+            </div>
+        }
+        else
+        {
+            <div class="orders-list">
+                @foreach (var order in orders)
+                {
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div>
+                                <h3>Đơn hàng #@order.Id</h3>
+                                <p class="order-date">Ngày đặt: @order.CreatedAt.ToString("dd/MM/yyyy")</p>
+                            </div>
+                            <div class="order-status">
+                                <span class="badge">@order.Status</span>
+                            </div>
+                        </div>
+                        <div class="order-body">
+                            <!-- Chi tiết đơn hàng -->
+                        </div>
+                        <div class="order-footer">
+                            <div class="order-total">
+                                Tổng tiền: @order.TotalAmount.ToString("N0") đ
+                            </div>
+                            <a href="/store/orders/@order.Id" class="btn btn-outline-primary">
+                                Xem chi tiết
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<OrderDTO> orders = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load danh sách đơn hàng của khách hàng
+        await Task.CompletedTask;
+    }
+}
+

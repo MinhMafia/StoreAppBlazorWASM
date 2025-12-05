@@ -1,0 +1,39 @@
+@* Component hiển thị thẻ sản phẩm trong danh sách *@
+
+<div class="product-card">
+    <div class="product-image">
+        <img src="@ImageUrl" alt="@ProductName" />
+        @if (HasPromotion)
+        {
+            <span class="promotion-badge">KHUYẾN MÃI</span>
+        }
+    </div>
+    <div class="product-info">
+        <h3 class="product-name">@ProductName</h3>
+        <div class="product-price">
+            @if (OriginalPrice.HasValue && OriginalPrice.Value > Price)
+            {
+                <span class="original-price">@OriginalPrice.Value.ToString("N0") đ</span>
+            }
+            <span class="current-price">@Price.ToString("N0") đ</span>
+        </div>
+        <button class="btn btn-primary btn-add-to-cart" @onclick="AddToCart">
+            Thêm vào giỏ
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int ProductId { get; set; }
+    [Parameter] public string ProductName { get; set; } = "";
+    [Parameter] public string ImageUrl { get; set; } = "";
+    [Parameter] public decimal Price { get; set; }
+    [Parameter] public decimal? OriginalPrice { get; set; }
+    [Parameter] public bool HasPromotion { get; set; }
+
+    private void AddToCart()
+    {
+        // Xử lý thêm vào giỏ hàng
+    }
+}
+

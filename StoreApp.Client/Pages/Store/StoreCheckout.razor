@@ -1,0 +1,66 @@
+@page "/store/checkout"
+@layout StoreLayout
+
+<PageTitle>Thanh toán - Cửa Hàng Tiện Lợi</PageTitle>
+
+<div class="store-checkout">
+    <div class="container">
+        <h1>Thanh toán</h1>
+
+        <div class="checkout-content">
+            <!-- Thông tin khách hàng -->
+            <section class="checkout-section">
+                <h2>Thông tin khách hàng</h2>
+                <div class="form-group">
+                    <!-- Form nhập thông tin -->
+                </div>
+            </section>
+
+            <!-- Địa chỉ giao hàng -->
+            <section class="checkout-section">
+                <h2>Địa chỉ giao hàng</h2>
+                <div class="form-group">
+                    <!-- Form nhập địa chỉ -->
+                </div>
+            </section>
+
+            <!-- Phương thức thanh toán -->
+            <section class="checkout-section">
+                <h2>Phương thức thanh toán</h2>
+                <div class="payment-methods">
+                    <!-- Các phương thức thanh toán -->
+                </div>
+            </section>
+
+            <!-- Order Summary -->
+            <aside class="order-summary">
+                <h3>Tóm tắt đơn hàng</h3>
+                <!-- Chi tiết đơn hàng -->
+                <div class="summary-total">
+                    <span>Tổng cộng:</span>
+                    <span>@totalAmount.ToString("N0") đ</span>
+                </div>
+                <button class="btn btn-primary btn-place-order" @onclick="PlaceOrder">
+                    Đặt hàng
+                </button>
+            </aside>
+        </div>
+    </div>
+</div>
+
+@code {
+    private decimal totalAmount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load thông tin từ giỏ hàng
+        await Task.CompletedTask;
+    }
+
+    private async Task PlaceOrder()
+    {
+        // Xử lý đặt hàng
+        await Task.CompletedTask;
+    }
+}
+

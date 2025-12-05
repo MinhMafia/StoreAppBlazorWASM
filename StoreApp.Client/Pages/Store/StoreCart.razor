@@ -1,0 +1,67 @@
+@page "/store/cart"
+@layout StoreLayout
+@using StoreApp.Client.Services
+
+<PageTitle>Giỏ hàng - Cửa Hàng Tiện Lợi</PageTitle>
+
+<div class="store-cart">
+    <div class="container">
+        <h1>Giỏ hàng của bạn</h1>
+
+        @if (cartItems == null || cartItems.Count == 0)
+        {
+            <div class="empty-cart">
+                <p>Giỏ hàng của bạn đang trống</p>
+                <a href="/store/products" class="btn btn-primary">Tiếp tục mua sắm</a>
+            </div>
+        }
+        else
+        {
+            <div class="cart-content">
+                <!-- Danh sách sản phẩm trong giỏ -->
+                <div class="cart-items">
+                    <!-- Mỗi item trong giỏ hàng -->
+                </div>
+
+                <!-- Cart Summary -->
+                <aside class="cart-summary">
+                    <h3>Tóm tắt đơn hàng</h3>
+                    <div class="summary-row">
+                        <span>Tạm tính:</span>
+                        <span>@subtotal.ToString("N0") đ</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Giảm giá:</span>
+                        <span>@discount.ToString("N0") đ</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Tổng cộng:</span>
+                        <span>@total.ToString("N0") đ</span>
+                    </div>
+                    <button class="btn btn-primary btn-checkout" @onclick="GoToCheckout">
+                        Thanh toán
+                    </button>
+                </aside>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<CartItemDTO>? cartItems = new();
+    private decimal subtotal = 0;
+    private decimal discount = 0;
+    private decimal total = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load giỏ hàng từ localStorage hoặc state
+        await Task.CompletedTask;
+    }
+
+    private void GoToCheckout()
+    {
+        // Navigate to checkout page
+    }
+}
+

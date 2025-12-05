@@ -1,0 +1,49 @@
+@* Component hiển thị một item trong giỏ hàng *@
+
+<div class="cart-item">
+    <div class="item-image">
+        <img src="@ImageUrl" alt="@ProductName" />
+    </div>
+    <div class="item-info">
+        <h4>@ProductName</h4>
+        <p class="item-price">@Price.ToString("N0") đ</p>
+    </div>
+    <div class="item-quantity">
+        <button class="btn btn-sm" @onclick="DecreaseQuantity">-</button>
+        <span class="quantity">@Quantity</span>
+        <button class="btn btn-sm" @onclick="IncreaseQuantity">+</button>
+    </div>
+    <div class="item-total">
+        <span>@Total.ToString("N0") đ</span>
+    </div>
+    <div class="item-actions">
+        <button class="btn btn-sm btn-danger" @onclick="RemoveItem">
+            <i class="bi bi-trash"></i>
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int ProductId { get; set; }
+    [Parameter] public string ProductName { get; set; } = "";
+    [Parameter] public string ImageUrl { get; set; } = "";
+    [Parameter] public decimal Price { get; set; }
+    [Parameter] public int Quantity { get; set; }
+    [Parameter] public decimal Total { get; set; }
+
+    private void IncreaseQuantity()
+    {
+        // Tăng số lượng
+    }
+
+    private void DecreaseQuantity()
+    {
+        // Giảm số lượng
+    }
+
+    private void RemoveItem()
+    {
+        // Xóa item khỏi giỏ hàng
+    }
+}
+

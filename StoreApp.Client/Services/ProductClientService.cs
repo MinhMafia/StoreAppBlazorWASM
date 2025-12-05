@@ -4,7 +4,7 @@ using StoreApp.Shared; // Nhớ using DTO
 
 public interface IProductClientService
 {
-    Task<PaginationResult<ProductDTO>> GetProducts(int page, int pageSize, string? search, decimal? min, decimal? max);
+    Task<PaginationResult<ProductDTO>> GetProducts(int page, int pageSize, string? search, decimal? min, decimal? max, string? sortBy = null, int? categoryId = null);
     Task<bool> DeleteProduct(int id);
     Task<ProductDTO> GetProductById(int id);
 }
@@ -18,7 +18,7 @@ public class ProductClientService : IProductClientService
         _http = http;
     }
 
-    public async Task<PaginationResult<ProductDTO>> GetProducts(int page, int pageSize, string? search, decimal? min, decimal? max)
+    public async Task<PaginationResult<ProductDTO>> GetProducts(int page, int pageSize, string? search, decimal? min, decimal? max, string? sortBy = null, int? categoryId = null)
     {
         var queryParams = new Dictionary<string, string?>
         {
@@ -29,11 +29,14 @@ public class ProductClientService : IProductClientService
         if (!string.IsNullOrEmpty(search)) queryParams["search"] = search;
         if (min.HasValue) queryParams["minPrice"] = min.ToString();
         if (max.HasValue) queryParams["maxPrice"] = max.ToString();
+        if (!string.IsNullOrEmpty(sortBy)) queryParams["sortBy"] = sortBy;
+        if (categoryId.HasValue) queryParams["categoryId"] = categoryId.ToString();
 
         var url = QueryHelpers.AddQueryString("api/products/paginated", queryParams);
 
-        // Gọi API và trả về kết quả luôn
-        return await _http.GetFromJsonAsync<PaginationResult<ProductDTO>>(url);
+        // Gọi API; nếu null trả về kết quả rỗng để tránh null reference
+        return await _http.GetFromJsonAsync<PaginationResult<ProductDTO>>(url)
+               ?? new PaginationResult<ProductDTO>();
     }
 
     public async Task<bool> DeleteProduct(int id)
@@ -45,6 +48,7 @@ public class ProductClientService : IProductClientService
     public async Task<ProductDTO> GetProductById(int id)
     {
         // Gọi API Backend: GET api/products/{id}
-        return await _http.GetFromJsonAsync<ProductDTO>($"api/products/{id}");
+        return await _http.GetFromJsonAsync<ProductDTO>($"api/products/{id}")
+               ?? new ProductDTO();
     }
 }

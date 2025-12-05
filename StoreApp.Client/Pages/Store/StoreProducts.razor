@@ -1,0 +1,807 @@
+@page "/store/products"
+@layout StoreLayout
+@using StoreApp.Shared
+@using Microsoft.AspNetCore.WebUtilities
+@inject IProductClientService ProductService
+@inject ICategoryClientService CategoryService
+@inject IPromotionService PromotionService
+@inject NavigationManager Navigation
+
+<PageTitle>Sản phẩm - Cửa Hàng Tiện Lợi</PageTitle>
+
+<!-- Breadcrumb -->
+<div class="breadcrumb-bar">
+    <div class="container">
+        <nav class="breadcrumb-nav">
+            <a href="/store">TRANG CHỦ</a>
+            @if (selectedCategory != null)
+            {
+                <text> / </text>
+                <a href="/store/products">SẢN PHẨM</a>
+                <text> / </text>
+                <span>@selectedCategory.Name</span>
+            }
+            else
+            {
+                <text> / </text>
+                <span>SẢN PHẨM</span>
+            }
+        </nav>
+    </div>
+</div>
+
+<div class="store-products-page">
+    <div class="container">
+        <!-- Page Header -->
+        <div class="products-page-header">
+            <div class="header-title">
+                @if (selectedCategory != null)
+                {
+                    <h1>@selectedCategory.Name</h1>
+                    <p class="category-description">Khám phá các sản phẩm trong danh mục @selectedCategory.Name</p>
+                }
+                else
+                {
+            <h1>Tất cả sản phẩm</h1>
+                    <p class="category-description">Khám phá bộ sưu tập sản phẩm đa dạng của chúng tôi</p>
+                }
+            </div>
+            <div class="header-stats">
+                <span class="product-count">@totalItems sản phẩm</span>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-section">
+            <div class="search-container">
+                <div class="search-input-wrapper">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" 
+                           class="form-control search-input" 
+                           placeholder="Tìm kiếm sản phẩm..." 
+                           @bind="searchKeyword"
+                           @bind:event="oninput"
+                           @onkeypress="HandleSearchKeyPress" />
+                    @if (!string.IsNullOrEmpty(searchKeyword))
+                    {
+                        <button class="btn-clear-search" @onclick="ClearSearch">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    }
+                </div>
+                <button class="btn-search" @onclick="ApplySearch">
+                    <i class="bi bi-search"></i> Tìm kiếm
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label class="filter-label">Danh mục:</label>
+                <div class="category-filters">
+                    <button class="filter-chip @(selectedCategoryId == null ? "active" : "")" 
+                            @onclick="() => SelectCategory(null)">
+                        Tất cả
+                    </button>
+                    @if (categories != null && categories.Any())
+                    {
+                        @foreach (var category in categories)
+                        {
+                            <button class="filter-chip @(selectedCategoryId == category.Id ? "active" : "")" 
+                                    @onclick="() => SelectCategory(category.Id)">
+                                @category.Name
+                            </button>
+                        }
+                    }
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Giá:</label>
+                <div class="price-filter-inputs">
+                    <input type="number" 
+                           class="form-control price-input" 
+                           @bind="minPrice" 
+                           placeholder="Từ" />
+                    <span class="price-separator">-</span>
+                    <input type="number" 
+                           class="form-control price-input" 
+                           @bind="maxPrice" 
+                           placeholder="Đến" />
+                    <button class="btn-filter-apply" @onclick="ApplyPriceFilter">
+                        Áp dụng
+                    </button>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Sắp xếp:</label>
+                <select class="form-select sort-select" 
+                        @bind="sortOrder" 
+                        @bind:event="onchange"
+                        @bind:after="OnSortOrderChanged">
+                    <option value="default">Thứ tự mặc định</option>
+                    <option value="price-asc">Giá: Thấp đến Cao</option>
+                    <option value="price-desc">Giá: Cao đến Thấp</option>
+                    <option value="name-asc">Tên: A-Z</option>
+                    <option value="name-desc">Tên: Z-A</option>
+                </select>
+            </div>
+
+            @if (HasActiveFilters())
+            {
+                <div class="filter-group">
+                    <button class="btn-clear-filters" @onclick="ClearFilters">
+                        <i class="bi bi-x-circle"></i> Xóa bộ lọc
+                    </button>
+                </div>
+            }
+        </div>
+
+        <!-- Quick Price Filters -->
+        <div class="quick-price-filters">
+            <label class="filter-label">Khoảng giá nhanh:</label>
+            <div class="quick-price-buttons">
+                <button class="quick-price-btn @(IsQuickPriceActive(0, 100000) ? "active" : "")" 
+                        @onclick="() => ApplyQuickPrice(0, 100000)">
+                    Dưới 100k
+                </button>
+                <button class="quick-price-btn @(IsQuickPriceActive(100000, 300000) ? "active" : "")" 
+                        @onclick="() => ApplyQuickPrice(100000, 300000)">
+                    100k - 300k
+                </button>
+                <button class="quick-price-btn @(IsQuickPriceActive(300000, 500000) ? "active" : "")" 
+                        @onclick="() => ApplyQuickPrice(300000, 500000)">
+                    300k - 500k
+                </button>
+                <button class="quick-price-btn @(IsQuickPriceActive(500000, 1000000) ? "active" : "")" 
+                        @onclick="() => ApplyQuickPrice(500000, 1000000)">
+                    500k - 1M
+                </button>
+                <button class="quick-price-btn @(IsQuickPriceActive(1000000, null) ? "active" : "")" 
+                        @onclick="() => ApplyQuickPrice(1000000, null)">
+                    Trên 1M
+                </button>
+            </div>
+        </div>
+
+        <!-- Active Filters Display -->
+        @if (HasActiveFilters())
+        {
+            <div class="active-filters">
+                <span class="active-filters-label">Bộ lọc đang áp dụng:</span>
+                @if (selectedCategoryId.HasValue && selectedCategory != null)
+                {
+                    <span class="filter-tag">
+                        Danh mục: @selectedCategory.Name
+                        <button class="filter-tag-remove" @onclick="() => SelectCategory(null)">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </span>
+                }
+                @if (minPrice.HasValue)
+                {
+                    <span class="filter-tag">
+                        Từ @minPrice.Value.ToString("N0") ₫
+                        <button class="filter-tag-remove" @onclick="async () => { minPrice = null; await ApplyPriceFilter(); }">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </span>
+                }
+                @if (maxPrice.HasValue)
+                {
+                    <span class="filter-tag">
+                        Đến @maxPrice.Value.ToString("N0") ₫
+                        <button class="filter-tag-remove" @onclick="async () => { maxPrice = null; await ApplyPriceFilter(); }">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </span>
+                }
+                @if (!string.IsNullOrEmpty(searchKeyword))
+                {
+                    <span class="filter-tag">
+                        Tìm kiếm: "@searchKeyword"
+                        <button class="filter-tag-remove" @onclick="ClearSearch">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </span>
+                }
+            </div>
+        }
+
+        <!-- Products Header with View Options -->
+        <div class="products-display-header">
+            <div class="display-header-left">
+                <span class="results-count">Tìm thấy <strong>@totalItems</strong> sản phẩm</span>
+            </div>
+            <div class="display-header-right">
+                <div class="filter-group">
+                    <label class="filter-label">Hiển thị:</label>
+                    <select class="form-select page-size-select" 
+                            @bind="pageSize" 
+                            @bind:event="onchange"
+                            @bind:after="OnPageSizeChanged">
+                        <option value="12">12/trang</option>
+                        <option value="15">15/trang</option>
+                        <option value="24">24/trang</option>
+                        <option value="36">36/trang</option>
+                        <option value="48">48/trang</option>
+                    </select>
+                </div>
+                <div class="view-mode-toggle">
+                    <button class="view-mode-btn @(viewMode == "grid" ? "active" : "")" 
+                            @onclick='() => SetViewMode("grid")'
+                            title="Xem dạng lưới">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                    </button>
+                    <button class="view-mode-btn @(viewMode == "list" ? "active" : "")" 
+                            @onclick='() => SetViewMode("list")'
+                            title="Xem dạng danh sách">
+                        <i class="bi bi-list-ul"></i>
+                    </button>
+            </div>
+            </div>
+        </div>
+
+        <!-- Main Content with Sidebar -->
+        <div class="products-layout">
+            <!-- Products Grid -->
+            <div class="products-container">
+            @if (isLoading)
+            {
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Đang tải sản phẩm...</p>
+                </div>
+            }
+            else if (products == null || !products.Any())
+            {
+                <div class="empty-state">
+                    <i class="bi bi-inbox empty-icon"></i>
+                    <h3>Không tìm thấy sản phẩm nào</h3>
+                    <p>Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác</p>
+                    @if (HasActiveFilters())
+                    {
+                        <button class="btn btn-primary" @onclick="ClearFilters">
+                            <i class="bi bi-arrow-counterclockwise"></i> Xóa tất cả bộ lọc
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                @if (viewMode == "grid")
+                {
+                    <div class="products-grid-full">
+                        @foreach (var product in products)
+                        {
+                            <ProductCard 
+                                ProductId="@product.Id"
+                                ProductName="@product.ProductName"
+                                ImageUrl="@(string.IsNullOrEmpty(product.ImageUrl) ? "/assets/images/products/product.jpg" : product.ImageUrl)"
+                                Price="@product.Price"
+                                OriginalPrice="@(product.Price)"
+                                HasPromotion="true" />
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="products-list-view">
+                        @foreach (var product in products)
+                        {
+                            <div class="product-list-item">
+                                <div class="product-list-image">
+                                    <img src="@(string.IsNullOrEmpty(product.ImageUrl) ? "/assets/images/products/product.jpg" : product.ImageUrl)" 
+                                         alt="@product.ProductName" />
+                                    @if (true)
+                                    {
+                                        <span class="promotion-badge">KHUYẾN MÃI</span>
+                                    }
+                                </div>
+                                <div class="product-list-info">
+                                    <h3 class="product-list-name">@product.ProductName</h3>
+                                    <div class="product-list-price">
+                                        <span class="current-price">@product.Price.ToString("N0") ₫</span>
+                                    </div>
+                                    <p class="product-list-description">
+                                        Sản phẩm chất lượng cao, đảm bảo an toàn cho sức khỏe
+                                    </p>
+                                </div>
+                                <div class="product-list-actions">
+                                    <button class="btn btn-primary btn-add-to-cart" @onclick="() => NavigateToProduct(product.Id)">
+                                        <i class="bi bi-cart-plus"></i> Thêm vào giỏ
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-quick-view" @onclick="() => NavigateToProduct(product.Id)">
+                                        <i class="bi bi-eye"></i> Xem nhanh
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Pagination -->
+                @if (totalPages > 1)
+                {
+                    <div class="pagination-container">
+                        <div class="pagination-info">
+                            Hiển thị @((currentPage - 1) * pageSize + 1) - @(Math.Min(currentPage * pageSize, totalItems)) trong tổng số @totalItems sản phẩm
+                        </div>
+                        <div class="pagination">
+                            @if (currentPage > 1)
+                            {
+                                <button class="page-btn" @onclick="() => ChangePage(currentPage - 1)" disabled="@isLoading">
+                                    <i class="bi bi-chevron-left"></i> Trước
+                                </button>
+                            }
+                            
+                            @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                            {
+                                var pageNum = i;
+                                <button class="page-btn @(currentPage == pageNum ? "active" : "")" 
+                                        @onclick="() => ChangePage(pageNum)"
+                                        disabled="@isLoading">
+                                    @pageNum
+                                </button>
+                            }
+                            
+                            @if (currentPage < totalPages)
+                            {
+                                <button class="page-btn" @onclick="() => ChangePage(currentPage + 1)" disabled="@isLoading">
+                                    Sau <i class="bi bi-chevron-right"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            </div>
+
+            <!-- Promotion Sidebar -->
+            <aside class="promotion-sidebar">
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <i class="bi bi-tag-fill"></i>
+                        KHUYẾN MÃI ĐANG DIỄN RA
+                    </h3>
+                    @if (promotions == null)
+                    {
+                        <div class="loading-promotions">
+                            <p>Đang tải khuyến mãi...</p>
+                        </div>
+                    }
+                    else if (!promotions.Any())
+                    {
+                        <div class="no-promotions">
+                            <i class="bi bi-inbox"></i>
+                            <p>Hiện chưa có khuyến mãi nào</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="promotions-list">
+                            @foreach (var promotion in promotions)
+                            {
+                                var isFirst = promotion == promotions.First();
+                                <div class="promotion-card @(isFirst ? "featured" : "")">
+                                    <div class="promotion-card-header">
+                                        <span class="promotion-type-badge">
+                                            @if (promotion.Type == "percent")
+                                            {
+                                                <i class="bi bi-percent"></i>
+                                                <text>%</text>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-currency-dollar"></i>
+                                                <text>VND</text>
+                                            }
+                                        </span>
+                                        <h4 class="promotion-card-title">@promotion.Description</h4>
+                                    </div>
+                                    <div class="promotion-card-body">
+                                        <div class="promotion-discount">
+                                            @if (promotion.Type == "percent")
+                                            {
+                                                <span class="discount-value">@promotion.Value%</span>
+                                                <span class="discount-label">GIẢM GIÁ</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="discount-value">@promotion.Value.ToString("N0") ₫</span>
+                                                <span class="discount-label">GIẢM GIÁ</span>
+                                            }
+                                        </div>
+                                        @if (promotion.MinOrderAmount > 0)
+                                        {
+                                            <p class="promotion-min-order">
+                                                Áp dụng cho đơn từ @promotion.MinOrderAmount.ToString("N0") ₫
+                                            </p>
+                                        }
+                                        <div class="promotion-code-display">
+                                            <span class="code-label">Mã:</span>
+                                            <code class="promotion-code-text">@promotion.Code</code>
+                                            <button class="btn-copy-small" @onclick="() => CopyPromotionCode(promotion.Code)" title="Sao chép">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                        </div>
+                                        @if (promotion.EndDate.HasValue)
+                                        {
+                                            <div class="promotion-expiry">
+                                                <i class="bi bi-calendar-event"></i>
+                                                Hết hạn: @promotion.EndDate.Value.ToString("dd/MM/yyyy")
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- Additional Info Section -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <i class="bi bi-info-circle"></i>
+                        THÔNG TIN HỮU ÍCH
+                    </h3>
+                    <div class="info-links">
+                        <a href="#" class="info-link">
+                            <i class="bi bi-truck"></i>
+                            Miễn phí vận chuyển đơn từ 500k
+                        </a>
+                        <a href="#" class="info-link">
+                            <i class="bi bi-shield-check"></i>
+                            Đảm bảo chất lượng 100%
+                        </a>
+                        <a href="#" class="info-link">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                            Đổi trả trong 7 ngày
+                        </a>
+                        <a href="#" class="info-link">
+                            <i class="bi bi-headset"></i>
+                            Hỗ trợ 24/7
+                        </a>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ProductDTO>? products;
+    private List<CategoryResponseDTO>? categories;
+    private CategoryResponseDTO? selectedCategory;
+    private int? selectedCategoryId;
+    private int currentPage = 1;
+    private int pageSize = 15;
+    private int totalPages = 1;
+    private int totalItems = 0;
+    private decimal? minPrice;
+    private decimal? maxPrice;
+    private string sortOrder = "default";
+    private string searchKeyword = "";
+    private bool isLoading = false;
+    private string viewMode = "grid"; // "grid" or "list"
+    private List<PromotionDTO>? promotions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Đọc query parameters từ URL
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var queryParams = QueryHelpers.ParseQuery(uri.Query);
+        
+        if (queryParams.TryGetValue("category", out var categoryParam) && int.TryParse(categoryParam, out var categoryId))
+        {
+            selectedCategoryId = categoryId;
+        }
+
+        await Task.WhenAll(
+            LoadProducts(),
+            LoadCategories(),
+            LoadPromotions()
+        );
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Khi URL thay đổi (ví dụ click vào category), reload dữ liệu
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var queryParams = QueryHelpers.ParseQuery(uri.Query);
+        
+        int? newCategoryId = null;
+        if (queryParams.TryGetValue("category", out var categoryParam) && int.TryParse(categoryParam, out var categoryId))
+        {
+            newCategoryId = categoryId;
+        }
+
+        if (newCategoryId != selectedCategoryId)
+        {
+            selectedCategoryId = newCategoryId;
+            currentPage = 1; // Reset về trang đầu khi đổi category
+            await LoadProducts();
+            await LoadCategories(); // Reload để lấy tên category
+        }
+    }
+
+    private async Task LoadCategories()
+    {
+        try
+        {
+            var result = await CategoryService.GetCategories(1, 50, null, "active");
+            categories = result?.Items
+                .Where(c => c.IsActive)
+                .ToList() ?? new List<CategoryResponseDTO>();
+
+            // Tìm category được chọn
+            if (selectedCategoryId.HasValue && categories != null)
+            {
+                selectedCategory = categories.FirstOrDefault(c => c.Id == selectedCategoryId.Value);
+            }
+        }
+        catch
+        {
+            categories = new List<CategoryResponseDTO>();
+        }
+    }
+
+    private async Task LoadProducts()
+    {
+        isLoading = true;
+        StateHasChanged();
+        
+        try
+        {
+            // Convert sortOrder to server format
+            string? serverSortBy = sortOrder switch
+            {
+                "price-asc" => "price_asc",
+                "price-desc" => "price_desc",
+                "name-asc" => "name_asc",
+                "name-desc" => "name_desc",
+                _ => null
+            };
+
+            // Validate currentPage before calling API
+            if (totalPages > 0 && currentPage > totalPages)
+            {
+                currentPage = 1;
+            }
+            
+            var result = await ProductService.GetProducts(
+                currentPage, 
+                pageSize, 
+                string.IsNullOrWhiteSpace(searchKeyword) ? null : searchKeyword, 
+                minPrice, 
+                maxPrice, 
+                serverSortBy,
+                selectedCategoryId);
+            
+            if (result != null)
+            {
+                totalItems = result.TotalItems;
+                
+                if (result.TotalPages > 0)
+                {
+                    totalPages = result.TotalPages;
+                }
+                else if (totalItems > 0)
+                {
+                    int calculatedPages = (int)Math.Ceiling((double)totalItems / pageSize);
+                    if (totalPages <= 0 || totalPages == 1)
+                    {
+                        totalPages = calculatedPages;
+                    }
+                }
+                
+                if (result.Items != null && result.Items.Any())
+                {
+                    products = result.Items.ToList();
+                }
+                else
+                {
+                    products = new List<ProductDTO>();
+                    
+                    if (totalPages > 0 && currentPage > totalPages)
+                    {
+                        currentPage = 1;
+                        var retryResult = await ProductService.GetProducts(1, pageSize, string.IsNullOrWhiteSpace(searchKeyword) ? null : searchKeyword, minPrice, maxPrice, serverSortBy, selectedCategoryId);
+                        if (retryResult != null && retryResult.Items != null && retryResult.Items.Any())
+                        {
+                            products = retryResult.Items.ToList();
+                            totalItems = retryResult.TotalItems;
+                            if (retryResult.TotalPages > 0) totalPages = retryResult.TotalPages;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                products = new List<ProductDTO>();
+                if (totalPages == 0 && totalItems == 0)
+                {
+                    totalPages = 1;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading products: {ex.Message}");
+            products = new List<ProductDTO>();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ApplyPriceFilter()
+    {
+        currentPage = 1;
+        await LoadProducts();
+    }
+
+    private async Task ApplySearch()
+    {
+        currentPage = 1;
+        await LoadProducts();
+    }
+
+    private async Task HandleSearchKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await ApplySearch();
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        searchKeyword = "";
+        currentPage = 1;
+        await LoadProducts();
+    }
+
+    private async Task SelectCategory(int? categoryId)
+    {
+        selectedCategoryId = categoryId;
+        currentPage = 1;
+        
+        // Update URL
+        if (categoryId.HasValue)
+        {
+            Navigation.NavigateTo($"/store/products?category={categoryId.Value}");
+        }
+        else
+        {
+            Navigation.NavigateTo("/store/products");
+        }
+        
+        // Reload data sẽ được trigger bởi OnParametersSetAsync
+        await Task.CompletedTask;
+    }
+
+    private async Task ClearFilters()
+    {
+        selectedCategoryId = null;
+        searchKeyword = "";
+        minPrice = null;
+        maxPrice = null;
+        currentPage = 1;
+        Navigation.NavigateTo("/store/products");
+        
+        // Reload data sẽ được trigger bởi OnParametersSetAsync
+        await Task.CompletedTask;
+    }
+
+    private bool HasActiveFilters()
+    {
+        return selectedCategoryId.HasValue || 
+               minPrice.HasValue || 
+               maxPrice.HasValue || 
+               !string.IsNullOrEmpty(searchKeyword);
+    }
+
+    private async Task ChangePage(int page)
+    {
+        if (isLoading) return;
+        
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) 
+        {
+            page = 1;
+        }
+        
+        if (currentPage == page) return;
+        
+        currentPage = page;
+        await LoadProducts();
+    }
+
+    private async Task OnSortOrderChanged()
+    {
+        currentPage = 1;
+        await LoadProducts();
+    }
+
+    private async Task OnPageSizeChanged()
+    {
+        currentPage = 1;
+        totalPages = 1; // Reset để tính lại
+        await LoadProducts();
+    }
+
+    private void SetViewMode(string mode)
+    {
+        viewMode = mode;
+        StateHasChanged();
+    }
+
+    private void NavigateToProduct(int productId)
+    {
+        Navigation.NavigateTo($"/store/products/{productId}");
+    }
+
+    private bool IsQuickPriceActive(decimal? min, decimal? max)
+    {
+        if (minPrice == min && maxPrice == max)
+            return true;
+        return false;
+    }
+
+    private async Task ApplyQuickPrice(decimal? min, decimal? max)
+    {
+        // Nếu đã chọn cùng range thì bỏ chọn
+        if (minPrice == min && maxPrice == max)
+        {
+            minPrice = null;
+            maxPrice = null;
+        }
+        else
+        {
+            minPrice = min;
+            maxPrice = max;
+        }
+        currentPage = 1;
+        await LoadProducts();
+    }
+
+    private async Task LoadPromotions()
+    {
+        try
+        {
+            var result = await PromotionService.GetPromotionsPaginated(1, 10, null, "active", null);
+            if (result != null && result.Items.Any())
+            {
+                promotions = result.Items
+                    .Where(p => p.Active && (!p.EndDate.HasValue || p.EndDate.Value >= DateTime.UtcNow))
+                    .OrderByDescending(p => p.Value)
+                    .Take(5)
+                    .ToList();
+            }
+            else
+            {
+                promotions = new List<PromotionDTO>();
+            }
+        }
+        catch
+        {
+            promotions = new List<PromotionDTO>();
+        }
+    }
+
+    private void CopyPromotionCode(string? code = null)
+    {
+        if (!string.IsNullOrEmpty(code))
+        {
+            // Hiển thị thông báo hoặc copy code
+            // Trong Blazor WASM có thể dùng JSInterop để copy vào clipboard
+            // Tạm thời chỉ hiển thị code để user tự copy
+            Console.WriteLine($"Mã khuyến mãi: {code}");
+        }
+    }
+}

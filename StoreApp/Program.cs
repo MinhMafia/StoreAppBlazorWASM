@@ -112,6 +112,7 @@ builder.Services.AddScoped(sp => new HttpClient
 builder.Services.AddScoped<IStatisticsService, StoreApp.Client.Services.StatisticsService>();
 builder.Services.AddScoped<IPromotionService, StoreApp.Client.Services.PromotionService>();
 builder.Services.AddScoped<IProductClientService, ProductClientService>();
+builder.Services.AddScoped<ICategoryClientService, CategoryClientService>();
 
 var app = builder.Build();
 

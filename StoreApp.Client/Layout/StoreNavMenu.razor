@@ -1,0 +1,98 @@
+<!-- Top Bar -->
+<div class="top-bar">
+    <div class="container">
+        <div class="top-bar-content">
+            <div class="top-bar-left">
+                <span>Tổng đài: 1900.0010 | 1900.0012</span>
+            </div>
+            <div class="top-bar-right">
+                <div class="search-box">
+                    <input type="text" placeholder="Bạn muốn mua gì?" class="search-input" />
+                    <button class="search-btn">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Header -->
+<header class="store-header">
+    <div class="container">
+        <div class="header-content">
+            <!-- Logo -->
+            <div class="logo-section">
+                <a href="/store" class="logo">
+                    <div class="logo-icon">
+                        <i class="bi bi-shop"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>FreshMart</h1>
+                        <p>Thực phẩm tươi sống</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Service Info -->
+            <div class="service-info">
+                <div class="service-item">
+                    <i class="bi bi-truck"></i>
+                    <div>
+                        <strong>Giao hàng Toàn Quốc</strong>
+                        <span>Miễn phí vận chuyển</span>
+                    </div>
+                </div>
+                <div class="service-item">
+                    <i class="bi bi-telephone"></i>
+                    <div>
+                        <strong>Hotline: 09 3574 3575</strong>
+                        <span>Hỗ trợ 24/7</span>
+                    </div>
+                </div>
+                <div class="service-item">
+                    <i class="bi bi-credit-card"></i>
+                    <div>
+                        <strong>Thanh toán dễ dàng</strong>
+                        <span>Nhận hàng thanh toán</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart -->
+            <div class="cart-section">
+                <NavLink href="/store/cart" class="cart-link">
+                    <i class="bi bi-cart3"></i>
+                    <span class="cart-amount">0₫</span>
+                </NavLink>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Navigation Bar -->
+<nav class="store-navbar">
+    <div class="container">
+        <div class="navbar-content">
+            <button class="categories-btn">
+                <i class="bi bi-list"></i>
+                DANH MỤC SẢN PHẨM
+            </button>
+            
+            <div class="navbar-menu">
+                <NavLink href="/store" Match="NavLinkMatch.All" class="nav-link">
+                    TRANG CHỦ
+                </NavLink>
+                <NavLink href="/store/products" class="nav-link">
+                    SẢN PHẨM
+                </NavLink>
+                <NavLink href="/store/cart" class="nav-link">
+                    GIỎ HÀNG
+                </NavLink>
+                <NavLink href="/store/orders" class="nav-link">
+                    ĐƠN HÀNG CỦA TÔI
+                </NavLink>
+            </div>
+        </div>
+    </div>
+</nav>

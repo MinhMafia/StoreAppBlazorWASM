@@ -1,0 +1,83 @@
+@page "/store/orders/{OrderId:int}"
+@layout StoreLayout
+@using StoreApp.Shared
+
+<PageTitle>Chi tiết đơn hàng - Cửa Hàng Tiện Lợi</PageTitle>
+
+<div class="store-order-detail">
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="/store">Trang chủ</a> / 
+            <a href="/store/orders">Đơn hàng của tôi</a> / 
+            <span>Chi tiết</span>
+        </nav>
+
+        <h1>Chi tiết đơn hàng #@OrderId</h1>
+
+        @if (order == null)
+        {
+            <div class="loading">
+                <p>Đang tải thông tin đơn hàng...</p>
+            </div>
+        }
+        else
+        {
+            <!-- Order Info -->
+            <div class="order-info-section">
+                <h2>Thông tin đơn hàng</h2>
+                <div class="info-grid">
+                    <div>
+                        <label>Mã đơn hàng:</label>
+                        <span>#@order.Id</span>
+                    </div>
+                    <div>
+                        <label>Ngày đặt:</label>
+                        <span>@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div>
+                        <label>Trạng thái:</label>
+                        <span class="badge">@order.Status</span>
+                    </div>
+                    <div>
+                        <label>Tổng tiền:</label>
+                        <span class="total-amount">@order.TotalAmount.ToString("N0") đ</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shipping Info -->
+            <div class="shipping-info-section">
+                <h2>Thông tin giao hàng</h2>
+                <!-- Địa chỉ giao hàng -->
+            </div>
+
+            <!-- Order Items -->
+            <div class="order-items-section">
+                <h2>Sản phẩm đã đặt</h2>
+                <div class="items-table">
+                    <!-- Bảng sản phẩm -->
+                </div>
+            </div>
+
+            <!-- Payment Info -->
+            <div class="payment-info-section">
+                <h2>Thông tin thanh toán</h2>
+                <!-- Phương thức thanh toán -->
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public int OrderId { get; set; }
+    
+    private OrderDTO? order = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load chi tiết đơn hàng theo OrderId
+        await Task.CompletedTask;
+    }
+}
+
