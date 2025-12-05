@@ -1,66 +1,217 @@
 @page "/store/checkout"
+@inject NavigationManager Navigation
 @layout StoreLayout
 
-<PageTitle>Thanh toán - Cửa Hàng Tiện Lợi</PageTitle>
+<PageTitle>Đặt hàng - FreshMart</PageTitle>
 
-<div class="store-checkout">
-    <div class="container">
-        <h1>Thanh toán</h1>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-        <div class="checkout-content">
-            <!-- Thông tin khách hàng -->
-            <section class="checkout-section">
-                <h2>Thông tin khách hàng</h2>
-                <div class="form-group">
-                    <!-- Form nhập thông tin -->
+<div class="max-w-7xl mx-auto px-4 py-10 bg-gray-50 min-h-screen">
+    <h2 class="text-3xl lg:text-4xl font-bold text-center text-gray-800 mb-10">Xác nhận & Thanh toán</h2>
+
+    <div class="grid lg:grid-cols-3 gap-8">
+
+        <!-- CỘT TRÁI -->
+        <div class="lg:col-span-2 space-y-8">
+
+            <!-- 1. Thông tin khách hàng -->
+            <!-- 1. Thông tin khách hàng – PHIÊN BẢN NHỎ GỌN & HIỆN ĐẠI -->
+            <div class="bg-white rounded-3xl shadow-soft p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-5 flex items-center gap-3">
+                    <i class="fas fa-user text-primary"></i> Thông tin nhận hàng
+                </h3>
+
+                <div class="grid md:grid-cols-2 gap-4"> <!-- giảm gap-6 → gap-4 -->
+                    <input type="text" id="full_name" placeholder="Họ và tên *"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base"
+                        required>
+
+                    <input type="tel" id="phone" placeholder="Số điện thoại *"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base"
+                        required>
+
+                    <input type="email" id="email" placeholder="Email (không bắt buộc)"
+                        class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base">
+
+                    <textarea id="address" rows="3" placeholder="Địa chỉ giao hàng chi tiết *"
+                        class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base resize-none"
+                        required></textarea>
+
+                    <textarea id="note" rows="2" placeholder="Ghi chú (giao giờ nào, để trước cửa...)"
+                        class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base resize-none"></textarea>
                 </div>
-            </section>
+            </div>
 
-            <!-- Địa chỉ giao hàng -->
-            <section class="checkout-section">
-                <h2>Địa chỉ giao hàng</h2>
-                <div class="form-group">
-                    <!-- Form nhập địa chỉ -->
+            <!-- 2. SẢN PHẨM – ĐÃ CHỈNH NHẸ, GỌN HƠN RẤT NHIỀU -->
+            <div class="bg-white rounded-3xl shadow-soft overflow-hidden">
+                <div class="p-6 border-b border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-3">
+                        <i class="fas fa-box text-primary"></i> Sản phẩm (26 món)
+                    </h3>
                 </div>
-            </section>
 
-            <!-- Phương thức thanh toán -->
-            <section class="checkout-section">
-                <h2>Phương thức thanh toán</h2>
-                <div class="payment-methods">
-                    <!-- Các phương thức thanh toán -->
-                </div>
-            </section>
+                <div class="max-h-96 overflow-y-auto divide-y divide-gray-100">
+                    <!-- Item mẫu – đã thu nhỏ và tinh tế hơn -->
+                    <div class="flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition">
+                        <img src="https://cdn.tgdd.vn/Products/Images/2443/76464/bhx/nuoc-tang-luc-red-bull-thai-lon-250ml.jpg"
+                            class="w-16 h-16 object-cover rounded-lg shadow-sm flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-medium text-gray-800 text-base line-clamp-2">Nước tăng lực Red Bull Thái
+                                250ml</h4>
+                            <p class="text-sm text-gray-500 mt-0.5">3 × 12.500₫</p>
+                        </div>
+                        <span class="text-base font-semibold text-primaryDark whitespace-nowrap">37.500₫</span>
+                    </div>
 
-            <!-- Order Summary -->
-            <aside class="order-summary">
-                <h3>Tóm tắt đơn hàng</h3>
-                <!-- Chi tiết đơn hàng -->
-                <div class="summary-total">
-                    <span>Tổng cộng:</span>
-                    <span>@totalAmount.ToString("N0") đ</span>
+                    <div class="flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition">
+                        <img src="https://cdn.tgdd.vn/Products/Images/2565/76469/bhx/mi-hao-hao-tom-chua-cay-75g.jpg"
+                            class="w-16 h-16 object-cover rounded-lg shadow-sm flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-medium text-gray-800 text-base line-clamp-2">Mì Hảo Hảo tôm chua cay 75g
+                            </h4>
+                            <p class="text-sm text-gray-500 mt-0.5">10 × 4.500₫</p>
+                        </div>
+                        <span class="text-base font-semibold text-primaryDark whitespace-nowrap">45.000₫</span>
+                    </div>
+
+                    <div class="flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition">
+                        <img src="https://cdn.tgdd.vn/Products/Images/2386/228429/bhx/sua-tuoi-th-true-milk-it-duong-hop-1l.jpg"
+                            class="w-16 h-16 object-cover rounded-lg shadow-sm flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-medium text-gray-800 text-base line-clamp-2">Sữa tươi TH True Milk ít đường
+                                1L</h4>
+                            <p class="text-sm text-gray-500 mt-0.5">2 × 34.500₫</p>
+                        </div>
+                        <span class="text-base font-semibold text-primaryDark whitespace-nowrap">69.000₫</span>
+                    </div>
+
+                    <!-- Các item còn lại bạn copy y hệt khối trên là đẹp -->
                 </div>
-                <button class="btn btn-primary btn-place-order" @onclick="PlaceOrder">
-                    Đặt hàng
-                </button>
-            </aside>
+            </div>
+
+            <!-- 3. KHUYẾN MÃI – NHỎ GỌN, DỄ NHÌN HƠN -->
+            <div class="bg-white rounded-3xl shadow-soft p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-5 flex items-center gap-3">
+                    <i class="fas fa-tag text-primary"></i> Chọn khuyến mãi
+                </h3>
+                <div class="space-y-3">
+                    <label
+                        class="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-primary transition">
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="promo" class="w-4 h-4 text-primary">
+                            <div>
+                                <div class="font-medium text-base">Không sử dụng mã</div>
+                                <div class="text-xs text-gray-500">Tiết kiệm 0đ</div>
+                            </div>
+                        </div>
+                    </label>
+
+                    <label
+                        class="flex items-center justify-between p-4 border-2 border-primary rounded-xl bg-primary/5 cursor-pointer">
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="promo" class="w-4 h-4 text-primary" checked>
+                            <div>
+                                <div class="font-semibold text-primary">FREESHIP</div>
+                                <div class="text-xs text-gray-600">Miễn phí vận chuyển cho đơn từ 300.000đ</div>
+                            </div>
+                        </div>
+                        <i class="fas fa-truck text-primary"></i>
+                    </label>
+
+                    <label
+                        class="flex items-center justify-between p-4 border-2 border-orange-300 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition cursor-pointer">
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="promo" class="w-4 h-4 text-orange-600">
+                            <div>
+                                <div class="font-semibold text-orange-600">GIAM50K</div>
+                                <div class="text-xs text-gray-600">Giảm ngay 50.000đ cho đơn từ 500.000đ</div>
+                            </div>
+                        </div>
+                        <i class="fas fa-gift text-orange-600"></i>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 4. THANH TOÁN – CŨNG NHỎ GỌN HƠN -->
+            <div class="bg-white rounded-3xl shadow-soft p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-5 flex items-center gap-3">
+                    <i class="fas fa-credit-card text-primary"></i> Phương thức thanh toán
+                </h3>
+                <div class="space-y-3">
+                    <label
+                        class="flex items-center justify-between p-4 border-2 border-primary rounded-xl bg-primary/5">
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="payment" class="w-4 h-4 text-primary" checked>
+                            <div>
+                                <div class="font-medium text-base">Thanh toán khi nhận hàng (COD)</div>
+                                <div class="text-xs text-gray-600">Trả tiền mặt khi nhận hàng</div>
+                            </div>
+                        </div>
+                        <i class="fas fa-money-bill-wave text-primary text-xl"></i>
+                    </label>
+
+                    <label
+                        class="flex items-center justify-between p-4 border-2 border-pink-400 rounded-xl hover:border-pink-500 hover:bg-pink-50 transition">
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="payment" class="w-4 h-4 text-pink-600">
+                            <div>
+                                <div class="font-medium text-pink-600 text-base">Ví Momo</div>
+                                <div class="text-xs text-gray-600">Nhận thêm ưu đãi từ Momo</div>
+                            </div>
+                        </div>
+                        <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="Momo" class="h-8">
+                    </label>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- CỘT PHẢI: Tóm tắt thanh toán -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-3xl shadow-soft p-8 sticky top-28">
+                <h3 class="text-2xl font-bold text-gray-800 mb-8">Tóm tắt đơn hàng</h3>
+
+                <div class="space-y-5 text-lg">
+                    <div class="flex justify-between">
+                        <span>Tạm tính</span>
+                        <span id="subtotal" class="font-semibold">0₫</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Phí vận chuyển</span>
+                        <span id="shipping" class="font-semibold">30.000₫</span>
+                    </div>
+                    <div class="flex justify-between text-primary font-bold text-lg">
+                        <span>Giảm giá</span>
+                        <span id="discount">-0₫</span>
+                    </div>
+                    <div class="border-t-4 border-dashed border-primaryLight pt-6 mt-6">
+                        <div class="flex justify-between text-3xl font-bold text-primaryDark">
+                            <span>Tổng cộng</span>
+                            <span id="final-total">0₫</span>
+                        </div>
+                    </div>
+
+                    <button id="place-order-btn"
+                        @onclick="GoToThankYouPage"
+                        class="w-full mt-8 bg-gradient-to-r from-primary to-primaryHover text-white font-bold text-2xl py-6 rounded-2xl shadow-strong hover:shadow-2xl transform hover:scale-105 transition-all duration-500 relative overflow-hidden group">
+                        <span class="relative z-10">ĐẶT HÀNG NGAY</span>
+                        <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition"></div>
+                    </button>
+
+                    <a href="/store/products"
+                        class="block text-center text-primary font-semibold py-4 border-2 border-primary rounded-xl hover:bg-primaryLight/20 transition mt-4">
+                        ← Quay lại giỏ hàng
+                    </a>
+
+                    <div class="mt-8 text-center text-sm text-gray-500">
+                        <i class="fas fa-shield-alt text-primary mr-2"></i>
+                        Thanh toán an toàn • Giao nhanh 30 phút • Đổi trả dễ dàng
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
-
 @code {
-    private decimal totalAmount = 0;
-
-    protected override async Task OnInitializedAsync()
-    {
-        // Load thông tin từ giỏ hàng
-        await Task.CompletedTask;
-    }
-
-    private async Task PlaceOrder()
-    {
-        // Xử lý đặt hàng
-        await Task.CompletedTask;
-    }
+    private void GoToThankYouPage() => Navigation.NavigateTo("/store/thankyou");
 }
-
