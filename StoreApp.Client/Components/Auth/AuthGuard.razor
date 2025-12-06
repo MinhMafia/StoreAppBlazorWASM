@@ -1,0 +1,73 @@
+@* Components/Auth/AuthGuard.razor *@
+@using Blazored.LocalStorage
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager Nav
+
+@if (isAuthorized)
+{
+    @ChildContent
+}
+else if (isChecking)
+{
+    <div class="d-flex justify-content-center align-items-center min-vh-100">
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3">Đang kiểm tra quyền truy cập...</p>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public List<string>? AllowedRoles { get; set; }
+
+    private bool isAuthorized = false;
+    private bool isChecking = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var token = await LocalStorage.GetItemAsStringAsync("authToken");
+                
+                if (string.IsNullOrEmpty(token))
+                {
+                    // Chưa đăng nhập -> redirect về login
+                    Nav.NavigateTo("/login", forceLoad: true);
+                    return;
+                }
+
+                // Kiểm tra role nếu có yêu cầu
+                if (AllowedRoles != null && AllowedRoles.Any())
+                {
+                    var userRole = await LocalStorage.GetItemAsStringAsync("userRole");
+                    
+                    if (string.IsNullOrEmpty(userRole) || !AllowedRoles.Contains(userRole))
+                    {
+                        // Không đủ quyền -> redirect về trang phù hợp
+                        Nav.NavigateTo(userRole == "admin" ? "/admin/home" : "/api/store", forceLoad: true);
+                        return;
+                    }
+                }
+
+                isAuthorized = true;
+            }
+            catch
+            {
+                Nav.NavigateTo("/login", forceLoad: true);
+            }
+            finally
+            {
+                isChecking = false;
+                StateHasChanged();
+            }
+        }
+    }
+}

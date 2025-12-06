@@ -1,4 +1,4 @@
-@page "/store/products"
+@page "/api/store/products"
 @layout StoreLayout
 @using StoreApp.Shared
 @using Microsoft.AspNetCore.WebUtilities
@@ -13,11 +13,11 @@
 <div class="breadcrumb-bar">
     <div class="container">
         <nav class="breadcrumb-nav">
-            <a href="/store">TRANG CHỦ</a>
+            <a href="/api/tore">TRANG CHỦ</a>
             @if (selectedCategory != null)
             {
                 <text> / </text>
-                <a href="/store/products">SẢN PHẨM</a>
+                <a href="/api/store/products">SẢN PHẨM</a>
                 <text> / </text>
                 <span>@selectedCategory.Name</span>
             }
@@ -674,11 +674,11 @@
         // Update URL
         if (categoryId.HasValue)
         {
-            Navigation.NavigateTo($"/store/products?category={categoryId.Value}");
+            Navigation.NavigateTo($"/api/store/products?category={categoryId.Value}");
         }
         else
         {
-            Navigation.NavigateTo("/store/products");
+            Navigation.NavigateTo("/api/store/products");
         }
         
         // Reload data sẽ được trigger bởi OnParametersSetAsync
@@ -692,7 +692,7 @@
         minPrice = null;
         maxPrice = null;
         currentPage = 1;
-        Navigation.NavigateTo("/store/products");
+        Navigation.NavigateTo("/api/store/products");
         
         // Reload data sẽ được trigger bởi OnParametersSetAsync
         await Task.CompletedTask;
@@ -743,7 +743,7 @@
 
     private void NavigateToProduct(int productId)
     {
-        Navigation.NavigateTo($"/store/products/{productId}");
+        Navigation.NavigateTo($"/api/store/products/{productId}");
     }
 
     private bool IsQuickPriceActive(decimal? min, decimal? max)

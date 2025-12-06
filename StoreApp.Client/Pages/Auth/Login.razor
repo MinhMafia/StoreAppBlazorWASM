@@ -147,8 +147,15 @@
 
                     Console.WriteLine($"✅ Login successful! Token saved. Role: {authResponse.Role}");
 
-                    // Redirect về trang chủ
-                    Nav.NavigateTo("/", forceLoad: true);
+                    // Redirect dựa trên role
+                    if (authResponse.Role == "admin")
+                    {
+                        Nav.NavigateTo("/admin/home", forceLoad: true);
+                    }
+                    else
+                    {
+                        Nav.NavigateTo("/api/store", forceLoad: true);
+                    }
                 }
             }
             else

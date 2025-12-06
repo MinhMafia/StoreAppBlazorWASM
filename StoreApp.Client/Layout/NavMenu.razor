@@ -1,3 +1,7 @@
+@using Blazored.LocalStorage
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager Nav
+
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">StoreApp POS</a>
@@ -44,4 +48,20 @@
             </NavLink>
         </div>
     </nav>
+<div class="nav-item px-3">
+    <button class="btn btn-danger w-100" @onclick="HandleLogout">
+        <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+    </button>
 </div>
+</div>
+
+
+@code {
+    private async Task HandleLogout()
+    {
+        await LocalStorage.RemoveItemAsync("authToken");
+        await LocalStorage.RemoveItemAsync("userName");
+        await LocalStorage.RemoveItemAsync("userRole");
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
+}

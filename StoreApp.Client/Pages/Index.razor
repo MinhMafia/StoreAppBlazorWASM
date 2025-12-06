@@ -1,0 +1,38 @@
+@page "/"
+@using Blazored.LocalStorage
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager Nav
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var token = await LocalStorage.GetItemAsStringAsync("authToken");
+                var role = await LocalStorage.GetItemAsStringAsync("userRole");
+
+                if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(role))
+                {
+                    if (role == "admin")
+                    {
+                        Nav.NavigateTo("/admin/home", forceLoad: true);
+                    }
+                    else
+                    {
+                        Nav.NavigateTo("/api/store", forceLoad: true);
+                    }
+                }
+                else
+                {
+                    Nav.NavigateTo("/login", forceLoad: true);
+                }
+            }
+            catch
+            {
+                Nav.NavigateTo("/login", forceLoad: true);
+            }
+        }
+    }
+}
