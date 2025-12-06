@@ -14,14 +14,15 @@ namespace StoreApp.Data
         public DbSet<Order> Orders { get; set; }
         public DbSet<InventoryAdjustment> InventoryAdjustments { get; set; }
         public DbSet<Inventory> Inventory { get; set; }
+        public DbSet<Unit> Units { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Promotion> Promotions { get; set; }
-    public DbSet<AiConversation> AiConversations { get; set; }
-    public DbSet<AiMessage> AiMessages { get; set; }
+        public DbSet<AiConversation> AiConversations { get; set; }
+        public DbSet<AiMessage> AiMessages { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -43,6 +44,12 @@ namespace StoreApp.Data
             // .HasIndex(p => p.Barcode)
             // .IsUnique()
             // .HasDatabaseName("ux_products_barcode");
+
+            modelBuilder.Entity<Product>()
+                .HasOne(p => p.Unit)
+                .WithMany(u => u.Products)
+                .HasForeignKey(p => p.UnitId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Product>()
                 .HasIndex(p => p.CategoryId)

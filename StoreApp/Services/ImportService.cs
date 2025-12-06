@@ -493,7 +493,7 @@ namespace StoreApp.Services
                 SupplierId = dto.SupplierId,
                 Price = dto.Price,
                 Cost = dto.Cost,
-                Unit = dto.Unit,
+                UnitId = dto.UnitId,
                 Description = dto.Description,
                 ImageUrl = dto.ImageUrl,
                 IsActive = dto.IsActive,
@@ -509,7 +509,7 @@ namespace StoreApp.Services
             product.SupplierId = dto.SupplierId;
             product.Price = dto.Price;
             product.Cost = dto.Cost;
-            product.Unit = dto.Unit;
+            product.UnitId = dto.UnitId;
             product.Description = dto.Description;
             product.ImageUrl = dto.ImageUrl;
             product.IsActive = dto.IsActive;

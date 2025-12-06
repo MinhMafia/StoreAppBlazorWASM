@@ -137,8 +137,10 @@ namespace StoreApp.Services
             }
 
             // Unit
-            if (string.IsNullOrWhiteSpace(product.Unit))
-                ve.AddError(nameof(product.Unit), "Đơn vị không được để trống.");
+            if (!product.UnitId.HasValue || product.UnitId.Value <= 0)
+            {
+                ve.AddError(nameof(product.UnitId), "Đơn vị không được để trống.");
+            }
 
             // Inventory checks
             if (product.Inventory != null)
@@ -203,7 +205,7 @@ namespace StoreApp.Services
                 SupplierId = p.SupplierId,
                 Price = p.Price,
                 Cost = p.Cost,
-                Unit = p.Unit,
+                UnitId = p.UnitId,
                 Description = p.Description,
                 ImageUrl = p.ImageUrl,
                 IsActive = p.IsActive,

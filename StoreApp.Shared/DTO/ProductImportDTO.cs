@@ -8,7 +8,7 @@ namespace StoreApp.Shared
         public int? SupplierId { get; set; }
         public decimal Price { get; set; }
         public decimal? Cost { get; set; }
-        public string? Unit { get; set; }
+        public int? UnitId { get; set; }
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
         public bool IsActive { get; set; } = true;

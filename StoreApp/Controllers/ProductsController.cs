@@ -86,7 +86,7 @@ namespace StoreApp.Controllers
                     SupplierId = productDto.SupplierId,
                     Price = productDto.Price,
                     Cost = productDto.Cost,
-                    Unit = productDto.Unit,
+                    UnitId = productDto.UnitId,
                     Description = productDto.Description,
                     ImageUrl = productDto.ImageUrl,
                     IsActive = productDto.IsActive,

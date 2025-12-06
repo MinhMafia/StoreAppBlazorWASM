@@ -1,58 +1,212 @@
-@page "/products/detail/{Id:int}"
 @using StoreApp.Shared
-@inject IProductClientService ProductService
 @inject NavigationManager Navigation
 
-<PageTitle>Chi tiết sản phẩm</PageTitle>
-
-<div class="container mt-4">
-    <h3>Thông tin sản phẩm</h3>
-
-    @if (product == null)
-    {
-        <p><em>Đang tải dữ liệu...</em></p>
-    }
-    else
-    {
-        <div class="card" style="width: 18rem;">
-            <div class="card-body">
-                @* --- YÊU CẦU CỦA BẠN: HIỂN THỊ ID VÀ TÊN --- *@
-                <h5 class="card-title">Tên: @product.ProductName</h5>
-                <h6 class="card-subtitle mb-2 text-muted">ID: @product.Id</h6>
-                @* ------------------------------------------- *@
+@if (Product == null)
+{
+    <div class="text-center p-4">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">Đang tải dữ liệu...</p>
+    </div>
+}
+else
+{
+    <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-eye"></i> Chi tiết sản phẩm
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="OnCancel"></button>
+                </div>
                 
-                <hr/>
-                <p>Giá: @product.Price.ToString("N0") đ</p>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Image preview -->
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center">
+                                <img src="@GetDisplayImage()" class="img-fluid rounded border" style="max-height: 400px; object-fit: cover;" alt="@Product.ProductName" />
+                            </div>
+                            @if (Product.Inventory != null)
+                            {
+                                <div class="mt-3 p-3 bg-light rounded">
+                                    <h6 class="fw-bold mb-2"><i class="bi bi-box-seam"></i> Tồn kho</h6>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Số lượng:</span>
+                                        <span class="fw-bold @GetQuantityClass()">
+                                            @Product.Inventory.Quantity @Product.Unit
+                                        </span>
+                                    </div>
+                                    @if (Product.Inventory.LastCheckedAt.HasValue)
+                                    {
+                                        <small class="text-muted">
+                                            Kiểm kê lần cuối: @Product.Inventory.LastCheckedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                        </small>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        
+                        <!-- Product information -->
+                        <div class="col-md-8">
+                            <div class="mb-4">
+                                <h3 class="fw-bold text-primary">@Product.ProductName</h3>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <span class="badge @(Product.IsActive ? "bg-success" : "bg-secondary")">
+                                        @(Product.IsActive ? "Đang hoạt động" : "Ngừng hoạt động")
+                                    </span>
+                                    @if (!string.IsNullOrEmpty(Product.Sku))
+                                    {
+                                        <small class="text-muted">SKU: @Product.Sku</small>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded">
+                                        <label class="text-muted small mb-1">ID sản phẩm</label>
+                                        <div class="fw-bold">#@Product.Id</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded">
+                                        <label class="text-muted small mb-1">Danh mục</label>
+                                        <div class="fw-bold">@(Product.Category?.Name ?? "—")</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded">
+                                        <label class="text-muted small mb-1">Nhà cung cấp</label>
+                                        <div class="fw-bold">@(Product.Supplier?.Name ?? "—")</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded">
+                                        <label class="text-muted small mb-1">Đơn vị</label>
+                                        <div class="fw-bold">@(Product.Unit ?? "—")</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-success bg-opacity-10 rounded border border-success">
+                                        <label class="text-muted small mb-1">Giá bán</label>
+                                        <div class="fw-bold fs-5 text-danger">@Product.Price.ToString("N0") đ</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded">
+                                        <label class="text-muted small mb-1">Giá vốn</label>
+                                        <div class="fw-bold">@(Product.Cost?.ToString("N0") ?? "—") đ</div>
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(Product.Description))
+                                {
+                                    <div class="col-12">
+                                        <div class="p-3 bg-light rounded">
+                                            <label class="text-muted small mb-1"><i class="bi bi-card-text"></i> Mô tả</label>
+                                            <div>@Product.Description</div>
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (Product.CreatedAt.HasValue || Product.UpdatedAt.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <div class="p-3 bg-light rounded">
+                                            <div class="row">
+                                                @if (Product.CreatedAt.HasValue)
+                                                {
+                                                    <div class="col-md-6">
+                                                        <label class="text-muted small mb-1">Ngày tạo</label>
+                                                        <div class="small">@Product.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                                                    </div>
+                                                }
+                                                @if (Product.UpdatedAt.HasValue)
+                                                {
+                                                    <div class="col-md-6">
+                                                        <label class="text-muted small mb-1">Cập nhật lần cuối</label>
+                                                        <div class="small">@Product.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (Product.AverageRating > 0 || Product.ReviewCount > 0)
+                                {
+                                    <div class="col-12">
+                                        <div class="p-3 bg-warning bg-opacity-10 rounded border border-warning">
+                                            <label class="text-muted small mb-1"><i class="bi bi-star-fill text-warning"></i> Đánh giá</label>
+                                            <div class="d-flex gap-3">
+                                                <div>
+                                                    <span class="fw-bold fs-5 text-warning">@Product.AverageRating.ToString("F1")</span>
+                                                    <span class="text-muted">/5.0</span>
+                                                </div>
+                                                <div class="text-muted">
+                                                    (@Product.ReviewCount đánh giá)
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
-                <button class="btn btn-secondary" @onclick="GoBack">Quay lại</button>
+                <div class="modal-footer">
+                    @if (OnDelete.HasDelegate)
+                    {
+                        <button class="btn btn-outline-danger" @onclick="() => OnDelete.InvokeAsync((Product.Id, Product.IsActive))">
+                            <i class="bi @(Product.IsActive ? "bi-trash" : "bi-arrow-clockwise")"></i> 
+                            @(Product.IsActive ? "Xóa" : "Khôi phục")
+                        </button>
+                    }
+                    
+                    @if (OnEdit.HasDelegate)
+                    {
+                        <button class="btn btn-primary" @onclick="() => OnEdit.InvokeAsync(Product)">
+                            <i class="bi bi-pencil-square"></i> Chỉnh sửa
+                        </button>
+                    }
+                    
+                    <button class="btn btn-secondary" @onclick="OnCancel">
+                        <i class="bi bi-x-lg"></i> Đóng
+                    </button>
+                </div>
             </div>
         </div>
-    }
-</div>
+    </div>
+}
 
 @code {
-    // Nhận ID từ URL
-    [Parameter]
-    public int Id { get; set; }
+    [Parameter] public ProductDTO? Product { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback<(int, bool)> OnDelete { get; set; }
+    [Parameter] public EventCallback<ProductDTO> OnEdit { get; set; }
 
-    private ProductDTO? product;
-
-    protected override async Task OnInitializedAsync()
+    private string GetDisplayImage()
     {
-        // Gọi Service lấy thông tin chi tiết
-        try 
+        if (!string.IsNullOrEmpty(Product?.ImageUrl))
         {
-            product = await ProductService.GetProductById(Id);
+            if (Product.ImageUrl.StartsWith("http"))
+                return Product.ImageUrl;
+            return $"/assets/images/products/{Product.ImageUrl}";
         }
-        catch
-        {
-            // Xử lý nếu không tìm thấy (ví dụ ID sai)
-            Navigation.NavigateTo("/products");
-        }
+        
+        return "/assets/images/products/default.jpg";
     }
 
-    private void GoBack()
+    private string GetQuantityClass()
     {
-        Navigation.NavigateTo("/products");
+        var qty = Product?.Inventory?.Quantity ?? 0;
+        return qty > 10 ? "text-success" : qty > 0 ? "text-warning" : "text-danger";
     }
 }

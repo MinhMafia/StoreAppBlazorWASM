@@ -1,0 +1,350 @@
+@using StoreApp.Shared
+@using Microsoft.AspNetCore.Components.Forms
+
+@if (Product == null)
+{
+    <div class="text-center p-4">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">Đang tải dữ liệu...</p>
+    </div>
+}
+else
+{
+    <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil-square"></i> Chỉnh sửa sản phẩm
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="OnCancel" disabled="@Saving"></button>
+                </div>
+                
+                <EditForm Model="@formData" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="modal-body">
+                        <div class="row">
+                            <!-- Image upload -->
+                            <div class="col-md-4 mb-3">
+                                <div class="text-center">
+                                    <img src="@GetDisplayImage()" class="img-fluid rounded border" style="max-height: 300px; object-fit: cover;" />
+                                    <div class="mt-3">
+                                        <label class="btn btn-outline-primary w-100">
+                                            <i class="bi bi-upload"></i> Đổi ảnh
+                                            <InputFile OnChange="HandleImageUpload" accept="image/*" class="d-none" />
+                                        </label>
+                                        @if (!string.IsNullOrEmpty(uploadedImageUrl) || !string.IsNullOrEmpty(formData.ImageUrl))
+                                        {
+                                            <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-2" @onclick="ClearImage">
+                                                <i class="bi bi-x-circle"></i> Xóa ảnh
+                                            </button>
+                                        }
+                                        <small class="text-muted d-block mt-2">Kích thước tối đa: 5MB</small>
+                                    </div>
+                                </div>
+
+                                <!-- Product info sidebar -->
+                                <div class="mt-3 p-3 bg-light rounded">
+                                    <div class="mb-2">
+                                        <small class="text-muted">ID sản phẩm</small>
+                                        <div class="fw-bold">#@Product.Id</div>
+                                    </div>
+                                    @if (Product.CreatedAt.HasValue)
+                                    {
+                                        <div class="mb-2">
+                                            <small class="text-muted">Ngày tạo</small>
+                                            <div class="small">@Product.CreatedAt.Value.ToString("dd/MM/yyyy")</div>
+                                        </div>
+                                    }
+                                    @if (Product.Inventory != null)
+                                    {
+                                        <div>
+                                            <small class="text-muted">Tồn kho hiện tại</small>
+                                            <div class="fw-bold @GetQuantityClass()">
+                                                @Product.Inventory.Quantity @Product.Unit
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            
+                            <!-- Form fields -->
+                            <div class="col-md-8">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label fw-bold">Tên sản phẩm <span class="text-danger">*</span></label>
+                                        <InputText class="@($"form-control {GetValidationClass("ProductName")}")" @bind-Value="formData.ProductName" />
+                                        <ValidationMessage For="@(() => formData.ProductName)" />
+                                        @if (errors.ContainsKey("ProductName"))
+                                        {
+                                            <div class="invalid-feedback d-block">@errors["ProductName"]</div>
+                                        }
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">SKU</label>
+                                        <InputText class="@($"form-control {GetValidationClass("Sku")}")" @bind-Value="formData.Sku" />
+                                        <small class="text-muted">Mã định danh sản phẩm</small>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Đơn vị</label>
+                                        <InputText class="form-control" @bind-Value="formData.Unit" placeholder="vd: Cái, Hộp, Kg..." />
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Danh mục</label>
+                                        <InputSelect class="form-select" @bind-Value="formData.CategoryId">
+                                            <option value="">-- Chọn danh mục --</option>
+                                            @if (Categories != null)
+                                            {
+                                                @foreach (var cat in Categories)
+                                                {
+                                                    <option value="@cat.Id">@cat.Name</option>
+                                                }
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Nhà cung cấp</label>
+                                        <InputSelect class="form-select" @bind-Value="formData.SupplierId">
+                                            <option value="">-- Chọn nhà cung cấp --</option>
+                                            @if (Suppliers != null)
+                                            {
+                                                @foreach (var sup in Suppliers)
+                                                {
+                                                    <option value="@sup.Id">@sup.Name</option>
+                                                }
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Giá bán <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <InputNumber class="@($"form-control {GetValidationClass("Price")}")" @bind-Value="formData.Price" />
+                                            <span class="input-group-text">đ</span>
+                                        </div>
+                                        <ValidationMessage For="@(() => formData.Price)" />
+                                        @if (errors.ContainsKey("Price"))
+                                        {
+                                            <div class="invalid-feedback d-block">@errors["Price"]</div>
+                                        }
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Giá vốn</label>
+                                        <div class="input-group">
+                                            <InputNumber class="form-control" @bind-Value="formData.Cost" />
+                                            <span class="input-group-text">đ</span>
+                                        </div>
+                                        @if (formData.Cost.HasValue && formData.Price > formData.Cost)
+                                        {
+                                            var profit = formData.Price - formData.Cost.Value;
+                                            var marginPercent = (profit / formData.Price) * 100;
+                                            <small class="text-success">
+                                                Lợi nhuận: @profit.ToString("N0") đ (@marginPercent.ToString("F1")%)
+                                            </small>
+                                        }
+                                    </div>
+                                    
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label fw-bold">Trạng thái</label>
+                                        <div class="form-check form-switch">
+                                            <InputCheckbox class="form-check-input" @bind-Value="formData.IsActive" id="isActive" />
+                                            <label class="form-check-label" for="isActive">
+                                                @(formData.IsActive ? "Đang hoạt động" : "Ngừng hoạt động")
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label fw-bold">Mô tả</label>
+                                        <InputTextArea class="form-control" rows="4" @bind-Value="formData.Description" />
+                                    </div>
+
+                                    @if (hasChanges)
+                                    {
+                                        <div class="col-12">
+                                            <div class="alert alert-info">
+                                                <i class="bi bi-info-circle"></i> Có thay đổi chưa lưu
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-danger" @onclick="HandleDelete" disabled="@Saving">
+                            <i class="bi @(Product.IsActive ? "bi-trash" : "bi-arrow-clockwise")"></i>
+                            @(Product.IsActive ? "Xóa" : "Khôi phục")
+                        </button>
+
+                        <div class="flex-grow-1"></div>
+                        
+                        <button type="button" class="btn btn-secondary" @onclick="OnCancel" disabled="@Saving">
+                            <i class="bi bi-x-lg"></i> Hủy
+                        </button>
+                        
+                        <button type="submit" class="btn btn-primary" disabled="@Saving">
+                            @if (Saving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-save"></i>
+                            }
+                            Cập nhật
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public ProductDTO? Product { get; set; }
+    [Parameter] public List<CategoryDTO>? Categories { get; set; }
+    [Parameter] public List<SupplierDTO>? Suppliers { get; set; }
+    [Parameter] public bool Saving { get; set; }
+    [Parameter] public EventCallback<ProductDTO> OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback<(int, bool)> OnDelete { get; set; }
+
+    private ProductDTO formData = new();
+    private ProductDTO originalData = new();
+    private Dictionary<string, string> errors = new();
+    private string? uploadedImageUrl;
+    private bool hasChanges = false;
+
+    protected override void OnParametersSet()
+    {
+        if (Product != null)
+        {
+            formData = new ProductDTO
+            {
+                Id = Product.Id,
+                ProductName = Product.ProductName,
+                Sku = Product.Sku,
+                CategoryId = Product.CategoryId,
+                SupplierId = Product.SupplierId,
+                Price = Product.Price,
+                Cost = Product.Cost,
+                Unit = Product.Unit,
+                Description = Product.Description,
+                ImageUrl = Product.ImageUrl,
+                IsActive = Product.IsActive
+            };
+
+            // Keep original for comparison
+            originalData = new ProductDTO
+            {
+                ProductName = Product.ProductName,
+                Sku = Product.Sku,
+                CategoryId = Product.CategoryId,
+                SupplierId = Product.SupplierId,
+                Price = Product.Price,
+                Cost = Product.Cost,
+                Unit = Product.Unit,
+                Description = Product.Description,
+                ImageUrl = Product.ImageUrl,
+                IsActive = Product.IsActive
+            };
+        }
+        errors.Clear();
+    }
+
+    private string GetDisplayImage()
+    {
+        if (!string.IsNullOrEmpty(uploadedImageUrl))
+            return uploadedImageUrl;
+            
+        if (!string.IsNullOrEmpty(formData.ImageUrl))
+        {
+            if (formData.ImageUrl.StartsWith("http"))
+                return formData.ImageUrl;
+            return $"/assets/images/products/{formData.ImageUrl}";
+        }
+        
+        return "/assets/images/products/default.jpg";
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            try
+            {
+                var buffer = new byte[file.Size];
+                await file.OpenReadStream(maxAllowedSize: 5242880).ReadAsync(buffer);
+                uploadedImageUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+                hasChanges = true;
+                
+                // TODO: Upload to server
+                // formData.ImageUrl = await UploadImageToServer(file);
+            }
+            catch (Exception ex)
+            {
+                errors["Image"] = $"Lỗi upload ảnh: {ex.Message}";
+            }
+        }
+    }
+
+    private void ClearImage()
+    {
+        uploadedImageUrl = null;
+        formData.ImageUrl = null;
+        hasChanges = true;
+    }
+
+    private bool ValidateForm()
+    {
+        errors.Clear();
+
+        if (string.IsNullOrWhiteSpace(formData.ProductName))
+            errors["ProductName"] = "Tên sản phẩm không được để trống";
+        else if (formData.ProductName.Length < 3)
+            errors["ProductName"] = "Tên sản phẩm phải có ít nhất 3 ký tự";
+        
+        if (formData.Price <= 0)
+            errors["Price"] = "Giá bán phải lớn hơn 0";
+
+        if (formData.Cost.HasValue && formData.Cost < 0)
+            errors["Cost"] = "Giá vốn không được âm";
+
+        return errors.Count == 0;
+    }
+
+    private string GetValidationClass(string field)
+    {
+        return errors.ContainsKey(field) ? "is-invalid" : "";
+    }
+
+    private string GetQuantityClass()
+    {
+        var qty = Product?.Inventory?.Quantity ?? 0;
+        return qty > 10 ? "text-success" : qty > 0 ? "text-warning" : "text-danger";
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (!ValidateForm()) return;
+
+        await OnSave.InvokeAsync(formData);
+    }
+
+    private async Task HandleDelete()
+    {
+        if (Product != null)
+        {
+            await OnDelete.InvokeAsync((Product.Id, Product.IsActive));
+        }
+    }
+}
