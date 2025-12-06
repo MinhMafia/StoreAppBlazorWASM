@@ -1,4 +1,4 @@
-@using StoreApp.Client.Models.AI
+@using StoreApp.Shared
 
 @* Component hiển thị lịch sử hội thoại - Y nguyên React *@
 
@@ -92,8 +92,8 @@
 </div>
 
 @code {
-    [Parameter]
-    public List<ConversationSummary> Conversations { get; set; } = new();
+[Parameter]
+    public List<AiConversationSummaryDTO> Conversations { get; set; } = new();
 
     [Parameter]
     public int? CurrentConversationId { get; set; }

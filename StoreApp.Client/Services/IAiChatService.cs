@@ -1,4 +1,4 @@
-using StoreApp.Client.Models.AI;
+using StoreApp.Shared;
 
 namespace StoreApp.Client.Services
 {
@@ -13,7 +13,7 @@ namespace StoreApp.Client.Services
         Task StreamMessageAsync(
             string message,
             int? conversationId,
-            List<ClientMessage>? history,
+            List<ClientMessageDTO>? history,
             Func<string, Task> onChunk,
             Func<int, Task> onConversationId,
             Func<string, Task> onError,
@@ -24,12 +24,12 @@ namespace StoreApp.Client.Services
         /// <summary>
         /// Lấy danh sách conversations
         /// </summary>
-        Task<List<ConversationSummary>> GetConversationsAsync();
+        Task<List<AiConversationSummaryDTO>> GetConversationsAsync();
 
         /// <summary>
         /// Lấy chi tiết conversation
         /// </summary>
-        Task<ConversationDetail?> GetConversationAsync(int id);
+        Task<AiConversationDTO?> GetConversationAsync(int id);
 
         /// <summary>
         /// Xóa conversation

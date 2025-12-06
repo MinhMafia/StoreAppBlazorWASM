@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
-using StoreApp.Client.Models.AI;
+using StoreApp.Shared;
 
 namespace StoreApp.Client.Services
 {
@@ -26,7 +26,7 @@ namespace StoreApp.Client.Services
         public async Task StreamMessageAsync(
             string message,
             int? conversationId,
-            List<ClientMessage>? history,
+            List<ClientMessageDTO>? history,
             Func<string, Task> onChunk,
             Func<int, Task> onConversationId,
             Func<string, Task> onError,
@@ -35,7 +35,7 @@ namespace StoreApp.Client.Services
         {
             try
             {
-                var request = new AiChatRequest
+                var request = new AiChatRequestDTO
                 {
                     Message = message,
                     ConversationId = conversationId,
@@ -128,7 +128,7 @@ namespace StoreApp.Client.Services
 
                             try
                             {
-                                var chunk = JsonSerializer.Deserialize<StreamChunk>(data);
+                                var chunk = JsonSerializer.Deserialize<StreamChunkDTO>(data);
                                 if (chunk != null)
                                 {
                                     if (!string.IsNullOrEmpty(chunk.Error))
@@ -194,30 +194,30 @@ namespace StoreApp.Client.Services
         /// <summary>
         /// Lấy danh sách conversations
         /// </summary>
-        public async Task<List<ConversationSummary>> GetConversationsAsync()
+        public async Task<List<AiConversationSummaryDTO>> GetConversationsAsync()
         {
             try
             {
-                var result = await _httpClient.GetFromJsonAsync<List<ConversationSummary>>(
+                var result = await _httpClient.GetFromJsonAsync<List<AiConversationSummaryDTO>>(
                     $"{API_BASE}/conversations"
                 );
-                return result ?? new List<ConversationSummary>();
+                return result ?? new List<AiConversationSummaryDTO>();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error getting conversations: {ex.Message}");
-                return new List<ConversationSummary>();
+                return new List<AiConversationSummaryDTO>();
             }
         }
 
         /// <summary>
         /// Lấy chi tiết conversation
         /// </summary>
-        public async Task<ConversationDetail?> GetConversationAsync(int id)
+        public async Task<AiConversationDTO?> GetConversationAsync(int id)
         {
             try
             {
-                var result = await _httpClient.GetFromJsonAsync<ConversationDetail>(
+                var result = await _httpClient.GetFromJsonAsync<AiConversationDTO>(
                     $"{API_BASE}/conversations/{id}"
                 );
                 return result;

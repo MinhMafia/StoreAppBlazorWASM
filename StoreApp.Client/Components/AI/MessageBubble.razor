@@ -1,5 +1,5 @@
 @using Markdig
-@using StoreApp.Client.Models.AI
+@using StoreApp.Shared
 
 @* Component hiển thị một message bubble trong chat - Y nguyên React *@
 
@@ -82,8 +82,8 @@
 </div>
 
 @code {
-    [Parameter]
-    public ChatMessage Message { get; set; } = new();
+[Parameter]
+    public ChatMessageDTO Message { get; set; } = new();
 
     private static MarkdownPipeline? _pipeline;
 

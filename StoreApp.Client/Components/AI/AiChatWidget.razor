@@ -1,4 +1,4 @@
-@using StoreApp.Client.Models.AI
+@using StoreApp.Shared
 @using StoreApp.Client.Services
 @using StoreApp.Client.Components.AI
 @using Blazored.LocalStorage
@@ -175,11 +175,11 @@
     private bool isOpen = false;
 
     // Chat state
-    private List<ChatMessage> messages = new();
+    private List<ChatMessageDTO> messages = new();
     private string input = string.Empty;
     private bool loading = false;
     private int? conversationId = null;
-    private List<ConversationSummary> conversations = new();
+    private List<AiConversationSummaryDTO> conversations = new();
     private bool showHistory = false;
     private bool loadingHistory = false;
     private string? error = null;
@@ -195,8 +195,8 @@
     // Cancellation
     private CancellationTokenSource? cancellationTokenSource;
 
-    // Welcome message
-    private ChatMessage WelcomeMessage => ChatMessage.CreateWelcomeMessage();
+// Welcome message
+    private ChatMessageDTO WelcomeMessage => ChatMessageDTO.CreateWelcomeMessage();
 
     private void ToggleChat()
     {
@@ -235,7 +235,7 @@
                 if (data != null && data.Messages.Count > 0)
                 {
                     conversationId = savedId.Value;
-                    messages = data.Messages.Select((m, index) => new ChatMessage
+messages = data.Messages.Select((m, index) => new ChatMessageDTO
                     {
                         Id = m.Id.ToString(),
                         Role = m.Role,
@@ -290,7 +290,7 @@
             {
                 conversationId = id;
                 await LocalStorage.SetItemAsync(STORAGE_KEY, conversationId.Value);
-                messages = data.Messages.Select((m, index) => new ChatMessage
+messages = data.Messages.Select((m, index) => new ChatMessageDTO
                 {
                     Id = m.Id.ToString(),
                     Role = m.Role,
@@ -318,7 +318,7 @@
         cancellationTokenSource?.Cancel();
         conversationId = null;
         await LocalStorage.RemoveItemAsync(STORAGE_KEY);
-        messages = new List<ChatMessage> { WelcomeMessage };
+        messages = new List<ChatMessageDTO> { WelcomeMessage };
         showHistory = false;
         error = null;
         loading = false;
@@ -395,13 +395,13 @@
         StateHasChanged();
     }
 
-    private List<ClientMessage> BuildHistory()
+private List<ClientMessageDTO> BuildHistory()
     {
         return messages
             .Where(m => m.Id != "welcome" && !string.IsNullOrEmpty(m.Content) && !m.IsStreaming &&
                        (m.Role == "user" || m.Role == "assistant"))
             .TakeLast(MAX_HISTORY_MESSAGES)
-            .Select(m => new ClientMessage { Role = m.Role, Content = m.Content })
+            .Select(m => new ClientMessageDTO { Role = m.Role, Content = m.Content })
             .ToList();
     }
 
@@ -422,8 +422,8 @@
         var userMsgId = $"user-{DateTimeOffset.Now.ToUnixTimeMilliseconds()}";
         var assistantMsgId = $"assistant-{DateTimeOffset.Now.ToUnixTimeMilliseconds()}";
 
-        // Add user message
-        messages.Add(new ChatMessage
+// Add user message
+        messages.Add(new ChatMessageDTO
         {
             Id = userMsgId,
             Role = "user",
@@ -433,8 +433,8 @@
         loading = true;
         StateHasChanged();
 
-        // Add assistant placeholder
-        messages.Add(new ChatMessage
+// Add assistant placeholder
+        messages.Add(new ChatMessageDTO
         {
             Id = assistantMsgId,
             Role = "assistant",
