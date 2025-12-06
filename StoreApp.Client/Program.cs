@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using StoreApp.Client.Services;
+using Blazored.LocalStorage;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -9,6 +10,12 @@ builder.Services.AddScoped<ICategoryClientService, CategoryClientService>();
 builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
 builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
+
+// AI Chat Service
+builder.Services.AddScoped<IAiChatService, AiChatService>();
+
+// LocalStorage
+builder.Services.AddBlazoredLocalStorage();
 
 // Configure HttpClient with API base address (tự động lấy từ host)
 builder.Services.AddScoped(sp => new HttpClient

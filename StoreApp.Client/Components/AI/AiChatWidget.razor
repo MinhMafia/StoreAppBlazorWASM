@@ -1,0 +1,534 @@
+@using StoreApp.Client.Models.AI
+@using StoreApp.Client.Services
+@using StoreApp.Client.Components.AI
+@using Blazored.LocalStorage
+@inject IAiChatService AiChatService
+@inject ILocalStorageService LocalStorage
+@implements IDisposable
+
+@* Floating Widget - Y nguyên React, 100% Blazor không JS *@
+
+@if (isOpen)
+{
+    @* Chat Window *@
+    <div class="fixed bottom-24 right-6 w-[400px] h-[550px] z-50 shadow-2xl rounded-lg overflow-hidden animate-slide-up">
+        @if (showHistory)
+        {
+            <ConversationHistory Conversations="conversations"
+                                 CurrentConversationId="conversationId"
+                                 LoadingHistory="loadingHistory"
+                                 OnBack="@(() => showHistory = false)"
+                                 OnNewConversation="@StartNewConversation"
+                                 OnLoadConversation="@LoadConversation"
+                                 OnDeleteConversation="@HandleDeleteConversation"
+                                 OnDeleteAll="@HandleDeleteAllConversations" />
+        }
+        else
+        {
+            <div class="flex flex-col h-full bg-white rounded-lg shadow">
+                @* Header *@
+                <div class="flex items-center gap-3 px-6 py-4 border-b bg-blue-600 rounded-t-lg">
+                    <div class="p-2 bg-blue-500 rounded-lg">
+                        @* Sparkles Icon *@
+                        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-semibold text-white">Trợ lý AI</h2>
+                        <p class="text-sm text-blue-100">Hỗ trợ quản lý cửa hàng</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button @onclick="StartNewConversation"
+                                class="p-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white transition"
+                                title="Cuộc hội thoại mới">
+                            @* Plus Icon *@
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                        <button @onclick="@(async () => { await LoadConversations(); showHistory = true; })"
+                                class="p-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white transition"
+                                title="Lịch sử hội thoại">
+                            @* History Icon *@
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                @* Error Banner *@
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="px-4 py-2 bg-red-50 border-b border-red-200 flex items-center justify-between">
+                        <span class="text-sm text-red-700">@error</span>
+                        <button @onclick="@(() => error = null)" class="text-red-500 hover:text-red-700">
+                            @* X Icon *@
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                }
+
+                @* Messages *@
+                <div @ref="messagesContainerRef" class="flex-1 overflow-y-auto p-4 space-y-4">
+                    @foreach (var msg in messages)
+                    {
+                        <MessageBubble Message="msg" />
+                    }
+                </div>
+
+                @* Input *@
+                <form @onsubmit="HandleSubmit" @onsubmit:preventDefault="true" class="p-4 border-t">
+                    <div class="flex gap-2">
+                        <input type="text"
+                               @bind="input"
+                               @bind:event="oninput"
+                               placeholder="Nhập câu hỏi của bạn..."
+                               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               disabled="@loading"
+                               maxlength="@MAX_MESSAGE_LENGTH" />
+                        @if (loading)
+                        {
+                            <button type="button"
+                                    @onclick="CancelRequest"
+                                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2"
+                                    title="Hủy">
+                                @* X Icon *@
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit"
+                                    disabled="@(string.IsNullOrWhiteSpace(input))"
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2">
+                                @* Send Icon *@
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        }
+                    </div>
+                </form>
+            </div>
+        }
+    </div>
+}
+
+@* Floating Button *@
+<button @onclick="ToggleChat"
+        class="@($"fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 {(isOpen ? "bg-red-600 hover:bg-red-700" : "bg-indigo-600 hover:bg-indigo-700")}")"
+        title="@(isOpen ? "Đóng chat" : "Mở trợ lý AI")">
+    @if (isOpen)
+    {
+        @* X Icon *@
+        <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    }
+    else
+    {
+        @* MessageCircle Icon *@
+        <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path>
+        </svg>
+    }
+</button>
+
+@* Confirm Dialog *@
+@if (showConfirmDialog)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-sm mx-4 shadow-xl">
+            <p class="text-gray-800 mb-4">@confirmMessage</p>
+            <div class="flex gap-2 justify-end">
+                <button @onclick="@(() => showConfirmDialog = false)"
+                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
+                    Hủy
+                </button>
+                <button @onclick="@(() => { showConfirmDialog = false; confirmCallback?.Invoke(); })"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                    Xác nhận
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private const int MAX_MESSAGE_LENGTH = 4000;
+    private const int MAX_HISTORY_MESSAGES = 20;
+    private const string STORAGE_KEY = "ai_chat_conversation_id";
+
+    // Widget state
+    private bool isOpen = false;
+
+    // Chat state
+    private List<ChatMessage> messages = new();
+    private string input = string.Empty;
+    private bool loading = false;
+    private int? conversationId = null;
+    private List<ConversationSummary> conversations = new();
+    private bool showHistory = false;
+    private bool loadingHistory = false;
+    private string? error = null;
+
+    // Confirm dialog state (thay thế JS confirm)
+    private bool showConfirmDialog = false;
+    private string confirmMessage = "";
+    private Action? confirmCallback;
+
+    // Refs
+    private ElementReference messagesContainerRef;
+
+    // Cancellation
+    private CancellationTokenSource? cancellationTokenSource;
+
+    // Welcome message
+    private ChatMessage WelcomeMessage => ChatMessage.CreateWelcomeMessage();
+
+    private void ToggleChat()
+    {
+        isOpen = !isOpen;
+        if (isOpen && messages.Count == 0)
+        {
+            messages.Add(WelcomeMessage);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSavedConversation();
+    }
+
+    private async Task<int?> GetSavedConversationId()
+    {
+        try
+        {
+            return await LocalStorage.GetItemAsync<int?>(STORAGE_KEY);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task LoadSavedConversation()
+    {
+        var savedId = await GetSavedConversationId();
+        if (savedId.HasValue && savedId.Value > 0)
+        {
+            try
+            {
+                var data = await AiChatService.GetConversationAsync(savedId.Value);
+                if (data != null && data.Messages.Count > 0)
+                {
+                    conversationId = savedId.Value;
+                    messages = data.Messages.Select((m, index) => new ChatMessage
+                    {
+                        Id = m.Id.ToString(),
+                        Role = m.Role,
+                        Content = m.Content,
+                        FunctionCalled = m.FunctionCalled,
+                        Data = m.Data
+                    }).ToList();
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Could not load saved conversation: {ex.Message}");
+                await LocalStorage.RemoveItemAsync(STORAGE_KEY);
+            }
+        }
+        messages.Add(WelcomeMessage);
+    }
+
+    private async Task LoadConversations()
+    {
+        loadingHistory = true;
+        error = null;
+        StateHasChanged();
+
+        try
+        {
+            conversations = await AiChatService.GetConversationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Lỗi tải lịch sử: {ex.Message}");
+            error = "Không thể tải lịch sử hội thoại";
+        }
+        finally
+        {
+            loadingHistory = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadConversation(int id)
+    {
+        loadingHistory = true;
+        error = null;
+        StateHasChanged();
+
+        try
+        {
+            var data = await AiChatService.GetConversationAsync(id);
+            if (data != null)
+            {
+                conversationId = id;
+                await LocalStorage.SetItemAsync(STORAGE_KEY, conversationId.Value);
+                messages = data.Messages.Select((m, index) => new ChatMessage
+                {
+                    Id = m.Id.ToString(),
+                    Role = m.Role,
+                    Content = m.Content,
+                    FunctionCalled = m.FunctionCalled,
+                    Data = m.Data
+                }).ToList();
+                showHistory = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Lỗi tải hội thoại: {ex.Message}");
+            error = "Không thể tải cuộc hội thoại";
+        }
+        finally
+        {
+            loadingHistory = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task StartNewConversation()
+    {
+        cancellationTokenSource?.Cancel();
+        conversationId = null;
+        await LocalStorage.RemoveItemAsync(STORAGE_KEY);
+        messages = new List<ChatMessage> { WelcomeMessage };
+        showHistory = false;
+        error = null;
+        loading = false;
+        StateHasChanged();
+    }
+
+    private Task HandleDeleteConversation((int id, MouseEventArgs e) args)
+    {
+        var idToDelete = args.id;
+        confirmMessage = "Xóa cuộc hội thoại này?";
+        confirmCallback = async () =>
+        {
+            try
+            {
+                await AiChatService.DeleteConversationAsync(idToDelete);
+                conversations = conversations.Where(c => c.Id != idToDelete).ToList();
+                if (conversationId == idToDelete)
+                {
+                    await StartNewConversation();
+                }
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi xóa: {ex.Message}");
+                error = "Không thể xóa cuộc hội thoại";
+                StateHasChanged();
+            }
+        };
+        showConfirmDialog = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void HandleDeleteAllConversations()
+    {
+        if (conversations.Count == 0) return;
+        
+        confirmMessage = $"Xóa tất cả {conversations.Count} cuộc hội thoại?";
+        confirmCallback = async () =>
+        {
+            try
+            {
+                foreach (var conv in conversations)
+                {
+                    await AiChatService.DeleteConversationAsync(conv.Id);
+                }
+                conversations.Clear();
+                await StartNewConversation();
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi xóa tất cả: {ex.Message}");
+                error = "Không thể xóa tất cả hội thoại";
+                await LoadConversations();
+            }
+        };
+        showConfirmDialog = true;
+        StateHasChanged();
+    }
+
+    private void CancelRequest()
+    {
+        cancellationTokenSource?.Cancel();
+        loading = false;
+
+        var lastMsg = messages.LastOrDefault();
+        if (lastMsg != null && lastMsg.IsStreaming)
+        {
+            lastMsg.IsStreaming = false;
+            lastMsg.Content = string.IsNullOrEmpty(lastMsg.Content) ? "Đã hủy" : lastMsg.Content;
+        }
+        StateHasChanged();
+    }
+
+    private List<ClientMessage> BuildHistory()
+    {
+        return messages
+            .Where(m => m.Id != "welcome" && !string.IsNullOrEmpty(m.Content) && !m.IsStreaming &&
+                       (m.Role == "user" || m.Role == "assistant"))
+            .TakeLast(MAX_HISTORY_MESSAGES)
+            .Select(m => new ClientMessage { Role = m.Role, Content = m.Content })
+            .ToList();
+    }
+
+    private async Task HandleSubmit()
+    {
+        var userMessage = input.Trim();
+        if (string.IsNullOrEmpty(userMessage) || loading) return;
+
+        if (userMessage.Length > MAX_MESSAGE_LENGTH)
+        {
+            error = $"Tin nhắn quá dài (tối đa {MAX_MESSAGE_LENGTH} ký tự)";
+            return;
+        }
+
+        input = string.Empty;
+        error = null;
+
+        var userMsgId = $"user-{DateTimeOffset.Now.ToUnixTimeMilliseconds()}";
+        var assistantMsgId = $"assistant-{DateTimeOffset.Now.ToUnixTimeMilliseconds()}";
+
+        // Add user message
+        messages.Add(new ChatMessage
+        {
+            Id = userMsgId,
+            Role = "user",
+            Content = userMessage
+        });
+
+        loading = true;
+        StateHasChanged();
+
+        // Add assistant placeholder
+        messages.Add(new ChatMessage
+        {
+            Id = assistantMsgId,
+            Role = "assistant",
+            Content = string.Empty,
+            IsStreaming = true
+        });
+        StateHasChanged();
+
+        cancellationTokenSource = new CancellationTokenSource();
+
+        try
+        {
+            var history = BuildHistory();
+            var fullResponse = string.Empty;
+
+            await AiChatService.StreamMessageAsync(
+                userMessage,
+                conversationId,
+                history,
+                // onChunk
+                async (chunk) =>
+                {
+                    fullResponse += chunk;
+                    var lastMsg = messages.LastOrDefault(m => m.Id == assistantMsgId);
+                    if (lastMsg != null)
+                    {
+                        lastMsg.Content = fullResponse;
+                        await InvokeAsync(StateHasChanged);
+                    }
+                },
+                // onConversationId
+                async (newConvId) =>
+                {
+                    if (!conversationId.HasValue && newConvId > 0)
+                    {
+                        conversationId = newConvId;
+                        await LocalStorage.SetItemAsync(STORAGE_KEY, conversationId.Value);
+                    }
+                },
+                // onError
+                async (errorMsg) =>
+                {
+                    error = errorMsg;
+                    var lastMsg = messages.LastOrDefault(m => m.Id == assistantMsgId);
+                    if (lastMsg != null)
+                    {
+                        lastMsg.Content = string.IsNullOrEmpty(lastMsg.Content) ? $"Lỗi: {errorMsg}" : lastMsg.Content;
+                        lastMsg.IsError = string.IsNullOrEmpty(lastMsg.Content) || lastMsg.Content.StartsWith("Lỗi:");
+                        lastMsg.IsStreaming = false;
+                        await InvokeAsync(StateHasChanged);
+                    }
+                },
+                // onComplete
+                async () =>
+                {
+                    var lastMsg = messages.LastOrDefault(m => m.Id == assistantMsgId);
+                    if (lastMsg != null)
+                    {
+                        lastMsg.IsStreaming = false;
+                        await InvokeAsync(StateHasChanged);
+                    }
+                },
+                cancellationTokenSource.Token
+            );
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("Request cancelled");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Stream error: {ex.Message}");
+            error = ex.Message;
+
+            var lastMsg = messages.LastOrDefault(m => m.Id == assistantMsgId);
+            if (lastMsg != null)
+            {
+                lastMsg.Content = string.IsNullOrEmpty(lastMsg.Content) ? $"Lỗi: {ex.Message}" : lastMsg.Content;
+                lastMsg.IsError = string.IsNullOrEmpty(lastMsg.Content) || lastMsg.Content.StartsWith("Lỗi:");
+                lastMsg.IsStreaming = false;
+            }
+        }
+        finally
+        {
+            loading = false;
+            cancellationTokenSource?.Dispose();
+            cancellationTokenSource = null;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
+    }
+}

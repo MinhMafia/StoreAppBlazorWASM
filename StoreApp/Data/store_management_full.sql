@@ -541,4 +541,29 @@ ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0 AFTER updated_at,
 ADD COLUMN deleted_at DATETIME NULL AFTER is_deleted;
 
 ALTER TABLE customers
-ADD COLUMN is_active boolean NOT NULL DEFAULT TRUE
+ADD COLUMN is_active boolean NOT NULL DEFAULT TRUE;
+
+-- ===== AI CONVERSATIONS TABLE =====
+CREATE TABLE ai_conversations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  title VARCHAR(255) DEFAULT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_ai_conversations_user (user_id),
+  INDEX idx_ai_conversations_updated (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===== AI MESSAGES TABLE =====
+CREATE TABLE ai_messages (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  conversation_id INT NOT NULL,
+  role VARCHAR(20) NOT NULL,
+  content TEXT NOT NULL,
+  function_called VARCHAR(100) DEFAULT NULL,
+  function_data JSON DEFAULT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_ai_messages_conversation (conversation_id),
+  CONSTRAINT fk_ai_messages_conversation FOREIGN KEY (conversation_id) 
+    REFERENCES ai_conversations(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

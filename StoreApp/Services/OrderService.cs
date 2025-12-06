@@ -2,6 +2,7 @@ using StoreApp.Models;
 using StoreApp.Repository;
 using StoreApp.Shared;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace StoreApp.Services
@@ -110,6 +111,40 @@ namespace StoreApp.Services
                 UserName = order.User?.FullName,
                 PromotionCode = order.Promotion?.Code
             };
+        }
+
+        // Method cho AI Tool
+        public async Task<PagedResult<OrderDTO>> GetPagedOrdersAsync(
+            int pageNumber, int pageSize, string? status = null, 
+            DateTime? startDate = null, DateTime? endDate = null, string? search = null)
+        {
+            var orders = await _orderRepo.GetAllAsync();
+            
+            if (!string.IsNullOrEmpty(status))
+                orders = orders.Where(o => o.Status == status).ToList();
+            
+            if (startDate.HasValue)
+                orders = orders.Where(o => o.CreatedAt >= startDate.Value).ToList();
+            
+            if (endDate.HasValue)
+                orders = orders.Where(o => o.CreatedAt <= endDate.Value).ToList();
+            
+            if (!string.IsNullOrEmpty(search))
+                orders = orders.Where(o => o.OrderNumber.Contains(search)).ToList();
+            
+            var total = orders.Count;
+            var items = orders.Skip((pageNumber - 1) * pageSize).Take(pageSize)
+                .Select(o => new OrderDTO 
+                { 
+                    Id = o.Id, 
+                    OrderNumber = o.OrderNumber,
+                    Status = o.Status,
+                    TotalAmount = o.TotalAmount,
+                    CreatedAt = o.CreatedAt,
+                    CustomerName = o.Customer?.FullName
+                }).ToList();
+            
+            return new PagedResult<OrderDTO> { TotalItems = total, Items = items };
         }
     }
 }

@@ -20,6 +20,8 @@ namespace StoreApp.Data
         public DbSet<Customer> Customers { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Promotion> Promotions { get; set; }
+    public DbSet<AiConversation> AiConversations { get; set; }
+    public DbSet<AiMessage> AiMessages { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -156,6 +158,27 @@ namespace StoreApp.Data
             // Global query filters
             modelBuilder.Entity<Promotion>()
                 .HasQueryFilter(p => !p.IsDeleted);
+
+            // AI Conversation -> Messages (one-to-many with cascade delete)
+            modelBuilder.Entity<AiConversation>()
+                .HasMany(c => c.Messages)
+                .WithOne(m => m.Conversation)
+                .HasForeignKey(m => m.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // AI Conversation indexes
+            modelBuilder.Entity<AiConversation>()
+                .HasIndex(c => c.UserId)
+                .HasDatabaseName("idx_ai_conversations_user");
+
+            modelBuilder.Entity<AiConversation>()
+                .HasIndex(c => c.UpdatedAt)
+                .HasDatabaseName("idx_ai_conversations_updated");
+
+            // AI Message indexes
+            modelBuilder.Entity<AiMessage>()
+                .HasIndex(m => m.ConversationId)
+                .HasDatabaseName("idx_ai_messages_conversation");
 
             // Customer -> Orders
             modelBuilder.Entity<Customer>()

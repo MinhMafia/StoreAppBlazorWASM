@@ -1,0 +1,128 @@
+@using StoreApp.Client.Models.AI
+
+@* Component hiển thị lịch sử hội thoại - Y nguyên React *@
+
+<div class="flex flex-col h-full bg-white rounded-lg shadow">
+    @* Header *@
+    <div class="flex items-center gap-3 px-6 py-4 border-b bg-blue-600 rounded-t-lg">
+        <button @onclick="OnBack" class="p-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white transition">
+            @* ChevronLeft Icon - Lucide *@
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6"></path>
+            </svg>
+        </button>
+        <div>
+            <h2 class="text-lg font-semibold text-white">Lịch sử hội thoại</h2>
+        </div>
+    </div>
+
+    @* Content *@
+    <div class="flex-1 overflow-y-auto p-4">
+        @* Action Buttons *@
+        <div class="flex gap-2 mb-4">
+            <button @onclick="OnNewConversation" class="flex-1 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg flex items-center justify-center gap-2 transition">
+                @* Plus Icon - Lucide *@
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14"></path>
+                    <path d="M12 5v14"></path>
+                </svg>
+                <span>Hội thoại mới</span>
+            </button>
+            @if (Conversations.Count > 0)
+            {
+                <button @onclick="OnDeleteAll" class="px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg flex items-center justify-center gap-2 transition" title="Xóa tất cả">
+                    @* Trash2 Icon - Lucide *@
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                        <line x1="10" x2="10" y1="11" y2="17"></line>
+                        <line x1="14" x2="14" y1="11" y2="17"></line>
+                    </svg>
+                </button>
+            }
+        </div>
+
+        @* Conversation List *@
+        @if (LoadingHistory)
+        {
+            <div class="flex items-center justify-center py-8">
+                @* Loader2 Icon - Lucide *@
+                <svg class="w-6 h-6 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                </svg>
+            </div>
+        }
+        else if (Conversations.Count == 0)
+        {
+            <p class="text-center text-gray-500 py-8">
+                Chưa có lịch sử hội thoại
+            </p>
+        }
+        else
+        {
+            <div class="space-y-2">
+                @foreach (var conv in Conversations)
+                {
+                    <div @onclick="() => HandleLoadConversation(conv.Id)"
+                         class="p-3 rounded-lg cursor-pointer flex items-center justify-between group transition @(conv.Id == CurrentConversationId ? "bg-blue-100 border border-blue-300" : "bg-gray-50 hover:bg-gray-100")">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-gray-800 truncate">
+                                @(conv.Title ?? "Cuộc hội thoại")
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                @conv.UpdatedAt.ToString("dd/MM HH:mm")
+                            </p>
+                        </div>
+                        <button @onclick="(e) => HandleDeleteConversation(conv.Id, e)"
+                                @onclick:stopPropagation="true"
+                                class="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-100 text-red-500 transition">
+                            @* Trash2 Icon - Lucide *@
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public List<ConversationSummary> Conversations { get; set; } = new();
+
+    [Parameter]
+    public int? CurrentConversationId { get; set; }
+
+    [Parameter]
+    public bool LoadingHistory { get; set; }
+
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    [Parameter]
+    public EventCallback OnNewConversation { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnLoadConversation { get; set; }
+
+    [Parameter]
+    public EventCallback<(int id, MouseEventArgs e)> OnDeleteConversation { get; set; }
+
+    [Parameter]
+    public EventCallback OnDeleteAll { get; set; }
+
+    private async Task HandleLoadConversation(int id)
+    {
+        await OnLoadConversation.InvokeAsync(id);
+    }
+
+    private async Task HandleDeleteConversation(int id, MouseEventArgs e)
+    {
+        await OnDeleteConversation.InvokeAsync((id, e));
+    }
+}

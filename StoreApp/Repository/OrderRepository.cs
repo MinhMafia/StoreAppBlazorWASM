@@ -51,5 +51,16 @@ namespace StoreApp.Repository
             await _context.SaveChangesAsync();
             return order;
         }
+
+        // 5. Lấy tất cả đơn hàng (cho AI Tool)
+        public async Task<List<Order>> GetAllAsync()
+        {
+            return await _context.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.User)
+                .Include(o => o.Promotion)
+                .OrderByDescending(o => o.CreatedAt)
+                .ToListAsync();
+        }
     }
 }

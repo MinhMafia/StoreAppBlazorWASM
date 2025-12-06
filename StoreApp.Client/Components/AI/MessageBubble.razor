@@ -1,0 +1,108 @@
+@using Markdig
+@using StoreApp.Client.Models.AI
+
+@* Component hiển thị một message bubble trong chat - Y nguyên React *@
+
+@{
+    var displayContent = Message.Content ?? "";
+
+    // Xóa marker [TOOL_COMPLETE]
+    displayContent = displayContent.Replace("[TOOL_COMPLETE]", "");
+
+    // CHỈ xóa dòng truy vấn khi STREAMING XONG
+    if (!Message.IsStreaming)
+    {
+        displayContent = System.Text.RegularExpressions.Regex.Replace(
+            displayContent,
+            @"⏳[^⏳]*?Đang truy vấn[^\n]*\n*",
+            "",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase
+        );
+        displayContent = System.Text.RegularExpressions.Regex.Replace(displayContent, @"\n{3,}", "\n\n");
+        displayContent = displayContent.Trim();
+    }
+}
+
+<div class="flex gap-3 @(Message.Role == "user" ? "flex-row-reverse" : "")">
+    @* Avatar *@
+    <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center @(Message.Role == "user" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600")">
+        @if (Message.Role == "user")
+        {
+            @* User Icon - Lucide *@
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+        }
+        else
+        {
+            @* Bot Icon - Lucide *@
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 8V4H8"></path>
+                <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+                <path d="M2 14h2"></path>
+                <path d="M20 14h2"></path>
+                <path d="M15 13v2"></path>
+                <path d="M9 13v2"></path>
+            </svg>
+        }
+    </div>
+
+    @* Message Content *@
+    <div class="max-w-[80%] rounded-lg px-4 py-3 @(Message.Role == "user" ? "bg-blue-600 text-white" : Message.IsError ? "bg-red-50 text-red-700 border border-red-200" : "bg-gray-100 text-gray-800")">
+        @if (Message.IsStreaming && string.IsNullOrEmpty(Message.Content))
+        {
+            <div class="flex items-center gap-2 text-gray-500">
+                @* Loader2 Icon - Lucide *@
+                <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                </svg>
+                <span>Đang xử lý...</span>
+            </div>
+        }
+        else
+        {
+            @if (Message.Role == "assistant")
+            {
+                <div class="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-table:my-2 prose-th:px-3 prose-th:py-2 prose-td:px-3 prose-td:py-2 prose-th:bg-gray-100 prose-tr:border-b prose-table:border prose-table:border-gray-200 prose-table:rounded">
+                    @((MarkupString)RenderMarkdown(displayContent))
+                </div>
+            }
+            else
+            {
+                <div class="whitespace-pre-wrap break-words">@Message.Content</div>
+            }
+
+            @if (Message.Data != null)
+            {
+                <DataTable Data="@Message.Data" FunctionCalled="@Message.FunctionCalled" />
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public ChatMessage Message { get; set; } = new();
+
+    private static MarkdownPipeline? _pipeline;
+
+    private string RenderMarkdown(string content)
+    {
+        if (string.IsNullOrEmpty(content))
+            return string.Empty;
+
+        try
+        {
+            _pipeline ??= new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .Build();
+            return Markdown.ToHtml(content, _pipeline);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Markdown render error: {ex.Message}");
+            return content;
+        }
+    }
+}

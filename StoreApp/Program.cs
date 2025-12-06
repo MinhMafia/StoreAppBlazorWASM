@@ -12,6 +12,7 @@ using StoreApp.Services;
 using StoreApp.Middlewares;
 using StoreApp.Components;
 using StoreApp.Client.Services;
+using Blazored.LocalStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +55,8 @@ builder.Services.AddScoped<InventoryRepository>();
 builder.Services.AddScoped<PaymentRepository>();
 builder.Services.AddScoped<CategoryRepository>();
 builder.Services.AddScoped<SupplierRepository>();
+builder.Services.AddScoped<AiRepository>();
+builder.Services.AddScoped<ReportsRepository>();
 
 // --- Phần Backend cũ: Register Services ---
 builder.Services.AddScoped<ProductService>();
@@ -68,9 +71,16 @@ builder.Services.AddScoped<OrderItemService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<ImportService>();
-// builder.Services.AddScoped<CategoryService>(); // Bị trùng, xóa bớt
-// builder.Services.AddScoped<SupplierService>(); // Bị trùng, xóa bớt
+builder.Services.AddScoped<SupplierService>();
+builder.Services.AddScoped<ReportsService>();
 builder.Services.AddScoped<JwtService>();
+
+// --- AI Services ---
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<AiService>();
+builder.Services.AddScoped<TokenizerService>();
+builder.Services.AddScoped<ChatContextManager>();
+builder.Services.AddScoped<StoreApp.Services.AI.AiToolExecutor>();
 
 // --- Phần Backend cũ: Upload Limit ---
 builder.Services.Configure<FormOptions>(options =>
@@ -109,10 +119,12 @@ builder.Services.AddScoped(sp => new HttpClient
 });
 
 // --- Blazor Client Services (cho prerendering) ---
+builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddScoped<IStatisticsService, StoreApp.Client.Services.StatisticsService>();
 builder.Services.AddScoped<IPromotionService, StoreApp.Client.Services.PromotionService>();
 builder.Services.AddScoped<IProductClientService, ProductClientService>();
 builder.Services.AddScoped<ICategoryClientService, CategoryClientService>();
+builder.Services.AddScoped<IAiChatService, AiChatService>();
 
 var app = builder.Build();
 
