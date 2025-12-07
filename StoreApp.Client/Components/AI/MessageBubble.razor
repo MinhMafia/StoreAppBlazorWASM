@@ -64,7 +64,7 @@
         {
             @if (Message.Role == "assistant")
             {
-                <div class="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-table:my-2 prose-th:px-3 prose-th:py-2 prose-td:px-3 prose-td:py-2 prose-th:bg-gray-100 prose-tr:border-b prose-table:border prose-table:border-gray-200 prose-table:rounded">
+                <div class="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-table:my-2 prose-th:px-3 prose-th:py-2 prose-td:px-3 prose-td:py-2 prose-th:bg-gray-100 prose-tr:border-b prose-table:border prose-table:border-gray-200 prose-table:rounded [&>*]:indent-0 [&_p]:indent-0 [&_li]:indent-0" style="text-indent: 0 !important;">
                     @((MarkupString)RenderMarkdown(displayContent))
                 </div>
             }
