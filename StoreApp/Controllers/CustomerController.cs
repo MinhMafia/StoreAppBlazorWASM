@@ -59,6 +59,18 @@ namespace StoreApp.Controllers
             return Ok(result.Data);
         }
 
+        // GET api/customers/by-user/{userId}
+        [HttpGet("by-user/{userId:int}")]
+        public async Task<ActionResult> GetCustomerByUserId(int userId)
+        {
+            var result = await _service.GetCustomerByUserIdAsync(userId);
+            if (!result.Success && result.StatusCode == 404)
+            {
+                return NotFound(result.Errors);
+            }
+            return Ok(result.Data);
+        }
+
         // POST api/customers
         [HttpPost("")]
         public async Task<ActionResult> CreateCustomer([FromBody] CustomerCreateDTO createDto)

@@ -1,58 +1,117 @@
+@using Blazored.LocalStorage
 @inject IJSRuntime JSRuntime
-@inject ICustomerAuthService CustomerAuthService
+@inject ILocalStorageService LocalStorage
 @implements IAsyncDisposable
 
 @code {
     private IJSObjectReference? _jsModule;
-    private bool _isCustomerLoggedIn = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Kiểm tra xem khách hàng đã đăng nhập chưa
-            var customerId = await CustomerAuthService.GetCustomerIdAsync();
-            _isCustomerLoggedIn = customerId.HasValue;
-
-            // Chỉ load Tawk.to nếu khách hàng đã đăng nhập
-            if (!_isCustomerLoggedIn)
-            {
-                return; // Không hiển thị widget nếu chưa đăng nhập
-            }
-
             try
             {
-                // Lấy thông tin khách hàng
-                var customer = await CustomerAuthService.GetCurrentCustomerAsync();
-                
+                // Kiểm tra có token trong LocalStorage không
+                var token = await LocalStorage.GetItemAsStringAsync("authToken");
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    // Không có token = chưa đăng nhập, không load Tawk.to
+                    return;
+                }
+
+                // Lấy userName từ LocalStorage
+                var userName = await LocalStorage.GetItemAsStringAsync("userName");
+                var userNameJs = !string.IsNullOrEmpty(userName)
+                ? userName.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r")
+                : "";
+
+                // Có token = đã đăng nhập, load Tawk.to để hỗ trợ
                 // Check if Tawk.to is already loaded
                 var isLoaded = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.Tawk_API !== 'undefined'");
-                
+
                 if (!isLoaded)
                 {
                     // Load Tawk.to script dynamically
                     await JSRuntime.InvokeVoidAsync("eval", @"
-                        (function() {
-                            window.Tawk_API = window.Tawk_API || {};
-                            window.Tawk_LoadStart = new Date();
-                            var s1 = document.createElement('script');
-                            var s0 = document.getElementsByTagName('script')[0];
-                            s1.async = true;
-                            s1.src = 'https://embed.tawk.to/693562e6459173197e853e08/1jbs8klc5';
-                            s1.charset = 'UTF-8';
-                            s1.setAttribute('crossorigin', '*');
-                            s0.parentNode.insertBefore(s1, s0);
-                        })();
-                    ");
+(function() {
+window.Tawk_API = window.Tawk_API || {};
+
+// --- MOVE WIDGET UP (không đụng DOM) ---
+// br = bottom-right, tăng yOffset => đẩy lên trên
+// tăng xOffset => đẩy qua trái (nếu cần né AI chat)
+window.Tawk_API.customStyle = {
+visibility: {
+desktop: { position: 'br', xOffset: 20, yOffset: 120 },
+mobile: { position: 'br', xOffset: 20, yOffset: 220 }
+}
+};
+// --------------------------------------
+
+window.Tawk_LoadStart = new Date();
+var s1 = document.createElement('script');
+var s0 = document.getElementsByTagName('script')[0];
+s1.async = true;
+s1.src = 'https://embed.tawk.to/693562e6459173197e853e08/1jbs8klc5';
+s1.charset = 'UTF-8';
+s1.setAttribute('crossorigin', '*');
+s0.parentNode.insertBefore(s1, s0);
+})();
+");
                 }
 
-                // Đợi Tawk.to load xong rồi mới set thông tin khách hàng
-                await Task.Delay(2000); // Đợi script load
+                // Đợi Tawk.to load xong rồi set userName
+                await Task.Delay(2000);
 
-                // Gửi thông tin khách hàng cho Tawk.to
-                if (customer != null)
+                // Set userName vào Tawk.to
+                if (!string.IsNullOrEmpty(userNameJs))
                 {
-                    await SetCustomerInfo(customer);
+                    await JSRuntime.InvokeVoidAsync("eval", $@"
+(function() {{
+var userName = '{userNameJs}';
+var attributes = {{ 'name': userName }};
+
+if (window.Tawk_API) {{
+if (window.Tawk_API.setAttributes) {{
+// Tawk.to đã load, set ngay
+window.Tawk_API.setAttributes(attributes, function(error) {{
+if (error) {{
+console.error('[TawkToWidget] ❌ setAttributes error:', error);
+}} else {{
+console.log('[TawkToWidget] ✅ Name set successfully:', userName);
+}}
+}});
+}} else {{
+// Chưa load, đợi onLoad callback
+window.Tawk_API.onLoad = function() {{
+window.Tawk_API.setAttributes(attributes, function(error) {{
+if (error) {{
+console.error('[TawkToWidget] ❌ setAttributes error:', error);
+}} else {{
+console.log('[TawkToWidget] ✅ Name set successfully:', userName);
+}}
+}});
+}};
+}}
+}} else {{
+// Retry sau 2 giây
+setTimeout(function() {{
+if (window.Tawk_API && window.Tawk_API.onLoad) {{
+window.Tawk_API.onLoad = function() {{
+window.Tawk_API.setAttributes(attributes, function(error) {{
+if (error) {{
+console.error('[TawkToWidget] ❌ setAttributes error:', error);
+}} else {{
+console.log('[TawkToWidget] ✅ Name set successfully:', userName);
+}}
+}});
+}};
+}}
+}}, 2000);
+}}
+}})();
+");
                 }
             }
             catch (Exception ex)
@@ -62,59 +121,6 @@
         }
     }
 
-    private async Task SetCustomerInfo(StoreApp.Shared.CustomerResponseDTO customer)
-    {
-        try
-        {
-            // Sử dụng Tawk.to API để set thông tin visitor
-            var customerInfo = new
-            {
-                name = customer.FullName,
-                email = customer.Email ?? "",
-                phone = customer.Phone ?? "",
-                hash = customer.Id.ToString() // Dùng customer ID làm hash để identify visitor
-            };
-
-            await JSRuntime.InvokeVoidAsync("eval", $@"
-                (function() {{
-                    if (window.Tawk_API && window.Tawk_API.onLoad) {{
-                        window.Tawk_API.onLoad = function() {{
-                            window.Tawk_API.setAttributes({{
-                                name: '{customerInfo.name}',
-                                email: '{customerInfo.email}',
-                                phone: '{customerInfo.phone}',
-                                hash: '{customerInfo.hash}'
-                            }}, function(error) {{
-                                if (error) {{
-                                    console.error('Tawk.to setAttributes error:', error);
-                                }} else {{
-                                    console.log('Tawk.to customer info set successfully');
-                                }}
-                            }});
-                        }};
-                    }} else if (window.Tawk_API) {{
-                        // Nếu Tawk.to đã load, set ngay
-                        window.Tawk_API.setAttributes({{
-                            name: '{customerInfo.name}',
-                            email: '{customerInfo.email}',
-                            phone: '{customerInfo.phone}',
-                            hash: '{customerInfo.hash}'
-                        }}, function(error) {{
-                            if (error) {{
-                                console.error('Tawk.to setAttributes error:', error);
-                            }} else {{
-                                console.log('Tawk.to customer info set successfully');
-                            }}
-                        }});
-                    }}
-                }})();
-            ");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error setting customer info in Tawk.to: {ex.Message}");
-        }
-    }
 
     public async ValueTask DisposeAsync()
     {
@@ -125,4 +131,3 @@
         }
     }
 }
-

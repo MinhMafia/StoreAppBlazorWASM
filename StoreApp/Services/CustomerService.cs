@@ -83,6 +83,17 @@ namespace StoreApp.Services
             return ServiceResultDTO<CustomerResponseDTO>.CreateSuccessResult(MapToCustomerResponseDto(customer), 200);
         }
 
+        public async Task<ServiceResultDTO<CustomerResponseDTO>> GetCustomerByUserIdAsync(int userId)
+        {
+            var customer = await _repo.GetByUserIdAsync(userId);
+            if (customer == null)
+            {
+                return ServiceResultDTO<CustomerResponseDTO>.CreateFailureResult(404, "Customer not found for this user.");
+            }
+
+            return ServiceResultDTO<CustomerResponseDTO>.CreateSuccessResult(MapToCustomerResponseDto(customer), 200);
+        }
+
         public async Task<ServiceResultDTO<CustomerResponseDTO>> CreateCustomerAsync(CustomerCreateDTO createDto)
         {
             var customer = new Customer
