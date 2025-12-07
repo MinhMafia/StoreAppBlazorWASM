@@ -1,6 +1,8 @@
 using StoreApp.Data;
 using StoreApp.Models;
+using StoreApp.Shared;
 using Microsoft.EntityFrameworkCore;
+
 
 namespace StoreApp.Repository
 {
@@ -45,11 +47,18 @@ namespace StoreApp.Repository
             4. Tạo đơn hàng mới 
 
         */
-        public async Task<Order> CreateOrderAsync(Order order)
+                
+        public async Task<bool> SaveOrderAsync(Order order)
         {
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
-            return order;
+            try
+            {
+                _context.Orders.Update(order); 
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         // 5. Lấy tất cả đơn hàng (cho AI Tool)
@@ -61,6 +70,94 @@ namespace StoreApp.Repository
                 .Include(o => o.Promotion)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
+        }
+
+                // Tìm kiếm kết hợp phân trang đơn hàng
+        public async Task<(List<OrderDTO> Data, int TotalItems)> SearchPagingAsync(
+            int pageNumber,
+            int pageSize,
+            string? status,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? search)
+        {
+            var query = _context.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.User)
+                .Include(o => o.Promotion)
+                .Include(o => o.Payments)           // 1-1 relationship
+                .AsQueryable();
+
+            // === LỌC TRẠNG THÁI ===
+            if (!string.IsNullOrWhiteSpace(status))
+                query = query.Where(o => o.Status == status);
+
+            // === LỌC TỪ NGÀY ===
+            if (startDate.HasValue)
+                query = query.Where(o => o.CreatedAt >= startDate.Value.Date);
+
+            // === LỌC ĐẾN NGÀY ===
+            if (endDate.HasValue)
+            {
+                var end = endDate.Value.Date.AddDays(1).AddTicks(-1); // đến 23:59:59.9999999
+                query = query.Where(o => o.CreatedAt <= end);
+            }
+
+            // === TÌM KIẾM THEO TÊN (không phân biệt hoa thường + trim) ===
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchTerm = search.Trim().ToLower();
+                var pattern = $"%{searchTerm}%";
+
+                query = query.Where(o =>
+                    (o.Customer != null && EF.Functions.Like(o.Customer.FullName.ToLower(), pattern)) ||
+                    (o.User != null && EF.Functions.Like(o.User.FullName.ToLower(), pattern))
+                );
+            }
+
+            // === ĐẾM TỔNG SỐ BẢN GHI ===
+            int totalItems = await query.CountAsync();
+
+            // === LẤY DỮ LIỆU THEO TRANG + MAP DTO ===
+            var data = await query
+                .OrderByDescending(o => o.CreatedAt)
+                .ThenByDescending(o => o.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(o => new OrderDTO
+                {
+                    Id = o.Id,
+                    OrderNumber = o.OrderNumber,
+                    CustomerId = o.CustomerId,
+                    UserId = o.UserId,
+                    Status = o.Status,
+                    Subtotal = o.Subtotal,
+                    Discount = o.Discount,
+                    TotalAmount = o.TotalAmount,
+                    PromotionId = o.PromotionId,
+                    Note = o.Note,
+                    CreatedAt = o.CreatedAt,
+                    UpdatedAt = o.UpdatedAt,
+
+                    CustomerName = o.Customer != null ? o.Customer.FullName : null,
+                    UserName = o.User != null ? o.User.FullName : null,
+                    PromotionCode = o.Promotion != null ? o.Promotion.Code : null,
+
+                    PaymentMethod = o.Payments.FirstOrDefault() != null 
+                    ? o.Payments.FirstOrDefault()!.Method 
+                    : null,
+
+                    PaymentStatus = o.Payments.FirstOrDefault() != null 
+                        ? o.Payments.FirstOrDefault()!.Status 
+                        : null,
+
+                    TransactionRef  = o.Payments.FirstOrDefault() != null 
+                        ? o.Payments.FirstOrDefault()!.TransactionRef 
+                        : null
+                })
+                .ToListAsync();
+
+            return (data, totalItems);
         }
     }
 }

@@ -1,6 +1,9 @@
 using StoreApp.Data;
 using StoreApp.Models;
 using Microsoft.EntityFrameworkCore;
+using StoreApp.Shared;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace StoreApp.Repository
 {
@@ -39,6 +42,21 @@ namespace StoreApp.Repository
                 _context.OrderItems.RemoveRange(items);
                 await _context.SaveChangesAsync();
             }
+        }
+        public async Task<List<OrderItemReponse>> GetByOrderIdAsyncVer2(int orderId)
+        {
+            return await _context.OrderItems
+                .Where(x => x.OrderId == orderId)
+                .Include(x => x.Product)
+                .Select(x => new OrderItemReponse
+                {
+                    id = x.Id,
+                    product = x.Product != null ? x.Product.ProductName : "N/A",
+                    qty = x.Quantity,
+                    price = x.UnitPrice,
+                    total = x.TotalPrice
+                })
+                .ToListAsync();
         }
     }
 }

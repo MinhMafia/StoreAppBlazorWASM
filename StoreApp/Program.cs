@@ -76,6 +76,9 @@ builder.Services.AddScoped<SupplierService>();
 builder.Services.AddScoped<ReportsService>();
 builder.Services.AddScoped<JwtService>();
 
+// 👇👈 ADD THIS — để fix lỗi IHttpContextAccessor
+builder.Services.AddHttpContextAccessor();
+
 // --- AI Services ---
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<AiService>();
@@ -130,6 +133,9 @@ builder.Services.AddScoped<IProductClientService, ProductClientService>();
 builder.Services.AddScoped<ICategoryClientService, CategoryClientService>();
 builder.Services.AddScoped<IAiChatService, AiChatService>();
 builder.Services.AddScoped<ICustomerAiChatService, CustomerAiChatService>();
+builder.Services.AddScoped<IOrdersClientService, OrdersClientService>();
+
+
 
 var app = builder.Build();
 

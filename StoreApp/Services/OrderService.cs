@@ -3,6 +3,7 @@ using StoreApp.Repository;
 using StoreApp.Shared;
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace StoreApp.Services
@@ -14,14 +15,22 @@ namespace StoreApp.Services
         private readonly UserRepository _userRepo;
         private readonly CustomerRepository _customerRepo;
 
-        public OrderService(OrderRepository orderRepo, ActivityLogService logService, UserRepository userRepo,
-            CustomerRepository customerRepo)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public OrderService(
+            OrderRepository orderRepo,
+            ActivityLogService logService,
+            UserRepository userRepo,
+            CustomerRepository customerRepo,
+            IHttpContextAccessor httpContextAccessor)
         {
             _orderRepo = orderRepo;
             _logService = logService;
             _customerRepo = customerRepo;
             _userRepo = userRepo;
+            _httpContextAccessor = httpContextAccessor;
         }
+
 
         /*
             Phương thúc Tạo đơn hàng mới 
@@ -37,30 +46,63 @@ namespace StoreApp.Services
                 CreatedAt, UpdatedAt: thời gian hiện tại
 
         */
+
+        private int GetCurrentUserId()
+        {
+            var context = _httpContextAccessor.HttpContext;
+
+            // check claim JWT
+            if (context?.User?.Identity?.IsAuthenticated == true)
+            {
+                var claim = context.User.FindFirst("uid")
+                            ?? context.User.FindFirst("userId")
+                            ?? context.User.FindFirst(ClaimTypes.NameIdentifier);
+
+                if (claim != null && int.TryParse(claim.Value, out int id))
+                    return id;
+            }
+
+            // fallback đọc từ header
+            var headerUid = context?.Request?.Headers["X-User-Id"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(headerUid) && int.TryParse(headerUid, out int headerId))
+                return headerId;
+
+            throw new InvalidOperationException("Không tìm thấy user_id trong token");
+        }
+
+        /*
+            Phương thúc Tạo đơn hàng mới 
+            Trả về object OrderDTO vừa tạo có 
+                Id: Lấy max Id + 1
+                OrderNumber: Guid.NewGuid().ToString()
+                CustomerId: 0 => Mặc định là khách vãng lai
+                UserId: Nhân viên đang tạo đơn hàng (Tạm thời để là 2 vì chưa biết ai đang làm đăng nhập . Tạm thời để đó)
+                Status: pending
+                Subtotal, Discount, TotalAmount: 0m
+                PromotionId: null
+                Note: null
+                CreatedAt, UpdatedAt: thời gian hiện tại
+
+        */
         public async Task<OrderDTO> CreateTemporaryOrderAsync()
         {
-            // Lấy max Id để tạo Id mới
             int maxId = await _orderRepo.GetMaxIdAsync();
             int newId = maxId + 1;
+            string orderCode = Guid.NewGuid().ToString();
 
-            // Tạo mã đơn hàng dạng UUID thay vì DH_<id>_<timestamp>
-            string orderCode = Guid.NewGuid().ToString(); // VD: "f601fbc0-b99a-11f0-820b-141333c764dc"
-
-            // Lấy thông tin User (nhân viên) từ DB
-            int userId = 2; // tạm thời
+            // Lấy user_id thực tế
+            int userId = GetCurrentUserId();
             var user = await _userRepo.GetByIdAsync(userId);
-            string userName = user?.FullName ?? "Nhân viên #2";
+            string userName = user?.FullName ?? $"Nhân viên #{userId}";
 
-            // Lấy thông tin Customer (khách vãng lai) từ DB
             int customerId = 0;
             var customer = await _customerRepo.GetByIdAsync(customerId);
             string customerName = customer?.FullName ?? "Khách vãng lai";
 
-            // Tạo object OrderDTO tạm thời (chưa lưu DB)
             var tempOrder = new OrderDTO
             {
                 Id = newId,
-                OrderNumber = orderCode,      // Dùng UUID
+                OrderNumber = orderCode,
                 CustomerId = customerId,
                 UserId = userId,
                 Status = "pending",
@@ -79,10 +121,27 @@ namespace StoreApp.Services
             return tempOrder;
         }
 
+
         // Lưu đơn hàng (frontend đã gửi đủ dữ liệu)
-        public async Task<Order> SaveOrderAsync(Order order)
+        public async Task<bool> CreateOrderAsync(OrderDTO dto)
         {
-            return await _orderRepo.CreateOrderAsync(order);
+            var order = new Order
+            {
+                Id           = dto.Id,
+                OrderNumber  = dto.OrderNumber,
+                CustomerId   = dto.CustomerId,
+                UserId       = dto.UserId,
+                Status       = dto.Status,
+                Subtotal     = dto.Subtotal,
+                Discount     = dto.Discount,
+                TotalAmount  = dto.TotalAmount,
+                PromotionId  = dto.PromotionId,
+                Note         = dto.Note,
+                CreatedAt    = dto.CreatedAt,
+                UpdatedAt    = dto.UpdatedAt
+            };
+
+            return await _orderRepo .SaveOrderAsync(order);
         }
 
 
@@ -205,5 +264,31 @@ namespace StoreApp.Services
                 CustomerName = order.Customer?.FullName
             };
         }
+        //Phân trang kết hợp tìm kiếm 
+        public async Task<ResultPaginatedDTO<OrderDTO> > GetPagedOrdersAsyncForOrderPage(
+            int pageNumber,
+            int pageSize,
+            string? status,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? search
+        )
+        {
+            var (data, totalItems) = await _orderRepo.SearchPagingAsync(
+                pageNumber, pageSize, status, startDate, endDate, search
+            );
+
+            return new ResultPaginatedDTO<OrderDTO> 
+            {
+                Items = data,
+                TotalItems  = totalItems,
+                CurrentPage = pageNumber,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
+            };
+        }
+
+
+
+
     }
 }

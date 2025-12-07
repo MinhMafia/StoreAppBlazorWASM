@@ -1,5 +1,6 @@
 using StoreApp.Models;
 using StoreApp.Repository;
+using StoreApp.Shared;
 
 namespace StoreApp.Services
 {
@@ -32,6 +33,11 @@ namespace StoreApp.Services
         public async Task DeleteByOrderIdAsync(int orderId)
         {
             await _orderItemRepository.DeleteByOrderIdAsync(orderId);
+        }
+
+        public async Task<List<OrderItemReponse>> GetItemsByOrderAsync(int orderId)
+        {
+            return await _orderItemRepository.GetByOrderIdAsyncVer2(orderId);
         }
     }
 }

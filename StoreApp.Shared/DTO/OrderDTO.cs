@@ -1,4 +1,4 @@
-namespace StoreApp.Shared
+namespace  StoreApp.Shared
 {
     public class OrderDTO
     {
@@ -19,5 +19,14 @@ namespace StoreApp.Shared
         public string? CustomerName { get; set; }
         public string? UserName { get; set; }
         public string? PromotionCode { get; set; }
+
+        public string? PaymentMethod { get; set; }
+        public string? PaymentStatus { get; set; }
+
+        public string? TransactionRef { get; set; }
+        
+
+        
+        
     }
 }

@@ -1,0 +1,166 @@
+<div class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6 border-b pb-4">
+            <h1 class="text-3xl font-bold text-gray-800">CHI TIẾT ĐƠN HÀNG</h1>
+            <button class="text-gray-500 hover:text-red-500 transition" @onclick="OnCloseOrdersForm">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Form Content -->
+        <div class="space-y-6 mb-6">
+
+            <!-- Mã đơn hàng -->
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Mã đơn hàng</label>
+                <input  
+                    value="@CurrentOrder.OrderNumber"
+                    readonly
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium" />
+            </div>
+
+            <!-- Khách hàng -->
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Khách hàng</label>
+                <div class="flex gap-2">
+                    <input readonly value="@CurrentOrder.CustomerName (@CurrentOrder.CustomerId)"
+                        class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium" />
+                    <button
+                        class="px-3 py-2.5 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Nhân viên -->
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Nhân viên</label>
+                <input readonly value="@CurrentOrder.UserName (@CurrentOrder.UserId)"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium" />
+            </div>
+
+            <!-- Ngày lập phiếu -->
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Ngày lập phiếu</label>
+                <input readonly value="@CurrentOrder.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium" />
+            </div>
+
+            <!-- Trạng thái đơn -->
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Trạng thái đơn</label>
+                <input readonly value="@CurrentOrder.Status"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50" />
+            </div>
+
+
+            <!-- Ghi chú -->
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Ghi chú</label>
+                <textarea readonly rows="2"
+                    class="w-full px-4 py-6 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                    @(string.IsNullOrEmpty(CurrentOrder.Note) ? "Không có ghi chú" : CurrentOrder.Note)
+                </textarea>
+            </div>
+
+            
+                
+            <DetailOrderForm 
+            ListOrderProducts="ListOrderProducts"
+            ordersFormMode="ordersFormMode"
+            />
+            
+
+           
+                
+            <PromotionSection 
+            ordersFormMode="ordersFormMode"
+            />
+
+            
+
+            <!-- Thanh toán -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Phương thức</label>
+                    <input readonly value="@(string.IsNullOrEmpty(CurrentOrder.PaymentMethod) ? "N/A" : CurrentOrder.PaymentMethod)"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Mã GD</label>
+                    <input readonly value="@(string.IsNullOrEmpty(CurrentOrder.TransactionRef) ? "N/A" : CurrentOrder.TransactionRef)"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50" />
+
+                    <label class="block text-sm font-bold text-gray-700 mb-1 mt-3">Trạng thái</label>
+                    <input readonly value="@(string.IsNullOrEmpty(CurrentOrder.PaymentStatus) ? "N/A" : CurrentOrder.PaymentStatus)"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50" />
+
+                </div>
+            </div>
+
+            <!-- TỔNG TIỀN ĐƠN HÀNG -->
+         
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden max-w-4xl mx-auto">
+
+                <!-- Phần tổng tiền -->
+                <div class="p-5 space-y-4 bg-gray-50/50">
+                    <!-- Tạm tính -->
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 font-medium">Tạm tính</span>
+                        <span class="text-lg font-semibold text-gray-800">@CurrentOrder.Subtotal</span>
+                    </div>
+
+                    <!-- Giảm giá - có icon tròn xanh lá nổi bật -->
+                    <div class="flex justify-between items-center">
+                        <span class="flex items-center gap-2 text-gray-700 font-medium">
+                            <span class="flex items-center justify-center w-7 h-7 rounded-full bg-green-100 text-green-700 text-sm font-bold">
+                                %
+                            </span>
+                            Giảm giá
+                        </span>
+                        <span class="text-lg font-bold text-green-600">@CurrentOrder.Discount</span>
+                    </div>
+
+                    <!-- Đường kẻ chấm chấm đẹp -->
+                    <div class="border-t-2 border-dashed border-gray-300"></div>
+
+                    <!-- Thành tiền lớn nhất -->
+                    <div class="flex justify-between items-center pt-2">
+                        <span class="text-lg font-bold text-gray-800">Khách cần thanh toán</span>
+                        <span class="text-2xl font-extrabold text-indigo-600">@CurrentOrder.TotalAmount</span>
+                    </div>
+                </div>
+
+
+            </div>
+            <!-- Action Buttons -->
+            @if(ordersFormMode == "create"){
+                <div class="flex justify-end">
+                    <button
+                        class="px-7 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg transition">
+                        Tạo Đơn Hàng
+                    </button>
+                </div>
+
+            }
+
+
+        </div>
+    </div>
+</div>
+@code{
+    [Parameter] public OrderDTO CurrentOrder { get; set; } = null!;
+    [Parameter] public List<OrderItemReponse> ListOrderProducts { get; set; } = new List<OrderItemReponse>();
+    [Parameter] public string ordersFormMode { get; set; } = "create";
+    [Parameter] public EventCallback OnCloseOrdersForm { get; set; }
+
+}

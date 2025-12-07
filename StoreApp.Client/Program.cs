@@ -11,6 +11,10 @@ builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
 builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 
+builder.Services.AddScoped<IOrdersClientService, OrdersClientService>();
+
+
+
 // AI Chat Service
 builder.Services.AddScoped<IAiChatService, AiChatService>();
 

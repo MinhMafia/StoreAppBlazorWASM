@@ -1,0 +1,47 @@
+<div class="mb-6 p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-emerald-300 shadow-sm">
+  <h4 class="text-xl font-bold text-gray-800 mb-3">PHIẾU GIẢM GIÁ</h4>
+
+  <div class="space-y-3 max-h-64 overflow-y-auto">
+
+    <!-- Promo Item 1 -->
+    <label class="flex items-center justify-between p-4 border border-gray-300 rounded-lg cursor-pointer hover:border-emerald-500 hover:shadow transition">
+      <div>
+        <div class="font-bold text-emerald-700 text-lg">GG10K</div>
+        <div class="text-sm text-gray-600">Giảm 10.000₫ • Tối thiểu 100.000₫</div>
+      </div>
+      <input type="radio" name="voucher" class="h-5 w-5 text-emerald-600" />
+    </label>
+
+    <!-- Promo Item 2 -->
+    <label class="flex items-center justify-between p-4 border border-gray-300 rounded-lg cursor-pointer hover:border-emerald-500 hover:shadow transition">
+      <div>
+        <div class="font-bold text-emerald-700 text-lg">SALE20</div>
+        <div class="text-sm text-gray-600">Giảm 20% • Tối thiểu 200.000₫</div>
+      </div>
+      <input type="radio" name="voucher" class="h-5 w-5 text-emerald-600" />
+    </label>
+
+    <!-- Promo Item 3 -->
+    <label class="flex items-center justify-between p-4 border border-gray-300 rounded-lg cursor-pointer hover:border-emerald-500 hover:shadow transition">
+      <div>
+        <div class="font-bold text-emerald-700 text-lg">FREESHIP</div>
+        <div class="text-sm text-gray-600">Miễn phí vận chuyển</div>
+      </div>
+      <input type="radio" name="voucher" class="h-5 w-5 text-emerald-600" />
+    </label>
+
+    <!-- Promo Item 4 – Selected -->
+    <label class="flex items-center justify-between p-4 border border-emerald-600 rounded-lg cursor-pointer bg-emerald-50 shadow">
+      <div>
+        <div class="font-bold text-emerald-700 text-lg">VIP50</div>
+        <div class="text-sm text-gray-600">Giảm 50%</div>
+      </div>
+      <input type="radio" name="voucher" checked readonly class="h-5 w-5 text-emerald-600" />
+    </label>
+
+  </div>
+</div>
+@code {
+    [Parameter]
+    public string ordersFormMode { get; set; } = "view"; 
+}

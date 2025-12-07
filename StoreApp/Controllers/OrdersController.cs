@@ -32,20 +32,30 @@ namespace StoreApp.Controllers
 
         // POST: api/Order/create
         [HttpPost("create")]
-        public async Task<IActionResult> CreateOrder([FromBody] Order order)
+        public async Task<IActionResult> CreateOrder([FromBody] OrderDTO dto)
         {
-            if (order == null)
-                return BadRequest(false);
+            if (dto == null) return BadRequest(false);
 
-            try
-            {
-                var savedOrder = await _orderService.SaveOrderAsync(order);
-                return Ok(true);
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, false);
-            }
+            bool success = await _orderService.CreateOrderAsync(dto);
+
+            return Ok(success); // true hoặc false
+        }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> Search(
+            int pageNumber = 1,
+            int pageSize = 10,
+            string? status = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null,
+            string? search = null
+        )
+        {
+            var result = await _orderService.GetPagedOrdersAsyncForOrderPage(
+                pageNumber, pageSize, status, startDate, endDate, search
+            );
+
+            return Ok(result);
         }
 
 

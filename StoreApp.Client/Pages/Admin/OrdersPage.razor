@@ -1,0 +1,300 @@
+@page "/admin/orders"
+@using StoreApp.Shared
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@using StoreApp.Client.Components.OrderPage
+
+@inject IJSRuntime JS
+
+
+
+
+
+
+<div class="max-w-8xl mx-auto p-4 sm:p-6">
+
+
+    @* // Lọc đơn hàng và tạo đơn hàng mới *@
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+            <label class="text-sm font-bold text-gray-700 whitespace-nowrap">
+                Lọc trạng thái:
+            </label>
+            <select @onchange="OnStatusChanged"
+                class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary">
+                <option value="">Tất cả trạng thái</option>
+                <option value="pending">Chưa xử lý</option>
+                <option value="paid">Đã thanh toán</option>
+                <option value="completed">Hoàn thành</option>
+                <option value="cancelled">Đã hủy</option>
+            </select>
+        </div>
+
+        <button
+            class="w-full sm:w-auto px-6 py-3 bg-purple-500 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg transition">
+            Tạo Đơn Hàng Mới
+        </button>
+    </div>
+
+    @* {/* Tìm kiếm */} *@
+    <div class="flex gap-3 mb-4">
+        <input type="text" 
+            @bind-value="searchKeyword"
+            class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary" />
+        <button @onclick="SearchOrders"
+            class="px-6 py-3 bg-purple-500 text-white rounded-lg font-bold hover:bg-blue-700">
+            Tìm Kiếm
+        </button>
+    </div>
+
+    <div class="flex gap-4 mb-6 w-full">
+
+        <!-- Từ ngày -->
+        <div class="flex flex-col flex-1">
+            <label class="text-sm font-semibold text-gray-700 mb-1">Từ ngày</label>
+            <input 
+            @bind-value="selectedStartDate" 
+            type="date" 
+            class="px-3 py-2.5 border border-gray-300 rounded-lg w-full
+                        focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" />
+        </div>
+
+        <!-- Đến ngày -->
+        <div class="flex flex-col flex-1">
+            <label class="text-sm font-semibold text-gray-700 mb-1">Đến ngày</label>
+            <input type="date" 
+            @bind-value="selectedEndDate" 
+            class="px-3 py-2.5 border border-gray-300 rounded-lg w-full
+                        focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" />
+        </div>
+
+        <!-- Button có label ẩn để cân chiều cao -->
+        <div class="flex flex-col">
+            <label class="invisible mb-1">.</label>
+            <button @onclick="FilterByDate" class="px-6 py-2.5 bg-purple-500 text-white rounded-lg font-bold 
+                    hover:bg-blue-700 w-full">
+                Lọc
+            </button>
+        </div>
+
+    </div>
+
+
+
+
+
+
+    @* {/* Form đơn hàng */} => Dùng xem chi tiết hoặc tạo đơn mới ẩn lúc ban đầu , Chứa DetailOrder (chi tiết sản phẩm ), PromotionSection (khuyến mãi)*@
+    @if (showOrderModel)
+    {
+        <OrderForm
+        ListOrderProducts="listOrderProducts"
+        CurrentOrder="currentOrder" 
+        ordersFormMode="ordersFormMode"
+        OnCloseOrdersForm="() => showOrderModel = false"  
+        />
+    }
+
+    @* {/* Danh sách đơn hàng*/} => Danh sách đơn hàng có một số thông tin cơ bản như {Mã đơn, Thời gian, Khách hàng, Nhân viên, Tổng tiền, Số lượng, Trạng thái đơn,Trạng thái thanh toán, Thao tác (Xem, Chờ xử lí => nếu là đươn online, )}*@
+
+    <OrderTable 
+        listOrders="@listOrders" 
+        currentPage="@currentPage" 
+        totalPages="@totalPages"
+        ViewOrderDetail="ViewOrderDetail"
+        onPageChange="@(page => OnPageChanged(page))" />
+
+
+    @* {/* Modal chọn khách hàng */} => Phục vụ cho việc chọn khách cho việc tạo đơn , ẩn ban đầu và hiện ra khi nhấn nút chọn khách trong Form đơn hàng*@
+    @if (showCustomerModal)
+    {
+        <CustomerModel />
+    }
+
+    @* {/* Modal chọn sản phẩm */} => Phục vụ cho việc chọn sản phẩm cho tạo đơn, ẩn ban đầu và hiện ra khi nhấn nút chọn sản phẩm trong Form đơn hàng*@
+    @if (showProductModal)
+    {
+        <ProductModel />
+    }
+
+
+</div>
+@code {
+
+    private readonly IOrdersClientService _ordersClient;
+
+    public OrdersPage(IOrdersClientService ordersClient)
+    {
+        _ordersClient = ordersClient;
+    }
+
+    // Biến điều khiển hiển thị modal khách hàng, sản phẩm và form đơn hàng
+    bool showCustomerModal = false;
+    bool showProductModal = false;
+    bool showOrderModel = false;
+
+    // Chế độ form đơn hàng: "create" hoặc "detail"
+    string ordersFormMode = "create";
+
+    // Đơn hàng hiện tại => currentOrder
+    OrderDTO? currentOrder = null;
+
+
+    // Sản phẩm được chọn => selectedProduct
+    // Danh sách sản phẩm trong đơn => listOrderProducts
+    List<OrderItemReponse> listOrderProducts = new();
+    // Khách hàng được chọn => selectedCustomer
+    // Thông tin thanh toán được chọn => payment
+    // Thông tin khuyến mãi của đơn => promotion
+
+
+    // Danh sách đơn hàng => listOrders
+    List<OrderDTO> listOrders = new();
+
+    // Trang hiện tại => currentPage
+    int currentPage = 1;
+    // Kích thước trang => pageSize
+    int pageSize = 10;
+    // Tổng trang => totalPages
+    int totalPages = 1;
+
+    // Trạng thái đơn hàng đang được chọn để lọc => selectedStatus
+    string selectedStatus = "";
+    // Ngày bắt đầu được chọn để lọc => selectedStartDate
+    DateTime? selectedStartDate = null;
+    // Ngày kết thúc được chọn để lọc => selectedEndDate
+    DateTime? selectedEndDate = null;
+    // Từ khóa tìm kiếm => searchKeyword
+    string searchKeyword = "";
+
+    // Hàm để mở đóng các model
+    void openCustomerModal()
+    {
+        showCustomerModal = true;
+    }
+    void closeCustomerModal()
+    {
+        showCustomerModal = false;
+    }
+
+    void openProductModal()
+    {
+        showProductModal = true;
+    }
+
+    void closeProductModal()
+    {
+        showProductModal = false;
+    }
+
+    // Mỏ form đơn hàng => Trạng thái tạo đơn mới
+    void openOrderModal()
+    {
+
+    }
+
+    /**
+    * Lấy danh sách có phân trang nâng cao (Phân trang bình thường, lọc theo trạng thái đơn hàng, lọc theo ngày bắt đầu kết
+thúc, tìm kiếm )
+*/
+    async Task LoadOrdersAdvanced()
+    {
+        var response = await _ordersClient.LoadOrdersAdvanced(
+            currentPage,
+            pageSize,
+            selectedStatus,
+            selectedStartDate,
+            selectedEndDate,
+            searchKeyword
+        );
+
+        listOrders = response.Items;
+        totalPages = response.TotalPages;
+    }
+
+    //Xem chi tiết đon hàng
+    async Task ViewOrderDetail(OrderDTO order){
+        currentOrder = order;
+        ordersFormMode = "detail";
+        // Lấy danh sách sản phẩm của đơn hàng
+        listOrderProducts = await _ordersClient.GetOrderItemsByOrderIdAsync(order.Id);
+        showOrderModel = true;
+    }
+
+
+    //Xuất hiện thông báo
+    async Task ShowAlert(string message)
+    {
+        await JS.InvokeVoidAsync("alert", message);
+    }
+
+    // Xử lý khi trạng thái lọc thay đổi
+    async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        selectedStatus = e.Value?.ToString() ?? "";
+        currentPage = 1;
+        await LoadOrdersAdvanced();
+
+        await ShowAlert(string.IsNullOrEmpty(selectedStatus)
+            ? "Hiển thị tất cả trạng thái"
+            : $"Đang lọc trạng thái: {selectedStatus}");
+    }
+
+
+    // Lọc theo ngày
+    async Task FilterByDate()
+    {
+        if (selectedStartDate != null && selectedEndDate != null && selectedStartDate > selectedEndDate)
+        {
+
+            await JS.InvokeVoidAsync("alert", "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc. Vui lòng chọn lại.");
+            return;
+        }
+
+        currentPage = 1;
+
+        // Thông báo lọc ngày
+        await JS.InvokeVoidAsync("alert", $"Đang lọc theo ngày: {selectedStartDate?.ToString("dd/MM/yyyy")} → {selectedEndDate?.ToString("dd/MM/yyyy")}");
+
+        await LoadOrdersAdvanced();
+    }
+
+
+    async Task SearchOrders()
+    {
+        if (string.IsNullOrWhiteSpace(searchKeyword))
+        {
+            await ShowAlert("Từ khóa tìm kiếm rỗng, hiển thị tất cả đơn hàng");
+        }
+        else
+        {
+            await ShowAlert($"Đang tìm kiếm với từ khóa: \"{searchKeyword}\"");
+        }
+
+        currentPage = 1;
+        await LoadOrdersAdvanced();
+    }
+
+    async Task OnPageChanged(int page)
+    {
+        currentPage = page;
+        await LoadOrdersAdvanced();
+    }
+
+    // Hiển thị danh sách đơn hàng khi trang được tải
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadOrdersAdvanced();
+            StateHasChanged();
+
+        }
+    }
+
+
+
+
+
+}
