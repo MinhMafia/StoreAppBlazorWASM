@@ -10,6 +10,7 @@ builder.Services.AddScoped<ICategoryClientService, CategoryClientService>();
 builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
 builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<ICustomerAuthService, CustomerAuthService>();
 
 builder.Services.AddScoped<IOrdersClientService, OrdersClientService>();
 

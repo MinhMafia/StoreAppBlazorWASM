@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @using StoreApp.Client.Components.AI
+@using StoreApp.Client.Components
 
 <div class="store-layout">
     <StoreNavMenu />
@@ -11,6 +12,9 @@
 
 @* Customer AI Chat Widget *@
 <CustomerChatWidget />
+
+@* Tawk.to Chat Widget - Only for Store/Customer pages *@
+<TawkToWidget />
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.

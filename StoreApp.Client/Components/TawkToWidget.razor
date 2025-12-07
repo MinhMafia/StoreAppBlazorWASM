@@ -1,0 +1,128 @@
+@inject IJSRuntime JSRuntime
+@inject ICustomerAuthService CustomerAuthService
+@implements IAsyncDisposable
+
+@code {
+    private IJSObjectReference? _jsModule;
+    private bool _isCustomerLoggedIn = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Kiểm tra xem khách hàng đã đăng nhập chưa
+            var customerId = await CustomerAuthService.GetCustomerIdAsync();
+            _isCustomerLoggedIn = customerId.HasValue;
+
+            // Chỉ load Tawk.to nếu khách hàng đã đăng nhập
+            if (!_isCustomerLoggedIn)
+            {
+                return; // Không hiển thị widget nếu chưa đăng nhập
+            }
+
+            try
+            {
+                // Lấy thông tin khách hàng
+                var customer = await CustomerAuthService.GetCurrentCustomerAsync();
+                
+                // Check if Tawk.to is already loaded
+                var isLoaded = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.Tawk_API !== 'undefined'");
+                
+                if (!isLoaded)
+                {
+                    // Load Tawk.to script dynamically
+                    await JSRuntime.InvokeVoidAsync("eval", @"
+                        (function() {
+                            window.Tawk_API = window.Tawk_API || {};
+                            window.Tawk_LoadStart = new Date();
+                            var s1 = document.createElement('script');
+                            var s0 = document.getElementsByTagName('script')[0];
+                            s1.async = true;
+                            s1.src = 'https://embed.tawk.to/693562e6459173197e853e08/1jbs8klc5';
+                            s1.charset = 'UTF-8';
+                            s1.setAttribute('crossorigin', '*');
+                            s0.parentNode.insertBefore(s1, s0);
+                        })();
+                    ");
+                }
+
+                // Đợi Tawk.to load xong rồi mới set thông tin khách hàng
+                await Task.Delay(2000); // Đợi script load
+
+                // Gửi thông tin khách hàng cho Tawk.to
+                if (customer != null)
+                {
+                    await SetCustomerInfo(customer);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading Tawk.to: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task SetCustomerInfo(StoreApp.Shared.CustomerResponseDTO customer)
+    {
+        try
+        {
+            // Sử dụng Tawk.to API để set thông tin visitor
+            var customerInfo = new
+            {
+                name = customer.FullName,
+                email = customer.Email ?? "",
+                phone = customer.Phone ?? "",
+                hash = customer.Id.ToString() // Dùng customer ID làm hash để identify visitor
+            };
+
+            await JSRuntime.InvokeVoidAsync("eval", $@"
+                (function() {{
+                    if (window.Tawk_API && window.Tawk_API.onLoad) {{
+                        window.Tawk_API.onLoad = function() {{
+                            window.Tawk_API.setAttributes({{
+                                name: '{customerInfo.name}',
+                                email: '{customerInfo.email}',
+                                phone: '{customerInfo.phone}',
+                                hash: '{customerInfo.hash}'
+                            }}, function(error) {{
+                                if (error) {{
+                                    console.error('Tawk.to setAttributes error:', error);
+                                }} else {{
+                                    console.log('Tawk.to customer info set successfully');
+                                }}
+                            }});
+                        }};
+                    }} else if (window.Tawk_API) {{
+                        // Nếu Tawk.to đã load, set ngay
+                        window.Tawk_API.setAttributes({{
+                            name: '{customerInfo.name}',
+                            email: '{customerInfo.email}',
+                            phone: '{customerInfo.phone}',
+                            hash: '{customerInfo.hash}'
+                        }}, function(error) {{
+                            if (error) {{
+                                console.error('Tawk.to setAttributes error:', error);
+                            }} else {{
+                                console.log('Tawk.to customer info set successfully');
+                            }}
+                        }});
+                    }}
+                }})();
+            ");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error setting customer info in Tawk.to: {ex.Message}");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Cleanup if needed
+        if (_jsModule != null)
+        {
+            await _jsModule.DisposeAsync();
+        }
+    }
+}
+
