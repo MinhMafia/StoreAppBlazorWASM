@@ -94,6 +94,127 @@ namespace StoreApp.Controllers
                 Role = user.Role
             });
         }
+
+        [HttpPost("register-customer")]
+        public async Task<IActionResult> RegisterCustomer([FromBody] CustomerRegisterDTO req)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    Console.WriteLine("❌ ModelState is invalid");
+                    return BadRequest(ModelState);
+                }
+
+                Console.WriteLine($"📝 Starting registration for: {req.Username} ({req.Email})");
+
+                // Kiểm tra username đã tồn tại
+                var usernameExists = await _db.Users.AnyAsync(u => u.Username == req.Username);
+                if (usernameExists)
+                {
+                    Console.WriteLine($"❌ Username already exists: {req.Username}");
+                    return Conflict(new { message = "Tên đăng nhập đã được sử dụng" });
+                }
+
+                // Kiểm tra email đã tồn tại trong Users table
+                var userEmailExists = await _db.Users.AnyAsync(u => u.Email == req.Email);
+                if (userEmailExists)
+                {
+                    Console.WriteLine($"❌ Email already exists in Users: {req.Email}");
+                    return Conflict(new { message = "Email đã được sử dụng" });
+                }
+
+                // Kiểm tra email đã tồn tại trong Customers table
+                var customerEmailExists = await _db.Customers.AnyAsync(c => c.Email == req.Email);
+                if (customerEmailExists)
+                {
+                    Console.WriteLine($"❌ Email already exists in Customers: {req.Email}");
+                    return Conflict(new { message = "Email đã được sử dụng" });
+                }
+
+                // Kiểm tra phone đã tồn tại
+                var phoneExists = await _db.Customers.AnyAsync(c => c.Phone == req.Phone);
+                if (phoneExists)
+                {
+                    Console.WriteLine($"❌ Phone already exists: {req.Phone}");
+                    return Conflict(new { message = "Số điện thoại đã được sử dụng" });
+                }
+
+                // Bắt đầu transaction
+                using var transaction = await _db.Database.BeginTransactionAsync();
+
+                try
+                {
+                    // Tạo User với username riêng
+                    var user = new User
+                    {
+                        Username = req.Username, // Dùng username riêng
+                        Email = req.Email,
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
+                        FullName = req.FullName,
+                        Role = "customer",
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _db.Users.Add(user);
+                    await _db.SaveChangesAsync();
+
+                    Console.WriteLine($"✅ User created - ID: {user.Id}, Username: {user.Username}");
+
+                    // Tạo Customer và liên kết với User
+                    var customer = new Customer
+                    {
+                        UserId = user.Id,
+                        FullName = req.FullName,
+                        Phone = req.Phone,
+                        Email = req.Email,
+                        Address = req.Address,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    _db.Customers.Add(customer);
+                    await _db.SaveChangesAsync();
+
+                    Console.WriteLine($"✅ Customer created - ID: {customer.Id}");
+
+                    // Commit transaction
+                    await transaction.CommitAsync();
+
+                    Console.WriteLine($"✅ Transaction committed successfully");
+                    Console.WriteLine($"✅ Customer registered - Username: {req.Username}, Email: {req.Email}, Customer ID: {customer.Id}, User ID: {user.Id}");
+
+                    return Created("", new
+                    {
+                        message = "Đăng ký thành công",
+                        customerId = customer.Id,
+                        userId = user.Id
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    Console.WriteLine($"❌ Transaction rolled back. Error: {ex.Message}");
+                    Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
+                    throw;
+                }
+            }
+            catch (DbUpdateException dbEx)
+            {
+                Console.WriteLine($"❌ Database update error: {dbEx.Message}");
+                Console.WriteLine($"❌ Inner exception: {dbEx.InnerException?.Message}");
+                return StatusCode(500, new { message = "Lỗi cơ sở dữ liệu. Vui lòng kiểm tra lại thông tin." });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Registration error: {ex.Message}");
+                Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { message = "Có lỗi xảy ra khi đăng ký. Vui lòng thử lại." });
+            }
+        }
+
         [HttpPost("reset-admin-password")]
         public async Task<IActionResult> ResetAdminPassword()
         {

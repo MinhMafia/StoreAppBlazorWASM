@@ -51,20 +51,6 @@ CREATE TABLE suppliers (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE customers (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  full_name VARCHAR(255) NOT NULL,
-  phone VARCHAR(50),
-  email VARCHAR(255),
-  address TEXT,
-  note TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY ux_customers_phone (phone),
-  UNIQUE KEY ux_customers_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
 CREATE TABLE users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(150) NOT NULL UNIQUE,
@@ -77,6 +63,22 @@ CREATE TABLE users (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   last_login DATETIME DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE customers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NULL,
+  full_name VARCHAR(255) NOT NULL,
+  phone VARCHAR(50),
+  email VARCHAR(255),
+  address TEXT,
+  note TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY ux_customers_phone (phone),
+  UNIQUE KEY ux_customers_email (email),
+  CONSTRAINT fk_customers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX idx_customers_user (user_id)  
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE promotions (
@@ -251,6 +253,7 @@ VALUES
   ('admin', 'admin@example.com', '$2a$11$B5Pre4vLwlsfDIMg/gXXjuH/CyqianiPXHXSXikWE5R0djN/9Tf7.', 'Quản trị viên', 'admin', 1, 0, NOW()),
   ('staff01', 'staff01@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Nguyễn Văn A', 'staff', 1, 0, NOW()),
   ('staff02', 'staff02@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Lê Thị B', 'staff', 1, 0, NOW()),
+  -- ('advisor01', 'advisor01@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Nguyễn Thị Tư Vấn', 'advisor', 1, 0, NOW()),
   ('customer01', 'customer01@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Trịnh Văn A', 'customer', 1, 0, NOW()),
   ('customer02', 'customer02@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Đỗ Mai B', 'customer', 1, 0, NOW());
 
@@ -259,28 +262,28 @@ VALUES
 
 
 -- ===== CUSTOMERS (full_name, phone, email, address) =====
-INSERT INTO customers (full_name, phone, email, address, created_at)
+INSERT INTO customers (user_id, full_name, phone, email, address, created_at)
 VALUES
-('Khách hàng 1', '0909000001', 'kh1@mail.com', 'Địa chỉ 1', NOW()),
-('Khách hàng 2', '0909000002', 'kh2@mail.com', 'Địa chỉ 2', NOW()),
-('Khách hàng 3', '0909000003', 'kh3@mail.com', 'Địa chỉ 3', NOW()),
-('Khách hàng 4', '0909000004', 'kh4@mail.com', 'Địa chỉ 4', NOW()),
-('Khách hàng 5', '0909000005', 'kh5@mail.com', 'Địa chỉ 5', NOW()),
-('Khách hàng 6', '0909000006', 'kh6@mail.com', 'Địa chỉ 6', NOW()),
-('Khách hàng 7', '0909000007', 'kh7@mail.com', 'Địa chỉ 7', NOW()),
-('Khách hàng 8', '0909000008', 'kh8@mail.com', 'Địa chỉ 8', NOW()),
-('Khách hàng 9', '0909000009', 'kh9@mail.com', 'Địa chỉ 9', NOW()),
-('Khách hàng 10', '0909000010', 'kh10@mail.com', 'Địa chỉ 10', NOW()),
-('Khách hàng 11', '0909000011', 'kh11@mail.com', 'Địa chỉ 11', NOW()),
-('Khách hàng 12', '0909000012', 'kh12@mail.com', 'Địa chỉ 12', NOW()),
-('Khách hàng 13', '0909000013', 'kh13@mail.com', 'Địa chỉ 13', NOW()),
-('Khách hàng 14', '0909000014', 'kh14@mail.com', 'Địa chỉ 14', NOW()),
-('Khách hàng 15', '0909000015', 'kh15@mail.com', 'Địa chỉ 15', NOW()),
-('Khách hàng 16', '0909000016', 'kh16@mail.com', 'Địa chỉ 16', NOW()),
-('Khách hàng 17', '0909000017', 'kh17@mail.com', 'Địa chỉ 17', NOW()),
-('Khách hàng 18', '0909000018', 'kh18@mail.com', 'Địa chỉ 18', NOW()),
-('Khách hàng 19', '0909000019', 'kh19@mail.com', 'Địa chỉ 19', NOW()),
-('Khách hàng 20', '0909000020', 'kh20@mail.com', 'Địa chỉ 20', NOW());
+(4, 'Khách hàng 1', '0909000001', 'customer01@example.com', 'Địa chỉ 1', NOW()),
+(5, 'Khách hàng 2', '0909000002', 'customer02@example.com', 'Địa chỉ 2', NOW()),
+(NULL, 'Khách hàng 3', '0909000003', 'kh3@mail.com', 'Địa chỉ 3', NOW()),
+(NULL, 'Khách hàng 4', '0909000004', 'kh4@mail.com', 'Địa chỉ 4', NOW()),
+(NULL, 'Khách hàng 5', '0909000005', 'kh5@mail.com', 'Địa chỉ 5', NOW()),
+(NULL, 'Khách hàng 6', '0909000006', 'kh6@mail.com', 'Địa chỉ 6', NOW()),
+(NULL, 'Khách hàng 7', '0909000007', 'kh7@mail.com', 'Địa chỉ 7', NOW()),
+(NULL, 'Khách hàng 8', '0909000008', 'kh8@mail.com', 'Địa chỉ 8', NOW()),
+(NULL, 'Khách hàng 9', '0909000009', 'kh9@mail.com', 'Địa chỉ 9', NOW()),
+(NULL, 'Khách hàng 10', '0909000010', 'kh10@mail.com', 'Địa chỉ 10', NOW()),
+(NULL, 'Khách hàng 11', '0909000011', 'kh11@mail.com', 'Địa chỉ 11', NOW()),
+(NULL, 'Khách hàng 12', '0909000012', 'kh12@mail.com', 'Địa chỉ 12', NOW()),
+(NULL, 'Khách hàng 13', '0909000013', 'kh13@mail.com', 'Địa chỉ 13', NOW()),
+(NULL, 'Khách hàng 14', '0909000014', 'kh14@mail.com', 'Địa chỉ 14', NOW()),
+(NULL, 'Khách hàng 15', '0909000015', 'kh15@mail.com', 'Địa chỉ 15', NOW()),
+(NULL, 'Khách hàng 16', '0909000016', 'kh16@mail.com', 'Địa chỉ 16', NOW()),
+(NULL, 'Khách hàng 17', '0909000017', 'kh17@mail.com', 'Địa chỉ 17', NOW()),
+(NULL, 'Khách hàng 18', '0909000018', 'kh18@mail.com', 'Địa chỉ 18', NOW()),
+(NULL, 'Khách hàng 19', '0909000019', 'kh19@mail.com', 'Địa chỉ 19', NOW()),
+(NULL, 'Khách hàng 20', '0909000020', 'kh20@mail.com', 'Địa chỉ 20', NOW());
 
 -- ===== CATEGORIES (name) =====
 INSERT INTO categories (name, created_at)

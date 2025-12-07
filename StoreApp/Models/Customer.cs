@@ -15,6 +15,9 @@ namespace StoreApp.Models
         [Column("id")]
         public int Id { get; set; }
 
+        [Column("user_id")]
+        public int? UserId { get; set; }
+
         [Required]
         [Column("full_name")]
         [StringLength(255)]
@@ -42,6 +45,9 @@ namespace StoreApp.Models
 
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
+
+        [ForeignKey(nameof(UserId))]
+        public virtual User? User { get; set; }
 
         // Navigation: one customer -> many orders, many promotion redemptions, many point histories
         public virtual ICollection<Order>? Orders { get; set; }

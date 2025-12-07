@@ -4,6 +4,8 @@ namespace StoreApp.Shared
 {
     public class CustomerCreateDTO
     {
+        public int? UserId { get; set; } = null;
+
         [Required(ErrorMessage = "FullName is required")]
         [MaxLength(150, ErrorMessage = "FullName must be at most 150 characters long")]
         [MinLength(3, ErrorMessage = "FullName must be at least 3 characters long")]
