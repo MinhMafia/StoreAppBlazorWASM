@@ -146,5 +146,64 @@ namespace StoreApp.Services
             
             return new PagedResult<OrderDTO> { TotalItems = total, Items = items };
         }
+
+        /// <summary>
+        /// Lấy đơn hàng theo CustomerId - dùng cho Customer AI
+        /// </summary>
+        public async Task<PagedResult<OrderDTO>> GetOrdersByCustomerIdAsync(
+            int customerId, int page = 1, int pageSize = 10, string? status = null)
+        {
+            var orders = await _orderRepo.GetAllAsync();
+            
+            // Lọc theo customerId
+            orders = orders.Where(o => o.CustomerId == customerId).ToList();
+            
+            if (!string.IsNullOrEmpty(status))
+                orders = orders.Where(o => o.Status == status).ToList();
+            
+            var total = orders.Count;
+            var items = orders
+                .OrderByDescending(o => o.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(o => new OrderDTO 
+                { 
+                    Id = o.Id, 
+                    OrderNumber = o.OrderNumber,
+                    CustomerId = o.CustomerId ?? 0,
+                    Status = o.Status,
+                    Subtotal = o.Subtotal,
+                    Discount = o.Discount,
+                    TotalAmount = o.TotalAmount,
+                    CreatedAt = o.CreatedAt,
+                    CustomerName = o.Customer?.FullName
+                }).ToList();
+            
+            return new PagedResult<OrderDTO> { TotalItems = total, Items = items };
+        }
+
+        /// <summary>
+        /// Lấy đơn hàng theo OrderNumber - dùng cho Customer AI
+        /// </summary>
+        public async Task<OrderDTO?> GetByOrderNumberAsync(string orderNumber)
+        {
+            var orders = await _orderRepo.GetAllAsync();
+            var order = orders.FirstOrDefault(o => o.OrderNumber == orderNumber);
+            
+            if (order == null) return null;
+            
+            return new OrderDTO
+            {
+                Id = order.Id,
+                OrderNumber = order.OrderNumber,
+                CustomerId = order.CustomerId ?? 0,
+                Status = order.Status,
+                Subtotal = order.Subtotal,
+                Discount = order.Discount,
+                TotalAmount = order.TotalAmount,
+                CreatedAt = order.CreatedAt,
+                CustomerName = order.Customer?.FullName
+            };
+        }
     }
 }

@@ -1,0 +1,550 @@
+ @using StoreApp.Shared
+ @using StoreApp.Client.Services
+ @using StoreApp.Client.Components.AI
+ @using Blazored.LocalStorage
+ @inject ICustomerAiChatService AiChatService
+ @inject ILocalStorageService LocalStorage
+ @implements IDisposable
+ 
+ @* Customer Chat Widget - Giao diện thân thiện cho khách hàng *@
+ 
+ @if (isOpen)
+ {
+     @* Chat Window *@
+     <div class="fixed bottom-24 right-6 w-[380px] h-[500px] z-50 shadow-2xl rounded-lg overflow-hidden animate-slide-up">
+         @if (showHistory)
+         {
+             <ConversationHistory Conversations="conversations"
+                                  CurrentConversationId="conversationId"
+                                  LoadingHistory="loadingHistory"
+                                  OnBack="@(() => showHistory = false)"
+                                  OnNewConversation="@StartNewConversation"
+                                  OnLoadConversation="@LoadConversation"
+                                  OnDeleteConversation="@HandleDeleteConversation"
+                                  OnDeleteAll="@HandleDeleteAllConversations" />
+         }
+         else
+         {
+             <div class="flex flex-col h-full bg-white rounded-lg shadow">
+                 @* Header - Màu xanh lá thân thiện *@
+                 <div class="flex items-center gap-3 px-5 py-3 border-b bg-gradient-to-r from-green-500 to-teal-500 rounded-t-lg">
+                     <div class="p-2 bg-white/20 rounded-lg">
+                         @* Shopping Bag Icon *@
+                         <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                             <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                             <path d="M3 6h18"></path>
+                             <path d="M16 10a4 4 0 0 1-8 0"></path>
+                         </svg>
+                     </div>
+                     <div class="flex-1">
+                         <h2 class="text-base font-semibold text-white">Hỗ trợ mua hàng</h2>
+                         <p class="text-xs text-green-100">Tôi có thể giúp gì cho bạn?</p>
+                     </div>
+                     <div class="flex items-center gap-1">
+                         <button @onclick="StartNewConversation"
+                                 class="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                                 title="Cuộc hội thoại mới">
+                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                 <line x1="12" y1="5" x2="12" y2="19"></line>
+                                 <line x1="5" y1="12" x2="19" y2="12"></line>
+                             </svg>
+                         </button>
+                         <button @onclick="@(async () => { await LoadConversations(); showHistory = true; })"
+                                 class="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                                 title="Lịch sử">
+                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                 <circle cx="12" cy="12" r="10"></circle>
+                                 <polyline points="12 6 12 12 16 14"></polyline>
+                             </svg>
+                         </button>
+                     </div>
+                 </div>
+ 
+                 @* Error Banner *@
+                 @if (!string.IsNullOrEmpty(error))
+                 {
+                     <div class="px-4 py-2 bg-red-50 border-b border-red-200 flex items-center justify-between">
+                         <span class="text-sm text-red-700">@error</span>
+                         <button @onclick="@(() => error = null)" class="text-red-500 hover:text-red-700">
+                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                 <line x1="18" y1="6" x2="6" y2="18"></line>
+                                 <line x1="6" y1="6" x2="18" y2="18"></line>
+                             </svg>
+                         </button>
+                     </div>
+                 }
+ 
+                 @* Messages *@
+                 <div @ref="messagesContainerRef" class="flex-1 overflow-y-auto p-4 space-y-3">
+                     @foreach (var msg in messages)
+                     {
+                         <MessageBubble Message="msg" />
+                     }
+                 </div>
+ 
+                 @* Quick Actions *@
+                 @if (messages.Count <= 1 && !loading)
+                 {
+                     <div class="px-4 pb-2">
+                         <div class="flex flex-wrap gap-2">
+                             @foreach (var suggestion in quickSuggestions)
+                             {
+                                 <button @onclick="@(() => SendQuickMessage(suggestion))"
+                                         class="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition">
+                                     @suggestion
+                                 </button>
+                             }
+                         </div>
+                     </div>
+                 }
+ 
+                 @* Input *@
+                 <form @onsubmit="HandleSubmit" @onsubmit:preventDefault="true" class="p-3 border-t">
+                     <div class="flex gap-2">
+                         <input type="text"
+                                @bind="input"
+                                @bind:event="oninput"
+                                placeholder="Nhập câu hỏi..."
+                                class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                disabled="@loading"
+                                maxlength="@MAX_MESSAGE_LENGTH" />
+                         @if (loading)
+                         {
+                             <button type="button"
+                                     @onclick="CancelRequest"
+                                     class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
+                                     title="Hủy">
+                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                     <line x1="18" y1="6" x2="6" y2="18"></line>
+                                     <line x1="6" y1="6" x2="18" y2="18"></line>
+                                 </svg>
+                             </button>
+                         }
+                         else
+                         {
+                             <button type="submit"
+                                     disabled="@(string.IsNullOrWhiteSpace(input))"
+                                     class="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                     <line x1="22" y1="2" x2="11" y2="13"></line>
+                                     <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                 </svg>
+                             </button>
+                         }
+                     </div>
+                 </form>
+             </div>
+         }
+     </div>
+ }
+ 
+ @* Floating Button - Màu xanh lá *@
+ <button @onclick="ToggleChat"
+         class="@($"fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 {(isOpen ? "bg-gray-600 hover:bg-gray-700" : "bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600")}")"
+         title="@(isOpen ? "Đóng" : "Hỗ trợ mua hàng")">
+     @if (isOpen)
+     {
+         <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+             <line x1="18" y1="6" x2="6" y2="18"></line>
+             <line x1="6" y1="6" x2="18" y2="18"></line>
+         </svg>
+     }
+     else
+     {
+         <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+             <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path>
+         </svg>
+     }
+ </button>
+ 
+ @* Confirm Dialog *@
+ @if (showConfirmDialog)
+ {
+     <div class="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center">
+         <div class="bg-white rounded-lg p-5 max-w-sm mx-4 shadow-xl">
+             <p class="text-gray-800 mb-4">@confirmMessage</p>
+             <div class="flex gap-2 justify-end">
+                 <button @onclick="@(() => showConfirmDialog = false)"
+                         class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
+                     Hủy
+                 </button>
+                 <button @onclick="@(() => { showConfirmDialog = false; confirmCallback?.Invoke(); })"
+                         class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                     Xác nhận
+                 </button>
+             </div>
+         </div>
+     </div>
+ }
+ 
+ @code {
+     private const int MAX_MESSAGE_LENGTH = 2000;
+     private const int MAX_HISTORY_MESSAGES = 10;
+     private const string STORAGE_KEY = "customer_ai_conversation_id";
+ 
+     // Quick suggestions cho khách hàng
+     private readonly string[] quickSuggestions = new[]
+     {
+         "Tìm sản phẩm",
+         "Xem khuyến mãi",
+         "Tra cứu đơn hàng"
+     };
+ 
+     // Widget state
+     private bool isOpen = false;
+ 
+     // Chat state
+     private List<ChatMessageDTO> messages = new();
+     private string input = string.Empty;
+     private bool loading = false;
+     private int? conversationId = null;
+     private List<AiConversationSummaryDTO> conversations = new();
+     private bool showHistory = false;
+     private bool loadingHistory = false;
+     private string? error = null;
+ 
+     // Confirm dialog
+     private bool showConfirmDialog = false;
+     private string confirmMessage = "";
+     private Action? confirmCallback;
+ 
+     // Refs
+     private ElementReference messagesContainerRef;
+     private CancellationTokenSource? cancellationTokenSource;
+ 
+     // Welcome message cho khách hàng
+     private ChatMessageDTO WelcomeMessage => new ChatMessageDTO
+     {
+         Id = "welcome",
+         Role = "assistant",
+         Content = @"Xin chào! Tôi là trợ lý mua hàng. Tôi có thể giúp bạn:
+ 
+ • Tìm kiếm sản phẩm phù hợp
+ • Kiểm tra mã khuyến mãi
+ • Tra cứu đơn hàng của bạn
+ 
+ Bạn cần hỗ trợ gì?"
+     };
+ 
+     private void ToggleChat()
+     {
+         isOpen = !isOpen;
+         if (isOpen && messages.Count == 0)
+         {
+             messages.Add(WelcomeMessage);
+         }
+     }
+ 
+     protected override async Task OnInitializedAsync()
+     {
+         await LoadSavedConversation();
+     }
+ 
+     private async Task<int?> GetSavedConversationId()
+     {
+         try
+         {
+             return await LocalStorage.GetItemAsync<int?>(STORAGE_KEY);
+         }
+         catch
+         {
+             return null;
+         }
+     }
+ 
+     private async Task LoadSavedConversation()
+     {
+         var savedId = await GetSavedConversationId();
+         if (savedId.HasValue && savedId.Value > 0)
+         {
+             try
+             {
+                 var data = await AiChatService.GetConversationAsync(savedId.Value);
+                 if (data != null && data.Messages.Count > 0)
+                 {
+                     conversationId = savedId.Value;
+                     messages = data.Messages.Select(m => new ChatMessageDTO
+                     {
+                         Id = m.Id.ToString(),
+                         Role = m.Role,
+                         Content = m.Content
+                     }).ToList();
+                     return;
+                 }
+             }
+             catch
+             {
+                 await LocalStorage.RemoveItemAsync(STORAGE_KEY);
+             }
+         }
+         messages.Add(WelcomeMessage);
+     }
+ 
+     private async Task LoadConversations()
+     {
+         loadingHistory = true;
+         error = null;
+         StateHasChanged();
+ 
+         try
+         {
+             conversations = await AiChatService.GetConversationsAsync();
+         }
+         catch
+         {
+             error = "Không thể tải lịch sử";
+         }
+         finally
+         {
+             loadingHistory = false;
+             StateHasChanged();
+         }
+     }
+ 
+     private async Task LoadConversation(int id)
+     {
+         loadingHistory = true;
+         StateHasChanged();
+ 
+         try
+         {
+             var data = await AiChatService.GetConversationAsync(id);
+             if (data != null)
+             {
+                 conversationId = id;
+                 await LocalStorage.SetItemAsync(STORAGE_KEY, conversationId.Value);
+                 messages = data.Messages.Select(m => new ChatMessageDTO
+                 {
+                     Id = m.Id.ToString(),
+                     Role = m.Role,
+                     Content = m.Content
+                 }).ToList();
+                 showHistory = false;
+             }
+         }
+         catch
+         {
+             error = "Không thể tải hội thoại";
+         }
+         finally
+         {
+             loadingHistory = false;
+             StateHasChanged();
+         }
+     }
+ 
+     private async Task StartNewConversation()
+     {
+         cancellationTokenSource?.Cancel();
+         conversationId = null;
+         await LocalStorage.RemoveItemAsync(STORAGE_KEY);
+         messages = new List<ChatMessageDTO> { WelcomeMessage };
+         showHistory = false;
+         error = null;
+         loading = false;
+         StateHasChanged();
+     }
+ 
+     private Task HandleDeleteConversation((int id, MouseEventArgs e) args)
+     {
+         var idToDelete = args.id;
+         confirmMessage = "Xóa cuộc hội thoại này?";
+         confirmCallback = async () =>
+         {
+             try
+             {
+                 await AiChatService.DeleteConversationAsync(idToDelete);
+                 conversations = conversations.Where(c => c.Id != idToDelete).ToList();
+                 if (conversationId == idToDelete)
+                 {
+                     await StartNewConversation();
+                 }
+                 StateHasChanged();
+             }
+             catch
+             {
+                 error = "Không thể xóa";
+                 StateHasChanged();
+             }
+         };
+         showConfirmDialog = true;
+         StateHasChanged();
+         return Task.CompletedTask;
+     }
+ 
+     private void HandleDeleteAllConversations()
+     {
+         if (conversations.Count == 0) return;
+ 
+         confirmMessage = $"Xóa tất cả {conversations.Count} cuộc hội thoại?";
+         confirmCallback = async () =>
+         {
+             try
+             {
+                 foreach (var conv in conversations)
+                 {
+                     await AiChatService.DeleteConversationAsync(conv.Id);
+                 }
+                 conversations.Clear();
+                 await StartNewConversation();
+                 StateHasChanged();
+             }
+             catch
+             {
+                 error = "Không thể xóa";
+                 await LoadConversations();
+             }
+         };
+         showConfirmDialog = true;
+         StateHasChanged();
+     }
+ 
+     private void CancelRequest()
+     {
+         cancellationTokenSource?.Cancel();
+         loading = false;
+ 
+         var lastMsg = messages.LastOrDefault();
+         if (lastMsg != null && lastMsg.IsStreaming)
+         {
+             lastMsg.IsStreaming = false;
+             lastMsg.Content = string.IsNullOrEmpty(lastMsg.Content) ? "Đã hủy" : lastMsg.Content;
+         }
+         StateHasChanged();
+     }
+ 
+     private async Task SendQuickMessage(string message)
+     {
+         input = message;
+         await HandleSubmit();
+     }
+ 
+     private List<ClientMessageDTO> BuildHistory()
+     {
+         return messages
+             .Where(m => m.Id != "welcome" && !string.IsNullOrEmpty(m.Content) && !m.IsStreaming &&
+                         (m.Role == "user" || m.Role == "assistant"))
+             .TakeLast(MAX_HISTORY_MESSAGES)
+             .Select(m => new ClientMessageDTO { Role = m.Role, Content = m.Content })
+             .ToList();
+     }
+ 
+     private async Task HandleSubmit()
+     {
+         var userMessage = input.Trim();
+         if (string.IsNullOrEmpty(userMessage) || loading) return;
+ 
+         if (userMessage.Length > MAX_MESSAGE_LENGTH)
+         {
+             error = $"Tin nhắn quá dài (tối đa {MAX_MESSAGE_LENGTH} ký tự)";
+             return;
+         }
+ 
+         input = string.Empty;
+         error = null;
+ 
+         var userMsgId = $"user-{DateTimeOffset.Now.ToUnixTimeMilliseconds()}";
+         var assistantMsgId = $"assistant-{DateTimeOffset.Now.ToUnixTimeMilliseconds()}";
+ 
+         messages.Add(new ChatMessageDTO
+         {
+             Id = userMsgId,
+             Role = "user",
+             Content = userMessage
+         });
+ 
+         loading = true;
+         StateHasChanged();
+ 
+         messages.Add(new ChatMessageDTO
+         {
+             Id = assistantMsgId,
+             Role = "assistant",
+             Content = string.Empty,
+             IsStreaming = true
+         });
+         StateHasChanged();
+ 
+         cancellationTokenSource = new CancellationTokenSource();
+ 
+         try
+         {
+             var history = BuildHistory();
+             var fullResponse = string.Empty;
+ 
+             await AiChatService.StreamMessageAsync(
+                 userMessage,
+                 conversationId,
+                 history,
+                 async (chunk) =>
+                 {
+                     fullResponse += chunk;
+                     var lastMsg = messages.LastOrDefault(m => m.Id == assistantMsgId);
+                     if (lastMsg != null)
+                     {
+                         lastMsg.Content = fullResponse;
+                         await InvokeAsync(StateHasChanged);
+                     }
+                 },
+                 async (newConvId) =>
+                 {
+                     if (!conversationId.HasValue && newConvId > 0)
+                     {
+                         conversationId = newConvId;
+                         await LocalStorage.SetItemAsync(STORAGE_KEY, conversationId.Value);
+                     }
+                 },
+                 async (errorMsg) =>
+                 {
+                     error = errorMsg;
+                     var lastMsg = messages.LastOrDefault(m => m.Id == assistantMsgId);
+                     if (lastMsg != null)
+                     {
+                         lastMsg.Content = string.IsNullOrEmpty(lastMsg.Content) ? $"Lỗi: {errorMsg}" : lastMsg.Content;
+                         lastMsg.IsError = true;
+                         lastMsg.IsStreaming = false;
+                         await InvokeAsync(StateHasChanged);
+                     }
+                 },
+                 async () =>
+                 {
+                     var lastMsg = messages.LastOrDefault(m => m.Id == assistantMsgId);
+                     if (lastMsg != null)
+                     {
+                         lastMsg.IsStreaming = false;
+                         await InvokeAsync(StateHasChanged);
+                     }
+                 },
+                 cancellationTokenSource.Token
+             );
+         }
+         catch (OperationCanceledException)
+         {
+             // Cancelled
+         }
+         catch (Exception ex)
+         {
+             error = "Đã xảy ra lỗi";
+             var lastMsg = messages.LastOrDefault(m => m.Id == assistantMsgId);
+             if (lastMsg != null)
+             {
+                 lastMsg.Content = "Đã xảy ra lỗi, vui lòng thử lại";
+                 lastMsg.IsError = true;
+                 lastMsg.IsStreaming = false;
+             }
+         }
+         finally
+         {
+             loading = false;
+             cancellationTokenSource?.Dispose();
+             cancellationTokenSource = null;
+             StateHasChanged();
+         }
+     }
+ 
+     public void Dispose()
+     {
+         cancellationTokenSource?.Cancel();
+         cancellationTokenSource?.Dispose();
+     }
+ }

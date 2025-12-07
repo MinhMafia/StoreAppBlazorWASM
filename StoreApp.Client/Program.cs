@@ -14,6 +14,9 @@ builder.Services.AddScoped<IPromotionService, PromotionService>();
 // AI Chat Service
 builder.Services.AddScoped<IAiChatService, AiChatService>();
 
+// Customer AI Chat Service
+builder.Services.AddScoped<ICustomerAiChatService, CustomerAiChatService>();
+
 // Auth Service
 builder.Services.AddScoped<IAuthService, AuthService>();
 

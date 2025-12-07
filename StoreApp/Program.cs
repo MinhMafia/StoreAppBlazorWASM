@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using StoreApp.Data;
 using StoreApp.Repository;
 using StoreApp.Services;
+using StoreApp.Services.AI;
 using StoreApp.Middlewares;
 using StoreApp.Components;
 using StoreApp.Client.Services;
@@ -80,7 +81,10 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<AiService>();
 builder.Services.AddScoped<TokenizerService>();
 builder.Services.AddScoped<ChatContextManager>();
-builder.Services.AddScoped<StoreApp.Services.AI.AiToolExecutor>();
+builder.Services.AddScoped<AiToolExecutor>();
+// Customer AI Services
+builder.Services.AddScoped<CustomerAiService>();
+builder.Services.AddScoped<CustomerAiToolExecutor>();
 
 // --- Phần Backend cũ: Upload Limit ---
 builder.Services.Configure<FormOptions>(options =>
@@ -125,6 +129,7 @@ builder.Services.AddScoped<IPromotionService, StoreApp.Client.Services.Promotion
 builder.Services.AddScoped<IProductClientService, ProductClientService>();
 builder.Services.AddScoped<ICategoryClientService, CategoryClientService>();
 builder.Services.AddScoped<IAiChatService, AiChatService>();
+builder.Services.AddScoped<ICustomerAiChatService, CustomerAiChatService>();
 
 var app = builder.Build();
 

@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@using StoreApp.Client.Components.AI
 
 <div class="store-layout">
     <StoreNavMenu />
@@ -7,6 +8,9 @@
         @Body
     </main>
 </div>
+
+@* Customer AI Chat Widget *@
+<CustomerChatWidget />
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
