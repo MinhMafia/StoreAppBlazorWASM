@@ -22,7 +22,7 @@ namespace StoreApp.Shared
         public string? FullName { get; set; }
 
         [Required]
-        [RegularExpression("^(admin|staff)$", ErrorMessage = "Role must be either 'admin' or 'staff'.")]
+        [RegularExpression("^(admin|staff|customer)$", ErrorMessage = "Role must be either 'admin', 'staff', or 'customer'.")]
         public string Role { get; set; } = "staff";
 
         public bool IsActive { get; set; }
