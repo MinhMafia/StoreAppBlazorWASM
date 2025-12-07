@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
+using Blazored.LocalStorage;
 using StoreApp.Shared;
 
 namespace StoreApp.Client.Services
@@ -12,11 +13,26 @@ namespace StoreApp.Client.Services
     public class AiChatService : IAiChatService
     {
         private readonly HttpClient _httpClient;
+        private readonly ILocalStorageService _localStorage;
         private const string API_BASE = "api/ai";
 
-        public AiChatService(HttpClient httpClient)
+        public AiChatService(HttpClient httpClient, ILocalStorageService localStorage)
         {
             _httpClient = httpClient;
+            _localStorage = localStorage;
+        }
+
+        private async Task<string?> GetAuthTokenAsync()
+        {
+            try
+            {
+                var token = await _localStorage.GetItemAsStringAsync("authToken");
+                return token?.Trim('"');
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         /// <summary>
@@ -35,6 +51,13 @@ namespace StoreApp.Client.Services
         {
             try
             {
+                var token = await GetAuthTokenAsync();
+                if (string.IsNullOrEmpty(token))
+                {
+                    await onError("Vui lòng đăng nhập để sử dụng AI Chat");
+                    return;
+                }
+
                 var request = new AiChatRequestDTO
                 {
                     Message = message,
@@ -49,6 +72,9 @@ namespace StoreApp.Client.Services
                 {
                     Content = content
                 };
+
+                // Thêm Authorization header
+                httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
                 // QUAN TRONG: Bat streaming cho Blazor WASM!
                 // Mac dinh Blazor WASM buffer TOAN BO response truoc khi tra ve
@@ -198,9 +224,18 @@ namespace StoreApp.Client.Services
         {
             try
             {
-                var result = await _httpClient.GetFromJsonAsync<List<AiConversationSummaryDTO>>(
-                    $"{API_BASE}/conversations"
-                );
+                var token = await GetAuthTokenAsync();
+                if (string.IsNullOrEmpty(token))
+                    return new List<AiConversationSummaryDTO>();
+
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{API_BASE}/conversations");
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await _httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                    return new List<AiConversationSummaryDTO>();
+
+                var result = await response.Content.ReadFromJsonAsync<List<AiConversationSummaryDTO>>();
                 return result ?? new List<AiConversationSummaryDTO>();
             }
             catch (Exception ex)
@@ -217,10 +252,18 @@ namespace StoreApp.Client.Services
         {
             try
             {
-                var result = await _httpClient.GetFromJsonAsync<AiConversationDTO>(
-                    $"{API_BASE}/conversations/{id}"
-                );
-                return result;
+                var token = await GetAuthTokenAsync();
+                if (string.IsNullOrEmpty(token))
+                    return null;
+
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{API_BASE}/conversations/{id}");
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await _httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                    return null;
+
+                return await response.Content.ReadFromJsonAsync<AiConversationDTO>();
             }
             catch (Exception ex)
             {
@@ -236,7 +279,14 @@ namespace StoreApp.Client.Services
         {
             try
             {
-                var response = await _httpClient.DeleteAsync($"{API_BASE}/conversations/{id}");
+                var token = await GetAuthTokenAsync();
+                if (string.IsNullOrEmpty(token))
+                    return false;
+
+                var request = new HttpRequestMessage(HttpMethod.Delete, $"{API_BASE}/conversations/{id}");
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await _httpClient.SendAsync(request);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)

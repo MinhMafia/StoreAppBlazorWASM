@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using StoreApp.Services;
+using StoreApp.Services.AI;
 using StoreApp.Shared;
 using System.Security.Claims;
 
@@ -8,13 +8,13 @@ namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    // [Authorize] // Tạm tắt xác thực
+    [Authorize(Roles = "admin,staff")]
     public class AiController : ControllerBase
     {
-        private readonly AiService _aiService;
+        private readonly SemanticKernelService _aiService;
         private readonly ILogger<AiController> _logger;
 
-        public AiController(AiService aiService, ILogger<AiController> logger)
+        public AiController(SemanticKernelService aiService, ILogger<AiController> logger)
         {
             _aiService = aiService;
             _logger = logger;
@@ -22,29 +22,22 @@ namespace StoreApp.Controllers
 
         private int GetCurrentUserId()
         {
-            // TODO: Bật lại sau khi có đăng nhập
             var claim = User.FindFirst("uid") ?? User.FindFirst(ClaimTypes.NameIdentifier);
             if (claim != null && int.TryParse(claim.Value, out int id))
                 return id;
-            return 1; // Tạm hardcode userId = 1 để test
+            return 0;
         }
 
-        // NON-STREAMING ENDPOINT REMOVED - Use /stream instead
-
-        /// <summary>
-        /// Streaming chat endpoint using Server-Sent Events
-        /// </summary>
         [HttpPost("stream")]
         public async Task StreamChat([FromBody] AiChatRequestDTO request)
         {
             Response.Headers.Append("Content-Type", "text/event-stream");
             Response.Headers.Append("Cache-Control", "no-cache");
             Response.Headers.Append("Connection", "keep-alive");
-            Response.Headers.Append("X-Accel-Buffering", "no"); // Disable nginx buffering
+            Response.Headers.Append("X-Accel-Buffering", "no");
 
             var userId = GetCurrentUserId();
 
-            // Validation
             if (userId == 0)
             {
                 await SendStreamError("Vui lòng đăng nhập");
@@ -63,7 +56,6 @@ namespace StoreApp.Controllers
                 return;
             }
 
-            // Validate history if provided
             if (request.History != null && request.History.Count > 50)
             {
                 await SendStreamError("Lịch sử chat quá dài");
@@ -82,7 +74,6 @@ namespace StoreApp.Controllers
                     request.ConversationId,
                     request.History).WithCancellation(cancellationToken))
                 {
-                    // Handle special convId format
                     if (streamChunk.StartsWith("convId:"))
                     {
                         var pipeIndex = streamChunk.IndexOf('|');
@@ -91,10 +82,8 @@ namespace StoreApp.Controllers
                             var convIdStr = streamChunk.Substring(7, pipeIndex - 7);
                             var content = streamChunk.Substring(pipeIndex + 1);
 
-                            // Send conversationId
                             await SendStreamData(new { conversationId = int.Parse(convIdStr) });
 
-                            // Send content if any
                             if (!string.IsNullOrEmpty(content))
                             {
                                 await SendStreamData(new { content });
@@ -103,7 +92,6 @@ namespace StoreApp.Controllers
                         }
                     }
 
-                    // Normal content
                     await SendStreamData(new { content = streamChunk });
                 }
             }
@@ -114,16 +102,12 @@ namespace StoreApp.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in StreamChat for user {UserId}: {Message}", userId, ex.Message);
-                // Debug: gửi lỗi thực để debug
                 await SendStreamError($"Lỗi: {ex.Message}");
             }
 
             await SendStreamDone();
         }
 
-        /// <summary>
-        /// Get user's conversation list
-        /// </summary>
         [HttpGet("conversations")]
         [ProducesResponseType(typeof(List<AiConversationDTO>), 200)]
         public async Task<ActionResult<List<AiConversationDTO>>> GetConversations()
@@ -143,9 +127,6 @@ namespace StoreApp.Controllers
             }
         }
 
-        /// <summary>
-        /// Get conversation with messages
-        /// </summary>
         [HttpGet("conversations/{id:int}")]
         [ProducesResponseType(typeof(AiConversationDTO), 200)]
         [ProducesResponseType(404)]
@@ -174,9 +155,6 @@ namespace StoreApp.Controllers
             }
         }
 
-        /// <summary>
-        /// Delete a conversation
-        /// </summary>
         [HttpDelete("conversations/{id:int}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
@@ -202,17 +180,17 @@ namespace StoreApp.Controllers
             }
         }
 
-        /// <summary>
-        /// Health check endpoint (no auth required)
-        /// </summary>
         [HttpGet("health")]
         [AllowAnonymous]
         public ActionResult HealthCheck()
         {
+            var stats = _aiService.GetPluginStats();
             return Ok(new
             {
                 status = "ok",
-                message = "AI Service is running",
+                message = "AI Service (Semantic Kernel) is running",
+                plugins = stats.pluginCount,
+                functions = stats.functionCount,
                 timestamp = DateTime.UtcNow
             });
         }

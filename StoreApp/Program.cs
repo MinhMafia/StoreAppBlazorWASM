@@ -79,15 +79,13 @@ builder.Services.AddScoped<JwtService>();
 // 👇👈 ADD THIS — để fix lỗi IHttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 
-// --- AI Services ---
+// --- AI Services (Semantic Kernel) ---
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<AiService>();
 builder.Services.AddScoped<TokenizerService>();
-builder.Services.AddScoped<ChatContextManager>();
-builder.Services.AddScoped<AiToolExecutor>();
-// Customer AI Services
-builder.Services.AddScoped<CustomerAiService>();
-builder.Services.AddScoped<CustomerAiToolExecutor>();
+// Admin/Staff AI - Semantic Kernel
+builder.Services.AddScoped<SemanticKernelService>();
+// Customer AI - Semantic Kernel
+builder.Services.AddScoped<CustomerSemanticKernelService>();
 
 // --- Phần Backend cũ: Upload Limit ---
 builder.Services.Configure<FormOptions>(options =>

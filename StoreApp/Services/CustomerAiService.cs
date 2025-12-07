@@ -40,8 +40,8 @@
              _contextManager = contextManager;
  
              var apiKey = config["Chutes:ApiKey"] ?? throw new InvalidOperationException("Chutes API key not configured");
-             var endpoint = new Uri("https://llm.chutes.ai/v1");
-             var model = "moonshotai/Kimi-K2-Instruct-0905";
+             var endpoint = new Uri(config["Chutes:Endpoint"] ?? "https://llm.chutes.ai/v1");
+             var model = config["Chutes:Model"] ?? "openai/gpt-oss-120b";
  
              _chatClient = new ChatClient(
                  model: model,
