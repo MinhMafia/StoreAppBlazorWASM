@@ -614,3 +614,25 @@ UPDATE promotions SET description = 'Miễn phí vận chuyển 50k cho đơn t�
 UPDATE promotions SET description = 'Giảm 20% cho khách hàng mới' WHERE code = 'NEWUSER';
 UPDATE promotions SET description = 'Giảm 15% mùa hè' WHERE code = 'SUMMER15';
 UPDATE promotions SET description = 'Giảm 100k cho khách VIP' WHERE code = 'VIP100K';
+-- ===== AI CONVERSATIONS & MESSAGES =====
+CREATE TABLE ai_conversations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  title VARCHAR(255),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_ai_conversations_user (user_id),
+  CONSTRAINT fk_ai_conversations_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE ai_messages (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  conversation_id INT NOT NULL,
+  role VARCHAR(20) NOT NULL,
+  content LONGTEXT NOT NULL,
+  function_called VARCHAR(100),
+  function_data JSON,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_ai_messages_conversation (conversation_id),
+  CONSTRAINT fk_ai_messages_conversation FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

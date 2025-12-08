@@ -250,7 +250,8 @@ namespace StoreApp.Services.AI
 
             var settings = new OpenAIPromptExecutionSettings
             {
-                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(autoInvoke: false)
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(autoInvoke: false),
+                MaxTokens = AiConstants.MaxOutputTokens
             };
 
             const int maxIterations = 10;
@@ -297,9 +298,7 @@ namespace StoreApp.Services.AI
                         return (fc, (FunctionResultContent?)null, ex);
                     }
                 });
-
                 var results = await Task.WhenAll(invokeTasks);
-
                 foreach (var (fc, result, error) in results)
                 {
                     if (error != null)
