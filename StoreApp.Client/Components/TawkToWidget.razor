@@ -38,13 +38,14 @@
 (function() {
 window.Tawk_API = window.Tawk_API || {};
 
-// --- MOVE WIDGET UP (không đụng DOM) ---
-// br = bottom-right, tăng yOffset => đẩy lên trên
-// tăng xOffset => đẩy qua trái (nếu cần né AI chat)
+// --- ĐẶT WIDGET NGANG VỚI AI CHAT ---
+// AI chat button ở bottom-6 right-6 (24px từ bottom, 24px từ right)
+// Đặt Tawk.to cùng độ cao (yOffset ~30) và xOffset để đặt bên trái AI chat
+// xOffset: khoảng cách từ cạnh phải màn hình (càng lớn = càng xa bên phải = càng gần bên trái)
 window.Tawk_API.customStyle = {
 visibility: {
-desktop: { position: 'br', xOffset: 20, yOffset: 120 },
-mobile: { position: 'br', xOffset: 20, yOffset: 220 }
+desktop: { position: 'br', xOffset: 100, yOffset: 22 },
+mobile: { position: 'br', xOffset: 80, yOffset: 22 }
 }
 };
 // --------------------------------------
