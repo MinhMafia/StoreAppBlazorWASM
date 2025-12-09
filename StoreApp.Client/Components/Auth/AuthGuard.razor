@@ -3,18 +3,21 @@
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager Nav
 
-@if (isAuthorized)
+@if (isChecked)
 {
-    @ChildContent
+    @if (isAuthorized)
+    {
+        @ChildContent
+    }
 }
-else if (isChecking)
+else
 {
-    <div class="d-flex justify-content-center align-items-center min-vh-100">
+    <div class="min-vh-100 d-flex justify-content-center align-items-center">
         <div class="text-center">
-            <div class="spinner-border text-primary" role="status">
+            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
-            <p class="mt-3">Đang kiểm tra quyền truy cập...</p>
+            <p class="text-muted">Đang kiểm tra quyền truy cập...</p>
         </div>
     </div>
 }
@@ -26,8 +29,11 @@ else if (isChecking)
     [Parameter]
     public List<string>? AllowedRoles { get; set; }
 
+    [Parameter]
+    public string? RedirectTo { get; set; }
+
     private bool isAuthorized = false;
-    private bool isChecking = true;
+    private bool isChecked = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -39,8 +45,9 @@ else if (isChecking)
                 
                 if (string.IsNullOrEmpty(token))
                 {
-                    // Chưa đăng nhập -> redirect về login
-                    Nav.NavigateTo("/login", forceLoad: true);
+                    // Chưa đăng nhập
+                    Console.WriteLine("❌ Not authenticated - redirecting to login");
+                    Nav.NavigateTo(RedirectTo ?? "/login", forceLoad: true);
                     return;
                 }
 
@@ -49,23 +56,40 @@ else if (isChecking)
                 {
                     var userRole = await LocalStorage.GetItemAsStringAsync("userRole");
                     
-                    if (string.IsNullOrEmpty(userRole) || !AllowedRoles.Contains(userRole))
+                    if (string.IsNullOrEmpty(userRole))
                     {
-                        // Không đủ quyền -> redirect về trang phù hợp
-                        Nav.NavigateTo(userRole == "admin" ? "/admin/home" : "/api/store", forceLoad: true);
+                        Console.WriteLine("❌ No role found - redirecting");
+                        Nav.NavigateTo(RedirectTo ?? "/login", forceLoad: true);
+                        return;
+                    }
+
+                    if (!AllowedRoles.Contains(userRole))
+                    {
+                        Console.WriteLine($"❌ Access denied - Role {userRole} not in allowed roles");
+                        // Redirect dựa trên role
+                        if (userRole == "admin" || userRole == "staff")
+                        {
+                            Nav.NavigateTo("/admin/home", forceLoad: true);
+                        }
+                        else
+                        {
+                            Nav.NavigateTo("/store", forceLoad: true);
+                        }
                         return;
                     }
                 }
 
                 isAuthorized = true;
+                Console.WriteLine("✅ Authorized");
             }
-            catch
+            catch (Exception ex)
             {
-                Nav.NavigateTo("/login", forceLoad: true);
+                Console.WriteLine($"❌ Auth check failed: {ex.Message}");
+                Nav.NavigateTo(RedirectTo ?? "/login", forceLoad: true);
             }
             finally
             {
-                isChecking = false;
+                isChecked = true;
                 StateHasChanged();
             }
         }

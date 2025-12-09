@@ -1,7 +1,5 @@
 // Services/AuthService.cs
 using Blazored.LocalStorage;
-using System.Net.Http.Json;
-using StoreApp.Shared;
 
 namespace StoreApp.Client.Services
 {
@@ -10,6 +8,7 @@ namespace StoreApp.Client.Services
         Task<bool> IsAuthenticatedAsync();
         Task<string?> GetUserRoleAsync();
         Task<string?> GetUserNameAsync();
+        Task<string?> GetTokenAsync();
         Task LogoutAsync();
     }
 
@@ -52,6 +51,18 @@ namespace StoreApp.Client.Services
             try
             {
                 return await _localStorage.GetItemAsStringAsync("userName");
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public async Task<string?> GetTokenAsync()
+        {
+            try
+            {
+                return await _localStorage.GetItemAsStringAsync("authToken");
             }
             catch
             {

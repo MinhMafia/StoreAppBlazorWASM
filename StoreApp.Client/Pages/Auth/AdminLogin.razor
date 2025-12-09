@@ -1,4 +1,4 @@
-@page "/login"
+@page "/admin/login"
 @using System.Net.Http.Json
 @using StoreApp.Shared
 @layout StoreApp.Client.Layout.EmptyLayout
@@ -7,17 +7,17 @@
 @inject NavigationManager Nav
 @inject ILocalStorageService LocalStorage
 
-<PageTitle>Đăng nhập - Store App</PageTitle>
+<PageTitle>Đăng nhập quản trị - Store App</PageTitle>
 
-<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light">
-    <div class="card shadow-lg" style="width: 450px; border-radius: 10px;">
+<div class="min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="card shadow-lg" style="width: 450px; border-radius: 15px;">
         <div class="card-body p-5">
             <div class="text-center mb-4">
-                <div class="customer-icon-wrapper mb-3">
-                    <i class="bi bi-person-circle text-success" style="font-size: 3rem;"></i>
+                <div class="admin-icon-wrapper mb-3">
+                    <i class="bi bi-shield-lock-fill text-primary" style="font-size: 3rem;"></i>
                 </div>
-                <h2 class="fw-bold text-success">Đăng nhập</h2>
-                <p class="text-muted">Chào mừng bạn quay trở lại!</p>
+                <h2 class="fw-bold text-dark">Quản trị hệ thống</h2>
+                @* <p class="text-muted">Đăng nhập dành cho Admin & Nhân viên</p> *@
             </div>
 
             @if (!string.IsNullOrEmpty(errorMessage))
@@ -32,20 +32,20 @@
                 <DataAnnotationsValidator />
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-person-fill me-2"></i>Tên đăng nhập hoặc Email
+                    <label class="form-label fw-semibold text-dark">
+                        <i class="bi bi-person-badge-fill me-2"></i>Tên đăng nhập
                     </label>
                     <InputText @bind-Value="loginRequest.Username" 
                                class="form-control form-control-lg" 
-                               placeholder="Nhập tên đăng nhập hoặc email"
+                               placeholder="Nhập tên đăng nhập"
                                disabled="@isLoading"
                                autocomplete="username" />
                     <ValidationMessage For="@(() => loginRequest.Username)" class="text-danger small" />
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-lock-fill me-2"></i>Mật khẩu
+                    <label class="form-label fw-semibold text-dark">
+                        <i class="bi bi-key-fill me-2"></i>Mật khẩu
                     </label>
                     <div class="input-group">
                         <InputText type="@(showPassword ? "text" : "password")" 
@@ -66,37 +66,38 @@
                 </div>
 
                 <button type="submit" 
-                        class="btn btn-primary btn-lg w-100 mb-3" 
+                        class="btn btn-admin btn-lg w-100 mb-3" 
                         disabled="@isLoading">
                     @if (isLoading)
                     {
                         <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                        <span>Đang đăng nhập...</span>
+                        <span>Đang xác thực...</span>
                     }
                     else
                     {
-                        <i class="bi bi-box-arrow-in-right me-2"></i>
+                        <i class="bi bi-shield-check me-2"></i>
                         <span>Đăng nhập</span>
                     }
                 </button>
             </EditForm>
 
-            <div class="text-center">
+            @* <div class="text-center mt-3">
                 <small class="text-muted">
-                    Chưa có tài khoản? 
-                    <a href="/register" class="text-primary text-decoration-none fw-semibold">Đăng ký ngay</a>
-                </small>
-            </div>
-
-            <hr class="my-4" />
-
-            @* <div class="text-center">
-                <small class="text-muted">
-                    <i class="bi bi-shield-lock me-1"></i>
-                    Bạn là Admin/Nhân viên? 
-                    <a href="/admin/login" class="text-success text-decoration-none fw-semibold">Đăng nhập quản trị</a>
+                    <i class="bi bi-info-circle me-1"></i>
+                    Bạn là khách hàng? 
+                    <a href="/login" class="text-primary text-decoration-none fw-semibold">Đăng nhập tại đây</a>
                 </small>
             </div> *@
+
+            @* Debug Info - Xóa khi production *@
+            @if (showDebugInfo)
+            {
+                <div class="mt-4 p-3 bg-light rounded border">
+                    <small class="text-muted d-block mb-2"><strong>🔧 Tài khoản test:</strong></small>
+                    <small class="d-block mb-1">👨‍💼 Admin: <code>admin</code> / <code>admin123</code></small>
+                    <small class="d-block">👤 Staff: <code>staff01</code> / <code>123456</code></small>
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -106,6 +107,7 @@
     private string errorMessage = string.Empty;
     private bool isLoading = false;
     private bool showPassword = false;
+    private bool showDebugInfo = true; // Đổi thành false khi production
 
     @* protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -117,6 +119,7 @@
                 if (!string.IsNullOrEmpty(token))
                 {
                     var role = await LocalStorage.GetItemAsStringAsync("userRole");
+                    // Nếu đã đăng nhập, redirect về trang phù hợp
                     if (role == "admin" || role == "staff")
                     {
                         Nav.NavigateTo("/admin/home", forceLoad: true);
@@ -141,7 +144,7 @@
             isLoading = true;
             errorMessage = string.Empty;
 
-            Console.WriteLine($"🔐 Customer login attempt - Username: {loginRequest.Username}");
+            Console.WriteLine($"🔐 Admin login attempt - Username: {loginRequest.Username}");
 
             var response = await Http.PostAsJsonAsync("api/auth/login", loginRequest);
 
@@ -153,11 +156,11 @@
                 {
                     Console.WriteLine($"✅ Login successful - Role: {authResponse.Role}");
 
-                    // Kiểm tra role - chỉ cho phép customer
-                    if (authResponse.Role == "admin" || authResponse.Role == "staff")
+                    // Kiểm tra role - chỉ cho phép admin và staff
+                    if (authResponse.Role != "admin" && authResponse.Role != "staff")
                     {
-                        errorMessage = "Vui lòng sử dụng trang đăng nhập quản trị tại /admin/login";
-                        Console.WriteLine($"❌ Wrong login page for role: {authResponse.Role}");
+                        errorMessage = "Tài khoản không có quyền truy cập khu vực quản trị";
+                        Console.WriteLine($"❌ Access denied - Role: {authResponse.Role}");
                         return;
                     }
 
@@ -166,10 +169,10 @@
                     await LocalStorage.SetItemAsStringAsync("userName", authResponse.UserName);
                     await LocalStorage.SetItemAsStringAsync("userRole", authResponse.Role);
 
-                    Console.WriteLine($"✅ Customer authenticated successfully");
+                    Console.WriteLine($"✅ Admin/Staff authenticated successfully");
 
-                    // Redirect về store
-                    Nav.NavigateTo("/store", forceLoad: true);
+                    // Redirect về trang admin
+                    Nav.NavigateTo("/admin/home", forceLoad: true);
                 }
             }
             else
@@ -197,34 +200,51 @@
 }
 
 <style>
-    .btn-primary {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    .btn-admin {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border: none;
+        color: white;
+        font-weight: 600;
         transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
     }
 
-    .btn-primary:hover:not(:disabled) {
+    .btn-admin:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .btn-admin:disabled {
+        opacity: 0.6;
     }
 
     .card {
         border: none;
+        backdrop-filter: blur(10px);
     }
 
     .form-control:focus {
-        border-color: #10b981;
-        box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
     }
 
-    .customer-icon-wrapper {
+    .admin-icon-wrapper {
         width: 80px;
         height: 80px;
         margin: 0 auto;
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+
+    .input-group .btn-outline-secondary {
+        border-color: #ced4da;
+    }
+
+    .input-group .btn-outline-secondary:hover {
+        background-color: #f8f9fa;
+        border-color: #667eea;
     }
 </style>

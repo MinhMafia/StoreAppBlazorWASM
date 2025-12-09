@@ -5,6 +5,7 @@
 @inject ICategoryClientService CategoryService
 @inject NavigationManager Navigation
 
+< AllowedRoles="@(new List<string> { "customer" })" RedirectTo="/login">
 <PageTitle>Cửa Hàng Tiện Lợi</PageTitle>
 
 <!-- Breadcrumb -->

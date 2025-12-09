@@ -1,6 +1,28 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
+﻿@* <Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
+</Router> *@
+
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizedRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="typeof(Layout.EmptyLayout)">
+            <div class="min-vh-100 d-flex justify-content-center align-items-center bg-light">
+                <div class="text-center">
+                    <h1 class="display-1 fw-bold text-muted">404</h1>
+                    <p class="fs-3">
+                        <span class="text-danger">Oops!</span> Trang không tồn tại.
+                    </p>
+                    <p class="lead">Trang bạn đang tìm không tồn tại.</p>
+                    <a href="/" class="btn btn-primary">Về trang chủ</a>
+                </div>
+            </div>
+        </LayoutView>
+    </NotFound>
 </Router>
