@@ -219,5 +219,37 @@ namespace StoreApp.Repository
             };
         }
 
+        // === Phương thức cho Semantic Search ===
+        
+        public async Task<int> GetTotalCountAsync()
+        {
+            return await _context.Products.CountAsync();
+        }
+
+        public async Task<List<Product>> GetAllForIndexingAsync(int skip, int take)
+        {
+            return await _context.Products
+                .AsNoTracking()
+                .Include(p => p.Category)
+                .Include(p => p.Supplier)
+                .Include(p => p.Unit)
+                .OrderBy(p => p.Id)
+                .Skip(skip)
+                .Take(take)
+                .ToListAsync();
+        }
+
+        public async Task<List<Product>> GetByIdsAsync(IEnumerable<int> ids)
+        {
+            return await _context.Products
+                .AsNoTracking()
+                .Include(p => p.Category)
+                .Include(p => p.Supplier)
+                .Include(p => p.Unit)
+                .Include(p => p.Inventory)
+                .Where(p => ids.Contains(p.Id))
+                .ToListAsync();
+        }
+
     }
 }

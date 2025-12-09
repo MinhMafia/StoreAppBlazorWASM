@@ -106,5 +106,14 @@ namespace StoreApp.Services.AI
         public const int EstimatedFunctionCount = 9;
 
         #endregion
+
+        #region Vector Store
+
+        /// <summary>
+        /// Tên collection trong Qdrant cho Products
+        /// </summary>
+        public const string ProductCollectionName = "products";
+
+        #endregion
     }
 }

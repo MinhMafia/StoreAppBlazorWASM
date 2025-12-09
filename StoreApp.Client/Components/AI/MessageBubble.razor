@@ -49,7 +49,7 @@
     </div>
 
     @* Message Content *@
-    <div class="max-w-[80%] rounded-lg px-4 py-3 @(Message.Role == "user" ? "bg-blue-600 text-white" : Message.IsError ? "bg-red-50 text-red-700 border border-red-200" : "bg-gray-100 text-gray-800")">
+    <div class="max-w-[80%] min-w-0 rounded-lg px-4 py-3 @(Message.Role == "user" ? "bg-blue-600 text-white" : Message.IsError ? "bg-red-50 text-red-700 border border-red-200" : "bg-gray-100 text-gray-800")">
         @if (Message.IsStreaming && string.IsNullOrEmpty(Message.Content))
         {
             <div class="flex items-center gap-2 text-gray-500">
@@ -64,7 +64,7 @@
         {
             @if (Message.Role == "assistant")
             {
-                <div class="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-table:my-2 prose-th:px-3 prose-th:py-2 prose-td:px-3 prose-td:py-2 prose-th:bg-gray-100 prose-tr:border-b prose-table:border prose-table:border-gray-200 prose-table:rounded [&>*]:indent-0 [&_p]:indent-0 [&_li]:indent-0" style="text-indent: 0 !important;">
+                <div class="prose prose-sm max-w-none break-words overflow-hidden prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-table:my-2 prose-th:px-3 prose-th:py-2 prose-td:px-3 prose-td:py-2 prose-th:bg-gray-100 prose-tr:border-b prose-table:border prose-table:border-gray-200 prose-table:rounded [&>*]:indent-0 [&_p]:indent-0 [&_li]:indent-0 [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-words [&_code]:whitespace-pre-wrap" style="text-indent: 0 !important; word-break: break-word;">
                     @((MarkupString)RenderMarkdown(displayContent))
                 </div>
             }

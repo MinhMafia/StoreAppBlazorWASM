@@ -10,6 +10,9 @@ using StoreApp.Data;
 using StoreApp.Repository;
 using StoreApp.Services;
 using StoreApp.Services.AI;
+using StoreApp.Services.AI.Embeddings;
+using StoreApp.Services.AI.VectorStore;
+using StoreApp.Services.AI.SemanticSearch;
 using StoreApp.Middlewares;
 using StoreApp.Components;
 using StoreApp.Client.Services;
@@ -42,6 +45,12 @@ builder.Services.AddSwaggerGen();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
+// DbContext Factory for parallel operations (AI Semantic Indexing)
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)),
+    ServiceLifetime.Scoped
+);
 
 // --- Phần Backend cũ: Register Repositories ---
 builder.Services.AddScoped<ProductRepository>();
@@ -81,11 +90,21 @@ builder.Services.AddHttpContextAccessor();
 
 // --- AI Services (Semantic Kernel) ---
 builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<TokenizerService>();
 // Admin/Staff AI - Semantic Kernel
 builder.Services.AddScoped<SemanticKernelService>();
 // Customer AI - Semantic Kernel
 builder.Services.AddScoped<CustomerSemanticKernelService>();
+
+// --- AI Semantic Search Services (Qdrant + Embedding) ---
+builder.Services.AddScoped<IEmbeddingService, EmbeddingService>();
+builder.Services.AddSingleton<IVectorStoreService, QdrantVectorStoreService>();
+builder.Services.AddScoped<ISemanticSearchService, ProductSemanticSearchService>();
+builder.Services.AddScoped<IProductIndexingService, ProductIndexingService>();
+
+// [AUTO-INDEX] Tự động index Products khi server khởi động 
+// builder.Services.AddHostedService<SemanticIndexingHostedService>();
 
 // --- Phần Backend cũ: Upload Limit ---
 builder.Services.Configure<FormOptions>(options =>

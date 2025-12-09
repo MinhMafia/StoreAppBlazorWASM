@@ -28,6 +28,7 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.54.0" />
+    <PackageReference Include="Qdrant.Client" Version="1.12.0" />
     <ProjectReference Include="..\StoreApp.Client\StoreApp.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.10" />
   </ItemGroup>
