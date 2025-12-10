@@ -43,7 +43,7 @@ AddHttpClientWithAuth<IPromotionService, PromotionService>();
 AddHttpClientWithAuth<ICustomerAuthService, CustomerAuthService>();
 AddHttpClientWithAuth<IOrdersClientService, OrdersClientService>(); 
 // Store Cart Service
-builder.Services.AddScoped<IStoreCartService, StoreCartService>();
+AddHttpClientWithAuth<IStoreCartService, StoreCartService>();
 
 // Giữ nguyên vì không cần gắn header
 // AI Chat Service
