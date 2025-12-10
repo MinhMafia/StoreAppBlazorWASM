@@ -1,75 +1,141 @@
 using StoreApp.Shared;
+using Blazored.LocalStorage;
+using System.Text.Json;
 
 namespace StoreApp.Client.Services;
 
 public interface IStoreCartService
 {
-    Task AddToCart(int productId, int quantity);
+    Task AddToCart(int productId, string productName, string imageUrl, decimal price, int quantity = 1, int? availableQuantity = null);
     Task RemoveFromCart(int productId);
     Task UpdateQuantity(int productId, int quantity);
     Task<List<CartItemDTO>> GetCartItems();
     Task ClearCart();
-    int GetCartItemCount();
+    Task<int> GetCartItemCount();
     event Action? OnCartChanged;
 }
 
 public class StoreCartService : IStoreCartService
 {
-    private List<CartItemDTO> _cartItems = new();
+    private const string CART_STORAGE_KEY = "store_cart";
+    private readonly ILocalStorageService _localStorage;
     private readonly HttpClient _httpClient;
 
     public event Action? OnCartChanged;
 
-    public StoreCartService(HttpClient httpClient)
+    public StoreCartService(ILocalStorageService localStorage, HttpClient httpClient)
     {
+        _localStorage = localStorage;
         _httpClient = httpClient;
     }
 
-    public Task AddToCart(int productId, int quantity)
+    private async Task<List<CartItemDTO>> LoadCartFromStorage()
     {
-        // Implement logic - thêm sản phẩm vào giỏ hàng
-        // Có thể lưu vào localStorage hoặc state management
-        OnCartChanged?.Invoke();
-        return Task.CompletedTask;
+        try
+        {
+            var cartJson = await _localStorage.GetItemAsStringAsync(CART_STORAGE_KEY);
+            if (string.IsNullOrEmpty(cartJson))
+                return new List<CartItemDTO>();
+
+            return JsonSerializer.Deserialize<List<CartItemDTO>>(cartJson) ?? new List<CartItemDTO>();
+        }
+        catch
+        {
+            return new List<CartItemDTO>();
+        }
     }
 
-    public Task RemoveFromCart(int productId)
+    private async Task SaveCartToStorage(List<CartItemDTO> cartItems)
     {
-        // Implement logic - xóa sản phẩm khỏi giỏ hàng
-        _cartItems.RemoveAll(x => x.ProductId == productId);
-        OnCartChanged?.Invoke();
-        return Task.CompletedTask;
+        try
+        {
+            var cartJson = JsonSerializer.Serialize(cartItems);
+            await _localStorage.SetItemAsStringAsync(CART_STORAGE_KEY, cartJson);
+        }
+        catch
+        {
+            // Ignore storage errors
+        }
     }
 
-    public Task UpdateQuantity(int productId, int quantity)
+    public async Task AddToCart(int productId, string productName, string imageUrl, decimal price, int quantity = 1, int? availableQuantity = null)
     {
-        // Implement logic - cập nhật số lượng
-        var item = _cartItems.FirstOrDefault(x => x.ProductId == productId);
+        var cartItems = await LoadCartFromStorage();
+        var existingItem = cartItems.FirstOrDefault(x => x.ProductId == productId);
+
+        if (existingItem != null)
+        {
+            var newQuantity = existingItem.Quantity + quantity;
+            // Kiểm tra số lượng tồn kho nếu có
+            if (existingItem.AvailableQuantity.HasValue && newQuantity > existingItem.AvailableQuantity.Value)
+            {
+                newQuantity = existingItem.AvailableQuantity.Value;
+            }
+            existingItem.Quantity = newQuantity;
+        }
+        else
+        {
+            cartItems.Add(new CartItemDTO
+            {
+                ProductId = productId,
+                ProductName = productName,
+                ImageUrl = imageUrl,
+                Price = price,
+                Quantity = quantity,
+                AvailableQuantity = availableQuantity
+            });
+        }
+
+        await SaveCartToStorage(cartItems);
+        OnCartChanged?.Invoke();
+    }
+
+    public async Task RemoveFromCart(int productId)
+    {
+        var cartItems = await LoadCartFromStorage();
+        cartItems.RemoveAll(x => x.ProductId == productId);
+        await SaveCartToStorage(cartItems);
+        OnCartChanged?.Invoke();
+    }
+
+    public async Task UpdateQuantity(int productId, int quantity)
+    {
+        if (quantity <= 0)
+        {
+            await RemoveFromCart(productId);
+            return;
+        }
+
+        var cartItems = await LoadCartFromStorage();
+        var item = cartItems.FirstOrDefault(x => x.ProductId == productId);
         if (item != null)
         {
+            // Kiểm tra số lượng tồn kho nếu có
+            if (item.AvailableQuantity.HasValue && quantity > item.AvailableQuantity.Value)
+            {
+                quantity = item.AvailableQuantity.Value;
+            }
             item.Quantity = quantity;
+            await SaveCartToStorage(cartItems);
+            OnCartChanged?.Invoke();
         }
+    }
+
+    public async Task<List<CartItemDTO>> GetCartItems()
+    {
+        return await LoadCartFromStorage();
+    }
+
+    public async Task ClearCart()
+    {
+        await _localStorage.RemoveItemAsync(CART_STORAGE_KEY);
         OnCartChanged?.Invoke();
-        return Task.CompletedTask;
     }
 
-    public Task<List<CartItemDTO>> GetCartItems()
+    public async Task<int> GetCartItemCount()
     {
-        // Implement logic - lấy danh sách items từ localStorage hoặc state
-        return Task.FromResult(_cartItems);
-    }
-
-    public Task ClearCart()
-    {
-        // Implement logic - xóa toàn bộ giỏ hàng
-        _cartItems.Clear();
-        OnCartChanged?.Invoke();
-        return Task.CompletedTask;
-    }
-
-    public int GetCartItemCount()
-    {
-        return _cartItems.Sum(x => x.Quantity);
+        var cartItems = await LoadCartFromStorage();
+        return cartItems.Sum(x => x.Quantity);
     }
 }
 
@@ -81,6 +147,9 @@ public class CartItemDTO
     public string ImageUrl { get; set; } = "";
     public decimal Price { get; set; }
     public int Quantity { get; set; }
+    public int? AvailableQuantity { get; set; } // Số lượng tồn kho
     public decimal Total => Price * Quantity;
+    public bool IsOutOfStock => AvailableQuantity.HasValue && AvailableQuantity.Value <= 0;
+    public bool CanIncreaseQuantity => !AvailableQuantity.HasValue || Quantity < AvailableQuantity.Value;
 }
 

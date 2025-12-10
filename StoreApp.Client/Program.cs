@@ -14,7 +14,8 @@ builder.Services.AddScoped<ICustomerAuthService, CustomerAuthService>();
 
 builder.Services.AddScoped<IOrdersClientService, OrdersClientService>();
 
-
+// Store Cart Service
+builder.Services.AddScoped<IStoreCartService, StoreCartService>();
 
 // AI Chat Service
 builder.Services.AddScoped<IAiChatService, AiChatService>();

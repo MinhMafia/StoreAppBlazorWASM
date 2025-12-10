@@ -1,6 +1,12 @@
 @page "/store/cart"
+@page "/api/store/cart"
+@using StoreApp.Client.Services
+@using StoreApp.Shared
 @inject NavigationManager Navigation
+@inject IStoreCartService CartService
+@inject IProductClientService ProductService
 @layout StoreLayout
+@implements IDisposable
 
 <PageTitle>Giỏ hàng - Cửa Hàng Tiện Lợi</PageTitle>
 <style>
@@ -25,134 +31,394 @@
 
         <h2 class="text-3xl font-bold text-gray-800 mb-8">
             Giỏ hàng của bạn
-            <span class="text-lg font-normal text-gray-600">(4 sản phẩm)</span>
+            <span class="text-lg font-normal text-gray-600">(@cartItems.Count sản phẩm)</span>
         </h2>
 
-        <!-- Danh sách sản phẩm -->
-        <div class="bg-white rounded-3xl shadow-soft overflow-hidden mb-8">
-
-            <!-- Item 1 -->
-            <div class="p-6 border-b border-gray-100 transition-all duration-300 hover:bg-gradient-to-r hover:from-primaryLight/30 hover:to-transparent hover:shadow-md hover:scale-[1.01] hover:-translate-y-1">
-                <div class="flex items-center gap-5">
-                    <input type="checkbox" checked class="w-6 h-6 rounded accent-primary" />
-                    <img src="https://cdn.tgdd.vn/Products/Images/2443/76464/bhx/nuoc-tang-luc-red-bull-thai-lon-250ml-202404101607504957.jpg" class="w-28 h-28 object-cover rounded-2xl shadow-sm" />
-                    <div class="flex-1">
-                        <h3 class="font-semibold text-lg text-gray-800 line-clamp-2">Nước tăng lực Red Bull Thái 250ml</h3>
-                        <div class="flex items-center gap-3 mt-2 text-sm text-gray-500">
-                            <span>Đồ uống</span><span>•</span><span>lon</span>
-                        </div>
-                        <div class="mt-3 text-2xl font-bold text-primaryDark">37,500₫</div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <button class="w-11 h-11 rounded-xl border border-gray-300 hover:border-primary hover:bg-primaryLight/20 transition text-xl">−</button>
-                        <span class="w-16 text-center text-lg font-semibold">3</span>
-                        <button class="w-11 h-11 rounded-xl bg-primary text-white hover:bg-primaryHover shadow-md transition text-xl">+</button>
-                    </div>
-                    <button class="text-gray-400 hover:text-red-600 transition-transform hover:scale-125">
-                        <i class="fas fa-trash-alt text-2xl"></i>
-                    </button>
-                </div>
+        @if (isLoading)
+        {
+            <div class="text-center py-10">
+                <p>Đang tải giỏ hàng...</p>
             </div>
-
-            <!-- Item 2 -->
-            <div class="p-6 border-b border-gray-100 transition-all duration-300 hover:bg-gradient-to-r hover:from-primaryLight/30 hover:to-transparent hover:shadow-md hover:scale-[1.01] hover:-translate-y-1">
-                <div class="flex items-center gap-5">
-                    <input type="checkbox" checked class="w-6 h-6 rounded accent-primary" />
-                    <img src="https://cdn.tgdd.vn/Products/Images/2565/76469/bhx/mi-hao-hao-tom-chua-cay-75g-202310170941188337.jpg" class="w-28 h-28 object-cover rounded-2xl shadow-sm" />
-                    <div class="flex-1">
-                        <h3 class="font-semibold text-lg text-gray-800 line-clamp-2">Mì Hảo Hảo tôm chua cay 75g</h3>
-                        <div class="flex items-center gap-3 mt-2 text-sm text-gray-500">
-                            <span>Mì gói</span><span>•</span><span>gói</span>
-                        </div>
-                        <div class="mt-3 text-2xl font-bold text-primaryDark">22,500₫</div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <button class="w-11 h-11 rounded-xl border border-gray-300 hover:border-primary hover:bg-primaryLight/20 transition text-xl">−</button>
-                        <span class="w-16 text-center text-lg font-semibold">5</span>
-                        <button class="w-11 h-11 rounded-xl bg-primary text-white hover:bg-primaryHover shadow-md transition text-xl">+</button>
-                    </div>
-                    <button class="text-gray-400 hover:text-red-600 transition-transform hover:scale-125">
-                        <i class="fas fa-trash-alt text-2xl"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Item 3 -->
-            <div class="p-6 border-b border-gray-100 transition-all duration-300 hover:bg-gradient-to-r hover:from-primaryLight/30 hover:to-transparent hover:shadow-md hover:scale-[1.01] hover:-translate-y-1">
-                <div class="flex items-center gap-5">
-                    <input type="checkbox" class="w-6 h-6 rounded accent-primary" />
-                    <img src="https://cdn.tgdd.vn/Products/Images/2386/228429/bhx/sua-tuoi-th-true-milk-it-duong-hop-1l-202404101459318884.jpg" class="w-28 h-28 object-cover rounded-2xl shadow-sm" />
-                    <div class="flex-1">
-                        <h3 class="font-semibold text-lg text-gray-800 line-clamp-2">Sữa tươi TH True Milk ít đường 1L</h3>
-                        <div class="flex items-center gap-3 mt-2 text-sm text-gray-500">
-                            <span>Sữa</span><span>•</span><span>hộp</span>
-                        </div>
-                        <div class="mt-3 text-2xl font-bold text-primaryDark">69,000₫</div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <button class="w-11 h-11 rounded-xl border border-gray-300 hover:border-primary hover:bg-primaryLight/20 transition text-xl">−</button>
-                        <span class="w-16 text-center text-lg font-semibold">2</span>
-                        <button class="w-11 h-11 rounded-xl bg-primary text-white hover:bg-primaryHover shadow-md transition text-xl">+</button>
-                    </div>
-                    <button class="text-gray-400 hover:text-red-600 transition-transform hover:scale-125">
-                        <i class="fas fa-trash-alt text-2xl"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Item 4 -->
-            <div class="p-6 transition-all duration-300 hover:bg-gradient-to-r hover:from-primaryLight/30 hover:to-transparent hover:shadow-md hover:scale-[1.01] hover:-translate-y-1">
-                <div class="flex items-center gap-5">
-                    <input type="checkbox" checked class="w-6 h-6 rounded accent-primary" />
-                    <img src="https://cdn.tgdd.vn/Products/Images/2417/77957/bhx/banh-oreo-kem-vani-goi-133g-202404101608234567.jpg" class="w-28 h-28 object-cover rounded-2xl shadow-sm" />
-                    <div class="flex-1">
-                        <h3 class="font-semibold text-lg text-gray-800 line-clamp-2">Bánh Oreo kem vani 133g</h3>
-                        <div class="flex items-center gap-3 mt-2 text-sm text-gray-500">
-                            <span>Bánh kẹo</span><span>•</span><span>gói</span>
-                        </div>
-                        <div class="mt-3 text-2xl font-bold text-primaryDark">18,500₫</div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <button class="w-11 h-11 rounded-xl border border-gray-300 hover:border-primary hover:bg-primaryLight/20 transition text-xl">−</button>
-                        <span class="w-16 text-center text-lg font-semibold">1</span>
-                        <button class="w-11 h-11 rounded-xl bg-primary text-white hover:bg-primaryHover shadow-md transition text-xl">+</button>
-                    </div>
-                    <button class="text-gray-400 hover:text-red-600 transition-transform hover:scale-125">
-                        <i class="fas fa-trash-alt text-2xl"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tổng tiền + Thanh toán -->
-        <div class="bg-white rounded-3xl shadow-soft p-8">
-            <div class="flex justify-between items-center mb-8">
-                <div>
-                    <p class="text-lg text-gray-600">Tổng thanh toán (3 sản phẩm):</p>
-                    <p class="text-4xl font-bold text-primaryDark mt-2">78,500₫</p>
-                </div>
-                <button 
-                @onclick="GoToCheckout"
-                class="relative overflow-hidden bg-gradient-to-r from-[#4ade80] to-[#16a34a] hover:from-[#16a34a] hover:to-[#22c55e] text-white font-bold text-xl px-16 py-6 rounded-2xl shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-500 group">
-                    <span class="relative z-10">Mua hàng (3)</span> 
-                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-40 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 skew-x-12"></div>
+        }
+        else if (cartItems == null || !cartItems.Any())
+        {
+            <div class="bg-white rounded-3xl shadow-soft p-12 text-center">
+                <i class="bi bi-cart-x text-6xl text-gray-300 mb-4"></i>
+                <h3 class="text-2xl font-bold text-gray-700 mb-2">Giỏ hàng trống</h3>
+                <p class="text-gray-500 mb-6">Bạn chưa có sản phẩm nào trong giỏ hàng</p>
+                <button @onclick="ContinueShopping" 
+                        class="bg-primary text-white px-8 py-3 rounded-xl hover:bg-primaryHover transition">
+                    Tiếp tục mua sắm
                 </button>
             </div>
+        }
+        else
+        {
+            <!-- Danh sách sản phẩm -->
+            <div class="bg-white rounded-3xl shadow-soft overflow-hidden mb-8">
+                @foreach (var item in cartItems)
+                {
+                    var isSelected = selectedItems.Contains(item.ProductId);
+                    var isOutOfStock = item.IsOutOfStock;
+                    var canIncrease = item.CanIncreaseQuantity;
+                    <div class="p-6 border-b border-gray-100 transition-all duration-300 hover:bg-gradient-to-r hover:from-primaryLight/30 hover:to-transparent hover:shadow-md hover:scale-[1.01] hover:-translate-y-1 @(isOutOfStock ? "opacity-60" : "")">
+                        <div class="flex items-center gap-5">
+                            <input type="checkbox" 
+                                   checked="@isSelected" 
+                                   @onchange="(e) => ToggleItemSelection(item.ProductId, (bool)(e.Value ?? false))"
+                                   class="w-6 h-6 rounded accent-primary" />
+                            <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/assets/images/products/product.jpg" : item.ImageUrl)" 
+                                 class="w-28 h-28 object-cover rounded-2xl shadow-sm" 
+                                 alt="@item.ProductName" />
+                            <div class="flex-1">
+                                <h3 class="font-semibold text-lg text-gray-800 line-clamp-2">@item.ProductName</h3>
+                                @if (isOutOfStock)
+                                {
+                                    <span class="inline-block mt-2 px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-semibold">
+                                        Hết hàng
+                                    </span>
+                                }
+                                else if (item.AvailableQuantity.HasValue)
+                                {
+                                    <span class="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm">
+                                        Còn @item.AvailableQuantity.Value sản phẩm
+                                    </span>
+                                }
+                                <div class="mt-3 text-2xl font-bold text-primaryDark">@item.Price.ToString("N0")₫</div>
+                                <div class="mt-1 text-lg font-semibold text-gray-600">
+                                    Tổng: @item.Total.ToString("N0")₫
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <button class="w-11 h-11 rounded-xl border border-gray-300 hover:border-primary hover:bg-primaryLight/20 transition text-xl disabled:opacity-50 disabled:cursor-not-allowed" 
+                                        @onclick="() => DecreaseQuantity(item.ProductId)"
+                                        disabled="@(isUpdating || item.Quantity <= 1)">
+                                    −
+                                </button>
+                                <span class="w-16 text-center text-lg font-semibold">@item.Quantity</span>
+                                <button class="w-11 h-11 rounded-xl bg-primary text-white hover:bg-primaryHover shadow-md transition text-xl disabled:opacity-50 disabled:cursor-not-allowed" 
+                                        @onclick="() => IncreaseQuantity(item.ProductId)"
+                                        disabled="@(isUpdating || !canIncrease)">
+                                    +
+                                </button>
+                            </div>
+                            <button class="text-gray-400 hover:text-red-600 transition-transform hover:scale-125" 
+                                    @onclick="() => RemoveItem(item.ProductId)"
+                                    disabled="@isUpdating">
+                                <i class="bi bi-trash text-2xl"></i>
+                            </button>
+                        </div>
+                        @if (!string.IsNullOrEmpty(errorMessage) && errorProductId == item.ProductId)
+                        {
+                            <div class="mt-2 text-red-600 text-sm">
+                                @errorMessage
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
 
-            <div class="flex items-center justify-between pt-6 border-t-2 border-gray-100">
-                <div class="flex items-center gap-8 text-lg">
-                    <label class="flex items-center gap-3 cursor-pointer select-none">
-                        <input type="checkbox" class="w-6 h-6 rounded accent-primary" />
-                        <span class="font-semibold text-gray-700">Chọn tất cả</span>
-                    </label>
-                    <button class="font-semibold text-red-600 hover:text-red-700 hover:underline">Xóa đã chọn</button>
-                    <button class="font-semibold text-gray-600 hover:text-primary hover:underline">Bỏ sản phẩm không hoạt động</button>
+            <!-- Tổng tiền + Thanh toán -->
+            <div class="bg-white rounded-3xl shadow-soft p-8">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <p class="text-lg text-gray-600">Tổng thanh toán (@selectedItemsCount sản phẩm):</p>
+                        <p class="text-4xl font-bold text-primaryDark mt-2">@totalAmount.ToString("N0")₫</p>
+                    </div>
+                    <button 
+                    @onclick="GoToCheckout"
+                    disabled="@(cartItems.Count == 0)"
+                    class="relative overflow-hidden bg-gradient-to-r from-[#4ade80] to-[#16a34a] hover:from-[#16a34a] hover:to-[#22c55e] text-white font-bold text-xl px-16 py-6 rounded-2xl shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-500 group disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span class="relative z-10">Mua hàng (@selectedItemsCount)</span> 
+                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-40 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 skew-x-12"></div>
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between pt-6 border-t-2 border-gray-100">
+                    <div class="flex items-center gap-8 text-lg">
+                        <label class="flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox" checked="@selectAll" @onchange="ToggleSelectAll" class="w-6 h-6 rounded accent-primary" />
+                            <span class="font-semibold text-gray-700">Chọn tất cả</span>
+                        </label>
+                        <button class="font-semibold text-red-600 hover:text-red-700 hover:underline" 
+                                @onclick="RemoveSelectedItems"
+                                disabled="@(selectedItems.Count == 0)">
+                            Xóa đã chọn
+                        </button>
+                        <button class="font-semibold text-gray-600 hover:text-primary hover:underline" 
+                                @onclick="ClearCart">
+                            Xóa tất cả
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        }
     </div>
 </div>
 
 @code {
     private void GoToCheckout() => Navigation.NavigateTo("/store/checkout");
+    private List<CartItemDTO> cartItems = new();
+    private HashSet<int> selectedItems = new();
+    private bool isLoading = true;
+    private bool isUpdating = false;
+    private bool selectAll = false;
+    private bool isInitialLoad = true;
+    private string? errorMessage;
+    private int? errorProductId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CartService.OnCartChanged += OnCartChanged;
+        await LoadCart();
+    }
+
+    private async Task LoadCart()
+    {
+        isLoading = true;
+        errorMessage = null;
+        errorProductId = null;
+        try
+        {
+            cartItems = await CartService.GetCartItems();
+            
+            // Load inventory info cho các sản phẩm trong giỏ
+            await LoadInventoryInfo();
+            
+            // Chỉ tự động chọn tất cả ở lần load đầu tiên
+            if (isInitialLoad && cartItems.Any())
+            {
+                var availableItems = cartItems.Where(x => !x.IsOutOfStock).ToList();
+                if (availableItems.Any())
+                {
+                    selectedItems = new HashSet<int>(availableItems.Select(x => x.ProductId));
+                    selectAll = true;
+                }
+                isInitialLoad = false;
+            }
+            else
+            {
+                // Giữ nguyên selectedItems nhưng loại bỏ các sản phẩm không còn trong giỏ
+                selectedItems.RemoveWhere(id => !cartItems.Any(x => x.ProductId == id));
+                
+                // Cập nhật trạng thái "Chọn tất cả"
+                var availableItems = cartItems.Where(x => !x.IsOutOfStock).ToList();
+                selectAll = availableItems.Count > 0 && availableItems.All(x => selectedItems.Contains(x.ProductId));
+            }
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadInventoryInfo()
+    {
+        foreach (var item in cartItems)
+        {
+            if (!item.AvailableQuantity.HasValue)
+            {
+                try
+                {
+                    var product = await ProductService.GetProductById(item.ProductId);
+                    if (product?.Inventory != null)
+                    {
+                        item.AvailableQuantity = product.Inventory.Quantity;
+                    }
+                }
+                catch
+                {
+                    // Ignore errors when loading inventory
+                }
+            }
+        }
+    }
+
+    private async void OnCartChanged()
+    {
+        await LoadCart();
+    }
+
+    private void ContinueShopping()
+    {
+        Navigation.NavigateTo("/api/store/products");
+    }
+
+    private void GoToCheckout()
+    {
+        Navigation.NavigateTo("/api/store/checkout");
+    }
+
+    private async Task IncreaseQuantity(int productId)
+    {
+        if (isUpdating) return;
+        
+        var item = cartItems.FirstOrDefault(x => x.ProductId == productId);
+        if (item == null) return;
+
+        // Kiểm tra số lượng tồn kho
+        if (item.AvailableQuantity.HasValue)
+        {
+            if (item.Quantity >= item.AvailableQuantity.Value)
+            {
+                errorMessage = $"Số lượng tối đa là {item.AvailableQuantity.Value} sản phẩm";
+                errorProductId = productId;
+                StateHasChanged();
+                await Task.Delay(3000);
+                errorMessage = null;
+                errorProductId = null;
+                StateHasChanged();
+                return;
+            }
+        }
+
+        isUpdating = true;
+        errorMessage = null;
+        errorProductId = null;
+        try
+        {
+            await CartService.UpdateQuantity(productId, item.Quantity + 1);
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private async Task DecreaseQuantity(int productId)
+    {
+        if (isUpdating) return;
+        
+        var item = cartItems.FirstOrDefault(x => x.ProductId == productId);
+        if (item == null) return;
+
+        // Không cho phép giảm xuống dưới 1
+        if (item.Quantity <= 1)
+        {
+            errorMessage = "Số lượng tối thiểu là 1 sản phẩm";
+            errorProductId = productId;
+            StateHasChanged();
+            await Task.Delay(3000);
+            errorMessage = null;
+            errorProductId = null;
+            StateHasChanged();
+            return;
+        }
+
+        isUpdating = true;
+        errorMessage = null;
+        errorProductId = null;
+        try
+        {
+            await CartService.UpdateQuantity(productId, item.Quantity - 1);
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private async Task RemoveItem(int productId)
+    {
+        if (isUpdating) return;
+        isUpdating = true;
+        try
+        {
+            await CartService.RemoveFromCart(productId);
+            selectedItems.Remove(productId);
+            
+            // Cập nhật trạng thái "Chọn tất cả"
+            var availableItems = cartItems.Where(x => !x.IsOutOfStock && x.ProductId != productId).ToList();
+            selectAll = availableItems.Count > 0 && availableItems.All(x => selectedItems.Contains(x.ProductId));
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private async Task ClearCart()
+    {
+        if (isUpdating) return;
+        
+        isUpdating = true;
+        try
+        {
+            await CartService.ClearCart();
+            selectedItems.Clear();
+            selectAll = false;
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        selectAll = (bool)(e.Value ?? false);
+        if (selectAll)
+        {
+            // Chỉ chọn các sản phẩm còn hàng
+            selectedItems = new HashSet<int>(cartItems.Where(x => !x.IsOutOfStock).Select(x => x.ProductId));
+        }
+        else
+        {
+            selectedItems.Clear();
+        }
+        StateHasChanged();
+    }
+
+    private void ToggleItemSelection(int productId, bool isSelected)
+    {
+        if (isSelected)
+        {
+            var item = cartItems.FirstOrDefault(x => x.ProductId == productId);
+            if (item != null && !item.IsOutOfStock)
+            {
+                selectedItems.Add(productId);
+            }
+        }
+        else
+        {
+            selectedItems.Remove(productId);
+        }
+        
+        // Cập nhật trạng thái "Chọn tất cả"
+        var availableItems = cartItems.Where(x => !x.IsOutOfStock).ToList();
+        selectAll = availableItems.Count > 0 && availableItems.All(x => selectedItems.Contains(x.ProductId));
+        
+        StateHasChanged();
+    }
+
+    private async Task RemoveSelectedItems()
+    {
+        if (selectedItems.Count == 0) return;
+        
+        isUpdating = true;
+        try
+        {
+            var itemsToRemove = selectedItems.ToList();
+            foreach (var productId in itemsToRemove)
+            {
+                await CartService.RemoveFromCart(productId);
+            }
+            selectedItems.Clear();
+            selectAll = false;
+            // LoadCart sẽ được gọi tự động qua OnCartChanged event
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private int selectedItemsCount => cartItems.Where(x => selectedItems.Contains(x.ProductId)).Sum(x => x.Quantity);
+    private decimal totalAmount => cartItems.Where(x => selectedItems.Contains(x.ProductId)).Sum(x => x.Total);
+
+    public void Dispose()
+    {
+        CartService.OnCartChanged -= OnCartChanged;
+    }
 }

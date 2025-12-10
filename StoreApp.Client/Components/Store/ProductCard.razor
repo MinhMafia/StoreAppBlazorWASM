@@ -1,4 +1,7 @@
 @* Component hiển thị thẻ sản phẩm trong danh sách *@
+@inject IStoreCartService CartService
+@inject IProductClientService ProductService
+@inject NavigationManager Navigation
 
 <div class="product-card">
     <div class="product-image">
@@ -17,8 +20,15 @@
             }
             <span class="current-price">@Price.ToString("N0") đ</span>
         </div>
-        <button class="btn btn-primary btn-add-to-cart" @onclick="AddToCart">
-            Thêm vào giỏ
+        <button class="btn btn-primary btn-add-to-cart" @onclick="AddToCart" disabled="@isAdding">
+            @if (isAdding)
+            {
+                <text>Đang thêm...</text>
+            }
+            else
+            {
+                <text>Thêm vào giỏ</text>
+            }
         </button>
     </div>
 </div>
@@ -31,9 +41,34 @@
     [Parameter] public decimal? OriginalPrice { get; set; }
     [Parameter] public bool HasPromotion { get; set; }
 
-    private void AddToCart()
+    private bool isAdding = false;
+
+    private async Task AddToCart()
     {
-        // Xử lý thêm vào giỏ hàng
+        if (isAdding) return;
+        
+        isAdding = true;
+        try
+        {
+            var imageUrl = string.IsNullOrEmpty(ImageUrl) ? "/assets/images/products/product.jpg" : ImageUrl;
+            // Lấy thông tin inventory nếu có (có thể null nếu không có)
+            int? availableQuantity = null;
+            try
+            {
+                var product = await ProductService.GetProductById(ProductId);
+                availableQuantity = product?.Inventory?.Quantity;
+            }
+            catch
+            {
+                // Ignore nếu không lấy được inventory
+            }
+            await CartService.AddToCart(ProductId, ProductName, imageUrl, Price, 1, availableQuantity);
+            // Có thể thêm thông báo thành công ở đây nếu cần
+        }
+        finally
+        {
+            isAdding = false;
+        }
     }
 }
 

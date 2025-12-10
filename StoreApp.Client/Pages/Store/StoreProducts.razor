@@ -1,10 +1,12 @@
 @page "/store/products"
 @layout StoreLayout
 @using StoreApp.Shared
+@using StoreApp.Client.Services
 @using Microsoft.AspNetCore.WebUtilities
 @inject IProductClientService ProductService
 @inject ICategoryClientService CategoryService
 @inject IPromotionService PromotionService
+@inject IStoreCartService CartService
 @inject NavigationManager Navigation
 
 <PageTitle>Sản phẩm - Cửa Hàng Tiện Lợi</PageTitle>
@@ -310,7 +312,7 @@
                                     </p>
                                 </div>
                                 <div class="product-list-actions">
-                                    <button class="btn btn-primary btn-add-to-cart" @onclick="() => NavigateToProduct(product.Id)">
+                                    <button class="btn btn-primary btn-add-to-cart" @onclick="async () => await AddToCart(product)">
                                         <i class="bi bi-cart-plus"></i> Thêm vào giỏ
                                     </button>
                                     <button class="btn btn-outline-secondary btn-quick-view" @onclick="() => NavigateToProduct(product.Id)">
@@ -578,7 +580,8 @@
                 minPrice, 
                 maxPrice, 
                 serverSortBy,
-                selectedCategoryId);
+                selectedCategoryId,
+                1); // status = 1 để chỉ lấy sản phẩm active
             
             if (result != null)
             {
@@ -803,5 +806,12 @@
             // Tạm thời chỉ hiển thị code để user tự copy
             Console.WriteLine($"Mã khuyến mãi: {code}");
         }
+    }
+
+    private async Task AddToCart(ProductDTO product)
+    {
+        var imageUrl = string.IsNullOrEmpty(product.ImageUrl) ? "/assets/images/products/product.jpg" : product.ImageUrl;
+        var availableQuantity = product.Inventory?.Quantity;
+        await CartService.AddToCart(product.Id, product.ProductName, imageUrl, product.Price, 1, availableQuantity);
     }
 }

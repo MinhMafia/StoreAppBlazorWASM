@@ -152,6 +152,7 @@ builder.Services.AddScoped<IAiChatService, AiChatService>();
 builder.Services.AddScoped<ICustomerAiChatService, CustomerAiChatService>();
 builder.Services.AddScoped<IOrdersClientService, OrdersClientService>();
 builder.Services.AddScoped<ICustomerAuthService, CustomerAuthService>();
+builder.Services.AddScoped<IStoreCartService, StoreCartService>();
 
 
 

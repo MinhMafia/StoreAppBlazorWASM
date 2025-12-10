@@ -1,6 +1,9 @@
 @using Blazored.LocalStorage
+@using StoreApp.Client.Services
 @inject ILocalStorageService LocalStorage
+@inject IStoreCartService CartService
 @inject NavigationManager Nav
+@implements IDisposable
 
 <!-- Top Bar -->
 <div class="top-bar">
@@ -67,7 +70,15 @@
             <div class="cart-section">
                 <NavLink href="/store/cart" class="cart-link">
                     <i class="bi bi-cart3"></i>
-                    <span class="cart-amount">0₫</span>
+                <NavLink href="/api/store/cart" class="cart-link">
+                    <div class="cart-icon-wrapper">
+                        <i class="bi bi-cart3"></i>
+                        @if (cartItemCount > 0)
+                        {
+                            <span class="cart-badge">@cartItemCount</span>
+                        }
+                    </div>
+                    <span class="cart-amount">@cartTotalAmount.ToString("N0")₫</span>
                 </NavLink>
             </div>
         </div>
@@ -107,11 +118,46 @@
 </nav>
 
 @code {
+    private int cartItemCount = 0;
+    private decimal cartTotalAmount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CartService.OnCartChanged += OnCartChanged;
+        await LoadCartInfo();
+    }
+
+    private async void OnCartChanged()
+    {
+        await LoadCartInfo();
+        StateHasChanged();
+    }
+
+    private async Task LoadCartInfo()
+    {
+        try
+        {
+            cartItemCount = await CartService.GetCartItemCount();
+            var cartItems = await CartService.GetCartItems();
+            cartTotalAmount = cartItems.Sum(x => x.Total);
+        }
+        catch
+        {
+            cartItemCount = 0;
+            cartTotalAmount = 0;
+        }
+    }
+
     private async Task HandleLogout()
     {
         await LocalStorage.RemoveItemAsync("authToken");
         await LocalStorage.RemoveItemAsync("userName");
         await LocalStorage.RemoveItemAsync("userRole");
         Nav.NavigateTo("/login", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        CartService.OnCartChanged -= OnCartChanged;
     }
 }

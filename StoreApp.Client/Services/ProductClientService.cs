@@ -4,7 +4,7 @@ using StoreApp.Shared; // Nhớ using DTO
 
 public interface IProductClientService
 {
-    Task<PaginationResult<ProductDTO>> GetProducts(int page, int pageSize, string? search, decimal? min, decimal? max, string? sortBy = null, int? categoryId = null);
+    Task<PaginationResult<ProductDTO>> GetProducts(int page, int pageSize, string? search, decimal? min, decimal? max, string? sortBy = null, int? categoryId = null, int? status = null);
     Task<bool> DeleteProduct(int id);
     Task<ProductDTO> GetProductById(int id);
 }
@@ -18,7 +18,7 @@ public class ProductClientService : IProductClientService
         _http = http;
     }
 
-    public async Task<PaginationResult<ProductDTO>> GetProducts(int page, int pageSize, string? search, decimal? min, decimal? max, string? sortBy = null, int? categoryId = null)
+    public async Task<PaginationResult<ProductDTO>> GetProducts(int page, int pageSize, string? search, decimal? min, decimal? max, string? sortBy = null, int? categoryId = null, int? status = null)
     {
         var queryParams = new Dictionary<string, string?>
         {
@@ -31,6 +31,7 @@ public class ProductClientService : IProductClientService
         if (max.HasValue) queryParams["maxPrice"] = max.ToString();
         if (!string.IsNullOrEmpty(sortBy)) queryParams["sortBy"] = sortBy;
         if (categoryId.HasValue) queryParams["categoryId"] = categoryId.ToString();
+        if (status.HasValue) queryParams["status"] = status.ToString();
 
         var url = QueryHelpers.AddQueryString("api/products/paginated", queryParams);
 
