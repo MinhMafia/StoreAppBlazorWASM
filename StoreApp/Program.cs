@@ -129,6 +129,7 @@ builder.Services.AddScoped<IStatisticsService, StoreApp.Client.Services.Statisti
 builder.Services.AddScoped<IPromotionService, StoreApp.Client.Services.PromotionService>();
 builder.Services.AddScoped<IProductClientService, ProductClientService>();
 builder.Services.AddScoped<ICategoryClientService, CategoryClientService>();
+builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
 builder.Services.AddScoped<IAiChatService, AiChatService>();
 builder.Services.AddScoped<ICustomerAiChatService, CustomerAiChatService>();
 builder.Services.AddScoped<IOrdersClientService, OrdersClientService>();

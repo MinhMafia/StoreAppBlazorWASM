@@ -7,11 +7,13 @@
 <div class="container py-4">
 
     <!-- Header -->
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 fw-bold text-dark mb-0">Quản Lý Khách Hàng</h1>
-        <button type="button" class="btn btn-primary" @onclick="openAddModal">
-            + Thêm Khách Hàng
-        </button>
+    <div class="mb-4 d-flex align-items-center justify-content-between">
+        <h1 class="mb-0 h3 fw-bold text-dark">Quản Lý Khách Hàng</h1>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary" @onclick="openAddModal">
+                + Thêm Khách Hàng
+            </button>
+        </div>
     </div>
 
     <!-- Error (UI only) -->
@@ -20,32 +22,76 @@
     </div> *@
 
     <!-- Statistics -->
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-md-6">
-            <div class="card border border-success-subtle bg-success bg-opacity-10 h-100" role="button">
+    <div class="mb-4 row g-3">
+        <div class="col-12 col-lg-4">
+            <div class="border cursor-pointer card h-100 border-primary-subtle bg-primary bg-opacity-10"
+                 role="button" @onclick='() => SetStatusFilterFromCard("all")'>
                 <div class="card-body">
-                    <div class="small text-success fw-semibold">Đang Hoạt Động</div>
-                    <div class="fs-3 fw-bold text-success">@activeCount</div>
+                    <div class="gap-3 mb-2 d-flex align-items-center">
+                        <div class="p-2 bg-opacity-25 rounded bg-primary d-flex align-items-center justify-content-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                                 class="bi bi-tags text-primary" viewBox="0 0 16 16">
+                                <path d="M3 2a1 1 0 0 0-1 1v3.586a1 1 0 0 0 .293.707l5.414 5.414a1 1 0 0 0 1.414 0l3.586-3.586a1 1 0 0 0 0-1.414L6.707 2.293A1 1 0 0 0 6 2zm1 1h2.586l6 6L11 10.586l-6-6z"/>
+                                <path d="M1 3.5a.5.5 0 0 1 .5-.5H2v1h-.5a.5.5 0 0 1-.5-.5"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="small text-secondary">Tổng số</div>
+                            <div class="fs-4 fw-bold text-dark">@totalCount</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-12 col-md-6">
-            <div class="card border border-danger-subtle bg-danger bg-opacity-10 h-100" role="button">
+        <div class="col-12 col-lg-4">
+            <div class="border cursor-pointer card h-100 border-success-subtle bg-success bg-opacity-10"
+                 role="button" @onclick='() => SetStatusFilterFromCard("active")'>
                 <div class="card-body">
-                    <div class="small text-danger fw-semibold">Ngừng Hoạt Động</div>
-                    <div class="fs-3 fw-bold text-danger">@inactiveCount</div>
+                    <div class="gap-3 mb-2 d-flex align-items-center">
+                        <div class="p-2 bg-opacity-25 rounded bg-success d-flex align-items-center justify-content-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                                 class="bi bi-check-circle text-success" viewBox="0 0 16 16">
+                                <path d="M15.854 7.146a.5.5 0 0 1 0 .708l-8 8a.5.5 0 0 1-.708 0l-4-4a.5.5 0 1 1 .708-.708L7.5 14.293l7.646-7.647a.5.5 0 0 1 .708 0"/>
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0-1A6 6 0 1 0 8 2a6 6 0 0 0 0 12"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="small text-success fw-semibold">Đang Hoạt Động</div>
+                            <div class="fs-4 fw-bold text-success">@activeCount</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="border cursor-pointer card h-100 border-secondary-subtle bg-secondary bg-opacity-10"
+                 role="button" @onclick='() => SetStatusFilterFromCard("inactive")'>
+                <div class="card-body">
+                    <div class="gap-3 mb-2 d-flex align-items-center">
+                        <div class="p-2 bg-opacity-25 rounded bg-secondary d-flex align-items-center justify-content-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                                 class="bi bi-x-circle text-secondary" viewBox="0 0 16 16">
+                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0-1A6 6 0 1 0 8 2a6 6 0 0 0 0 12"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="small text-secondary fw-semibold">Không Hoạt Động</div>
+                            <div class="fs-4 fw-bold text-secondary">@inactiveCount</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Search and Filter -->
-    <div class="row g-2 align-items-center mb-4">
+    <div class="mb-4 row g-2 align-items-center">
         <div class="col-12 col-lg">
             <div class="input-group">
-                <span class="input-group-text bg-white">
-                    <!-- Search icon -->
+                <span class="bg-white input-group-text">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
                          class="bi bi-search text-secondary" viewBox="0 0 16 16">
                         <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
@@ -60,7 +106,7 @@
         </div>
 
         <div class="col-12 col-lg-auto">
-            <button type="button" class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2" @onclick="SearchCustomers">
+            <button type="button" class="gap-2 btn btn-primary w-100 d-flex align-items-center justify-content-center" @onclick="SearchCustomers">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
                      class="bi bi-search" viewBox="0 0 16 16">
                     <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
@@ -78,8 +124,8 @@
         </div>
 
         <div class="col-12 col-lg-auto">
-            <button type="button" class="btn btn-secondary w-100 d-flex align-items-center justify-content-center gap-2"
-                    title="Làm mới danh sách" @onclick="RefreshCustomers">
+            <button type="button" class="gap-2 btn btn-secondary w-100 d-flex align-items-center justify-content-center"
+                    title="Làm mới danh sách" @onclick="ResetFilters">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
                      class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
@@ -91,9 +137,9 @@
     </div>
 
     <!-- Table -->
-    <div class="card border">
+    <div class="border card">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table mb-0 align-middle table-hover">
                 <thead class="table-light">
                     <tr>
                         <th class="text-nowrap">Tên Khách Hàng</th>
@@ -109,7 +155,7 @@
                     @if (isLoading)
                     {
                         <tr>
-                            <td colspan="6" class="text-center text-secondary py-4">
+                            <td colspan="6" class="py-4 text-center text-secondary">
                                 <div class="spinner-border spinner-border-sm me-2" role="status"></div>
                                 Đang tải...
                             </td>
@@ -118,7 +164,7 @@
                     else if (customers == null || customers.Count == 0)
                     {
                         <tr>
-                            <td colspan="6" class="text-center text-secondary py-4">
+                            <td colspan="6" class="py-4 text-center text-secondary">
                                 Không có khách hàng nào
                             </td>
                         </tr>
@@ -146,7 +192,7 @@
                                     }
                                 </td>
                                 <td class="text-center">
-                                    <div class="d-inline-flex gap-2">
+                                    <div class="gap-2 d-inline-flex">
                                         <button type="button" class="btn btn-outline-primary btn-sm" title="Xem chi tiết" @onclick="() => openDetailModal(customer.Id)">
                                             <!-- Eye -->
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
@@ -187,9 +233,9 @@
     <!-- Pagination -->
     @if (totalPages > 0)
     {
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mt-4">
+        <div class="flex-wrap gap-3 mt-4 d-flex align-items-center justify-content-between">
             <nav aria-label="Pagination">
-                <ul class="pagination mb-0">
+                <ul class="mb-0 pagination">
                     <li class="page-item @(currentPage == 1 ? "disabled" : "")">
                         <button class="page-link" @onclick="async () => await ChangePage(currentPage - 1)" aria-label="Previous" disabled="@(currentPage == 1)">«</button>
                     </li>
@@ -235,12 +281,13 @@
     private int totalPages = 1;
     private string searchKeyword = "";
     private string selectedStatus = "all";
+    private int totalCount = 0;
     private int activeCount = 0;
     private int inactiveCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadCustomers();
+        await ReloadData();
     }
 
     private async Task LoadCustomers()
@@ -257,9 +304,6 @@
             customers = result.Items ?? new List<CustomerResponseDTO>();
             totalItems = result.TotalItems;
             totalPages = result.TotalPages;
-            
-            // Calculate statistics
-            await CalculateStatistics();
         }
         catch (Exception ex)
         {
@@ -272,10 +316,19 @@
         }
     }
 
-    private async Task CalculateStatistics()
+    private async Task ReloadData()
+    {
+        await LoadCustomers();
+        await RefreshStatistics();
+    }
+
+    private async Task RefreshStatistics()
     {
         try
         {
+            var totalResult = await CustomerService.GetCustomers(1, 1, null, null);
+            totalCount = totalResult.TotalItems;
+
             var activeResult = await CustomerService.GetCustomers(1, 1, null, "active");
             activeCount = activeResult.TotalItems;
             
@@ -291,7 +344,7 @@
     private async Task SearchCustomers()
     {
         currentPage = 1;
-        await LoadCustomers();
+        await ReloadData();
     }
 
     private async Task HandleSearchKeyUp(KeyboardEventArgs e)
@@ -305,15 +358,7 @@
     private async Task FilterByStatus()
     {
         currentPage = 1;
-        await LoadCustomers();
-    }
-
-    private async Task RefreshCustomers()
-    {
-        searchKeyword = "";
-        selectedStatus = "all";
-        currentPage = 1;
-        await LoadCustomers();
+        await ReloadData();
     }
 
     private async Task ChangePage(int page)
@@ -322,7 +367,7 @@
         if (page == currentPage) return; // Không cần load lại nếu đang ở trang đó
         
         currentPage = page;
-        await LoadCustomers();
+        await ReloadData();
         StateHasChanged(); // Force UI update
     }
 
@@ -336,7 +381,7 @@
         try
         {
             await CustomerService.UpdateCustomerStatus(id, newStatus);
-            await LoadCustomers();
+            await ReloadData();
             await JS.InvokeVoidAsync("alert", "Cập nhật trạng thái thành công!");
         }
         catch (Exception ex)
@@ -345,14 +390,23 @@
         }
     }
 
-    private async Task HandleCustomerAdded()
+    private async Task HandleCustomerAdded() => await ReloadData();
+
+    private async Task HandleCustomerUpdated() => await ReloadData();
+
+    private async Task ResetFilters()
     {
-        await LoadCustomers();
+        searchKeyword = "";
+        selectedStatus = "all";
+        currentPage = 1;
+        await ReloadData();
     }
 
-    private async Task HandleCustomerUpdated()
+    private async Task SetStatusFilterFromCard(string status)
     {
-        await LoadCustomers();
+        selectedStatus = status;
+        currentPage = 1;
+        await ReloadData();
     }
 
     // Modal handlers

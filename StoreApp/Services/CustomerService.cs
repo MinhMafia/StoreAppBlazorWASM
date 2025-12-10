@@ -96,21 +96,24 @@ namespace StoreApp.Services
 
         public async Task<ServiceResultDTO<CustomerResponseDTO>> CreateCustomerAsync(CustomerCreateDTO createDto)
         {
+            var now = DateTime.UtcNow;
+
             var customer = new Customer
             {
+                UserId = createDto.UserId,
                 FullName = createDto.FullName,
                 Phone = createDto.Phone,
                 Email = createDto.Email,
                 Address = createDto.Address,
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = now,
+                UpdatedAt = now
             };
 
             var exists = await _repo.GetByPhoneAsync(customer.Phone);
             if (exists != null)
             {
                 return ServiceResultDTO<CustomerResponseDTO>.CreateFailureResult(409, "Customer already exists.");
-
             }
 
             var newCustomer = await _repo.AddAsync(customer);
