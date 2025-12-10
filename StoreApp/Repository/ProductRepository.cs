@@ -114,9 +114,13 @@ namespace StoreApp.Repository
             if (supplierId.HasValue)
                 query = query.Where(p => p.SupplierId == supplierId.Value);
 
-            // Filter category
+            // Filter category - chỉ lấy sản phẩm thuộc category active
             if (categoryId.HasValue)
-                query = query.Where(p => p.CategoryId == categoryId.Value);
+            {
+                query = query.Where(p => p.CategoryId == categoryId.Value && 
+                                         p.Category != null && 
+                                         p.Category.IsActive);
+            }
 
             // Price range
             if (minPrice.HasValue)
