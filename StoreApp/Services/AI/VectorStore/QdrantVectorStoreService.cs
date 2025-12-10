@@ -19,7 +19,7 @@ namespace StoreApp.Services.AI.VectorStore
             _vectorSize = int.TryParse(configuration["Qdrant:VectorSize"], out var size) ? size : 1024;
 
             var uri = new Uri(url);
-            int grpcPort = uri.Port == 6333 ? 6334 : uri.Port;
+            int grpcPort = uri.Port == 6334 ? 6334 : uri.Port;
             
             _client = new QdrantClient(
                 host: uri.Host,
@@ -36,14 +36,11 @@ namespace StoreApp.Services.AI.VectorStore
 
             try
             {
-                _logger.LogInformation("[Qdrant] Checking if collection '{Collection}' exists (timeout 30s)...", collectionName);
                 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 cts.CancelAfter(TimeSpan.FromSeconds(30));
                 
                 var exists = await _client.CollectionExistsAsync(collectionName, cts.Token);
-                _logger.LogInformation("[Qdrant] Collection exists: {Exists}", exists);
-                
                 if (!exists)
                 {
                     _logger.LogInformation("[Qdrant] Creating collection with vector size {Size}...", _vectorSize);

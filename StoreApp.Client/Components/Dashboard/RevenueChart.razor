@@ -22,6 +22,13 @@
                              SeriesType="SeriesType.Line"
                              XValue="@(e => e.Label)"
                              YValue="@(e => e.Revenue)" />
+            
+            <ApexPointSeries TItem="RevenueDataPoint"
+                             Items="Data"
+                             Name="Số đơn hàng"
+                             SeriesType="SeriesType.Line"
+                             XValue="@(e => e.Label)"
+                             YValue="@(e => (decimal)e.OrderCount)" />
         </ApexChart>
     }
 </div>
@@ -36,26 +43,34 @@
         {
             new YAxis
             {
+                Title = new AxisTitle { Text = "Doanh thu" },
                 Min = 0,
                 Labels = new YAxisLabels
                 {
                     Formatter = "function(value) { return (value / 1000000).toFixed(1) + 'M'; }"
                 }
+            },
+            new YAxis
+            {
+                Opposite = true,
+                Title = new AxisTitle { Text = "Số đơn hàng" },
+                Min = 0,
+                Labels = new YAxisLabels
+                {
+                    Formatter = "function(value) { return Math.round(value); }"
+                }
             }
         },
         Tooltip = new Tooltip
         {
-            Y = new TooltipY
-            {
-                Formatter = "function(value) { return value.toLocaleString('vi-VN') + 'đ'; }"
-            }
+            Shared = true
         },
         Chart = new Chart
         {
             Toolbar = new Toolbar { Show = false },
             Zoom = new Zoom { Enabled = false }
         },
-        Colors = new List<string> { "#3b82f6" },
+        Colors = new List<string> { "#3b82f6", "#10b981" },
         Stroke = new Stroke { Width = 3, Curve = Curve.Smooth }
     };
 }

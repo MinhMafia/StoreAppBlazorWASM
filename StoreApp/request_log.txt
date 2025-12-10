@@ -122,5 +122,14 @@
 2025-12-08 22:50:32 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
 2025-12-08 23:01:42 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"customer01","password":"[REDACTED]"}
 2025-12-08 23:01:58 | User:anonymous | Action:CREATE_Customer-ai | Entity:Customer-ai#stream | IP:::1 | Payload:{"message":"Tra c\u1EE9u \u0111\u01A1n h\u00E0ng","conversationId":null,"history":[{"role":"user","content":"Tra c\u1EE9u \u0111\u01A1n h\u00E0ng"}]}
-2025-12-10 08:15:36 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
-2025-12-10 08:16:05 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-09 13:58:43 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"customer01","password":"[REDACTED]"}
+2025-12-09 13:58:47 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"customer01","password":"[REDACTED]"}
+2025-12-09 13:58:49 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"customer01","password":"[REDACTED]"}
+2025-12-09 14:00:28 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"customer01","password":"[REDACTED]"}
+2025-12-09 14:05:23 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"customer01","password":"[REDACTED]"}
+2025-12-09 14:06:46 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"test","password":"[REDACTED]"}
+2025-12-09 14:09:27 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"customer01","password":"[REDACTED]"}
+2025-12-09 14:09:30 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"customer01","password":"[REDACTED]"}
+2025-12-09 14:13:58 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"customer01","password":"[REDACTED]"}
+2025-12-09 20:01:44 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-09 20:02:06 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
