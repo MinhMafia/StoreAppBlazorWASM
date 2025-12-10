@@ -88,10 +88,26 @@ namespace StoreApp.Repository
             return await _context.Customers.AnyAsync(c => c.Id == id);
         }
 
-
-        public async Task<List<Customer>> GetPaginatedAsync(int page, int pageSize)
+        //CODE CŨ
+        // public async Task<List<Customer>> GetPaginatedAsync(int page, int pageSize)
+        // {
+        //     return await _context.Set<Customer>()
+        //         .OrderByDescending(c => c.CreatedAt)
+        //         .Skip((page - 1) * pageSize)
+        //         .Take(pageSize)
+        //         .ToListAsync();
+        // }
+        public async Task<List<Customer>> GetPaginatedAsync(
+            int page, int pageSize, string? search = null)
         {
-            return await _context.Set<Customer>()
+            var query = _context.Set<Customer>().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(c => c.FullName.Contains(search));
+            }
+
+            return await query
                 .OrderByDescending(c => c.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)

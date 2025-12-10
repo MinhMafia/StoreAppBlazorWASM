@@ -1,0 +1,164 @@
+@* Components/Auth/AuthorizedRouteView.razor *@
+@using Microsoft.AspNetCore.Components.Rendering
+@using Blazored.LocalStorage
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager Nav
+
+@if (isChecked)
+{
+    @if (isAuthorized)
+    {
+        <RouteView RouteData="@RouteData" DefaultLayout="@DefaultLayout" />
+    }
+}
+else
+{
+    <div class="min-vh-100 d-flex justify-content-center align-items-center bg-light">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-muted">Đang tải...</p>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public RouteData RouteData { get; set; } = default!;
+
+    [Parameter]
+    public Type? DefaultLayout { get; set; }
+
+    private bool isChecked = false;
+    private bool isAuthorized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await CheckAuthorizationAsync();
+        }
+    }
+
+    private async Task CheckAuthorizationAsync()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri).ToLower();
+        
+        // Các trang công khai không cần auth
+        var publicPages = new[] { "login", "admin/login", "register" };
+        
+        if (publicPages.Any(p => path.StartsWith(p)))
+        {
+            // Nếu đã đăng nhập, redirect về trang phù hợp
+            try
+            {
+                var token = await LocalStorage.GetItemAsStringAsync("authToken");
+                if (!string.IsNullOrEmpty(token))
+                {
+                    var role = await LocalStorage.GetItemAsStringAsync("userRole");
+                    
+                    if (path.StartsWith("admin/login"))
+                    {
+                        if (role == "admin" || role == "staff")
+                        {
+                            Nav.NavigateTo("/admin/home", forceLoad: true);
+                            return;
+                        }
+                    }
+                    else if (path.StartsWith("login") && !path.StartsWith("admin/login"))
+                    {
+                        if (role == "customer")
+                        {
+                            Nav.NavigateTo("/store", forceLoad: true);
+                            return;
+                        }
+                        else if (role == "admin" || role == "staff")
+                        {
+                            Nav.NavigateTo("/admin/home", forceLoad: true);
+                            return;
+                        }
+                    }
+                }
+            }
+            catch { }
+            
+            isAuthorized = true;
+            isChecked = true;
+            StateHasChanged();
+            return;
+        }
+
+        // Các trang khác cần auth
+        try
+        {
+            var token = await LocalStorage.GetItemAsStringAsync("authToken");
+            
+            if (string.IsNullOrEmpty(token))
+            {
+                Console.WriteLine($"❌ Not authenticated - Path: {path}");
+                if (path.StartsWith("admin"))
+                {
+                    Nav.NavigateTo("/admin/login", forceLoad: true);
+                }
+                else
+                {
+                    Nav.NavigateTo("/login", forceLoad: true);
+                }
+                return;
+            }
+
+            var role = await LocalStorage.GetItemAsStringAsync("userRole");
+            
+            // Kiểm tra quyền truy cập
+            if (path.StartsWith("admin"))
+            {
+                if (role != "admin" && role != "staff")
+                {
+                    Console.WriteLine($"❌ Access denied to admin area - Role: {role}");
+                    Nav.NavigateTo("/store", forceLoad: true);
+                    return;
+                }
+            }
+            else if (path.StartsWith("store"))
+            {
+                if (role != "customer")
+                {
+                    Console.WriteLine($"❌ Access denied to store - Role: {role}");
+                    Nav.NavigateTo("/admin/home", forceLoad: true);
+                    return;
+                }
+            }
+            else if (string.IsNullOrEmpty(path) || path == "/")
+            {
+                if (role == "admin" || role == "staff")
+                {
+                    Nav.NavigateTo("/admin/home", forceLoad: true);
+                }
+                else if (role == "customer")
+                {
+                    Nav.NavigateTo("/store", forceLoad: true);
+                }
+                else
+                {
+                    Nav.NavigateTo("/login", forceLoad: true);
+                }
+                return;
+            }
+
+            isAuthorized = true;
+            Console.WriteLine($"✅ Access granted - Path: {path}, Role: {role}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Auth check failed: {ex.Message}");
+            Nav.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+        finally
+        {
+            isChecked = true;
+            StateHasChanged();
+        }
+    }
+}

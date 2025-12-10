@@ -1,47 +1,258 @@
+@inject IJSRuntime JS
+@using StoreApp.Shared
+
 <div class="mb-6 p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-emerald-300 shadow-sm">
   <h4 class="text-xl font-bold text-gray-800 mb-3">PHIẾU GIẢM GIÁ</h4>
 
   <div class="space-y-3 max-h-64 overflow-y-auto">
+    @if (ordersFormMode != "create")
+    {
+      if (promotion != null)
+      {
+        <label
+          class="flex items-center justify-between p-4 border border-emerald-600 rounded-lg cursor-pointer bg-emerald-50 shadow">
+          <div>
+            <div class="font-bold text-emerald-700 text-lg">@promotion.Code</div>
+            <div class="text-sm text-gray-600">
+              @if (promotion.Type == "percent")
+              {
+                @($"Giảm {promotion.Value}%")
+              }
+              else
+              {
+                @($"Giảm {promotion.Value:C0}₫")
+              }
+              @if (promotion.MinOrderAmount > 0)
+              {
+                @($" • Tối thiểu {promotion.MinOrderAmount:C0}₫")
+              }
+            </div>
+            @if (!string.IsNullOrEmpty(promotion.Description))
+            {
+              <div class="text-sm text-gray-500 mt-1">@promotion.Description</div>
+            }
+          </div>
+          
+        </label>
+      }
+      else
+      {
+        <div class="p-4 border border-gray-300 rounded-lg text-gray-500">
+          Đơn hàng không sử dụng khuyến mãi
+        </div>
+      }
+    }
+    else
+    {
+      @if (promotions.Count == 0)
+      {
+        <div class="p-4 border border-gray-300 rounded-lg text-gray-500">
+          Không có khuyến mãi nào hoạt động cả
+        </div>
+      }
+      else
+      {
+        @foreach (var item in promotions)
+        {
+          <label class="@GetCss(item.Id)"  @onclick="() => HandleSelect(item)">
 
-    <!-- Promo Item 1 -->
-    <label class="flex items-center justify-between p-4 border border-gray-300 rounded-lg cursor-pointer hover:border-emerald-500 hover:shadow transition">
-      <div>
-        <div class="font-bold text-emerald-700 text-lg">GG10K</div>
-        <div class="text-sm text-gray-600">Giảm 10.000₫ • Tối thiểu 100.000₫</div>
-      </div>
-      <input type="radio" name="voucher" class="h-5 w-5 text-emerald-600" />
-    </label>
+            <div class="flex flex-col space-y-1">
 
-    <!-- Promo Item 2 -->
-    <label class="flex items-center justify-between p-4 border border-gray-300 rounded-lg cursor-pointer hover:border-emerald-500 hover:shadow transition">
-      <div>
-        <div class="font-bold text-emerald-700 text-lg">SALE20</div>
-        <div class="text-sm text-gray-600">Giảm 20% • Tối thiểu 200.000₫</div>
-      </div>
-      <input type="radio" name="voucher" class="h-5 w-5 text-emerald-600" />
-    </label>
+              <!-- Mã giảm giá -->
+              <div class="font-bold text-emerald-700 text-lg">@item.Code</div>
 
-    <!-- Promo Item 3 -->
-    <label class="flex items-center justify-between p-4 border border-gray-300 rounded-lg cursor-pointer hover:border-emerald-500 hover:shadow transition">
-      <div>
-        <div class="font-bold text-emerald-700 text-lg">FREESHIP</div>
-        <div class="text-sm text-gray-600">Miễn phí vận chuyển</div>
-      </div>
-      <input type="radio" name="voucher" class="h-5 w-5 text-emerald-600" />
-    </label>
+              <!-- Giảm + Tối thiểu -->
+              <div class="text-sm text-gray-600">
+                Giảm @FormatValue(item)
+                @if (item.MinOrderAmount > 0)
+                {
+                  <text> • Tối thiểu @item.MinOrderAmount.ToString("N0")₫</text>
+                }
+              </div>
 
-    <!-- Promo Item 4 – Selected -->
-    <label class="flex items-center justify-between p-4 border border-emerald-600 rounded-lg cursor-pointer bg-emerald-50 shadow">
-      <div>
-        <div class="font-bold text-emerald-700 text-lg">VIP50</div>
-        <div class="text-sm text-gray-600">Giảm 50%</div>
-      </div>
-      <input type="radio" name="voucher" checked readonly class="h-5 w-5 text-emerald-600" />
-    </label>
+              <!-- Mô tả -->
+              @if (!string.IsNullOrWhiteSpace(item.Description))
+              {
+                <div class="text-sm text-gray-500">@item.Description</div>
+              }
+
+              <!-- Ngày áp dụng -->
+              <div class="text-xs text-gray-500 italic">
+                @if (item.StartDate != null)
+                {
+                  <text>Bắt đầu: @item.StartDate?.ToString("dd/MM/yyyy")</text>
+                }
+                @if (item.EndDate != null)
+                {
+                  <text> • Hết hạn: @item.EndDate?.ToString("dd/MM/yyyy")</text>
+                }
+              </div>
+
+              <!-- Lượt sử dụng -->
+              @if (item.UsageLimit != null)
+              {
+                <div class="text-xs text-gray-500">
+                  Lượt dùng: @item.UsedCount / @item.UsageLimit
+                </div>
+              }
+            </div>
+
+          </label>
+        }
+
+      }
+
+    }
+
+
+  
+
 
   </div>
 </div>
 @code {
-    [Parameter]
-    public string ordersFormMode { get; set; } = "view"; 
+  [Parameter]
+  public string ordersFormMode { get; set; } = "detail";
+  [Parameter] public EventCallback<OrderDTO> OnOrderChanged { get; set; }
+
+  [Parameter]
+  public PromotionDTO? promotion { get; set; }
+
+  [Parameter] public OrderDTO currentOrder { get; set; } = null!;
+
+  [Inject] IOrdersClientService _ordersClient { get; set; } = null!;
+
+  List<PromotionDTO> promotions = new List<PromotionDTO>();
+
+  async Task ShowAlert(string message)
+  {
+    await JS.InvokeVoidAsync("alert", message);
+  }
+
+  async Task GetPromotionsAsync(){
+    promotions = await _ordersClient.GetListActivePromotion();
+  }
+
+  string FormatValue(PromotionDTO promo)
+  {
+      return promo.Type == "percent"
+          ? $"{promo.Value}%"
+          : $"{promo.Value:N0}₫";
+  }
+
+
+  string GetCss(int id)
+  {
+      return "flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:border-emerald-500 hover:shadow transition " +
+            (promotion?.Id == id ? "border-emerald-600 bg-emerald-50" : "border-gray-300");
+  }
+
+  // Chọn tính toán CurrentOrder
+  void HandleSelect(PromotionDTO item)
+  {
+    if(currentOrder.Subtotal==0){
+      JS.InvokeVoidAsync("alert",
+              $"Hãy chọn sản phẩm để mua trước khi chọn khuyến mãi");
+          
+      return;
+
+    }
+
+    if (promotion?.Id == item.Id)
+    {
+        // Nếu chọn lại mã đang được áp dụng -> Hủy chọn
+        ResetPromotionSelection();
+        StateHasChanged();
+        return;
+    }
+      decimal subtotal = currentOrder.Subtotal;
+      var now = DateTime.Now;
+
+      // Không đủ mức tối thiểu
+      if (item.MinOrderAmount > 0 && subtotal < item.MinOrderAmount)
+      {
+          JS.InvokeVoidAsync("alert",
+              $"Đơn hàng phải đạt tối thiểu {item.MinOrderAmount:N0}₫ để dùng mã này!");
+          
+          return;
+      }
+
+      // Chưa đến ngày bắt đầu
+      if (item.StartDate != null && item.StartDate > now)
+      {
+          JS.InvokeVoidAsync("alert", "Mã giảm giá này chưa đến thời gian áp dụng!");
+          ResetPromotionSelection();
+          StateHasChanged();
+          return;
+      }
+
+      // Đã hết hạn
+      if (item.EndDate != null && item.EndDate < now)
+      {
+          JS.InvokeVoidAsync("alert", "Mã giảm giá này đã hết hạn!");
+          ResetPromotionSelection();
+          StateHasChanged();
+          return;
+      }
+
+      // Hết lượt sử dụng
+      if (item.UsageLimit != null && item.UsedCount >= item.UsageLimit)
+      {
+          JS.InvokeVoidAsync("alert", "Mã này đã hết lượt sử dụng!");
+          ResetPromotionSelection();
+          StateHasChanged();
+          return;
+      }
+
+      // --- Nếu hợp lệ → AP MÃ ---
+      promotion = item;        
+      JS.InvokeVoidAsync("alert", "Áp dụng mã giảm giá có code:\t",promotion.Code);
+
+      decimal discountAmount = 0;
+
+      if (item.Type == "percent")
+      {
+          discountAmount = Math.Floor((subtotal * item.Value) / 100);
+      }
+      else
+      {
+          discountAmount = item.Value;
+      }
+
+
+      // cập nhật order giống React
+      currentOrder.PromotionId=item.Id;
+      currentOrder.PromotionCode=item.Code;
+      currentOrder.Discount = discountAmount;
+      currentOrder.TotalAmount = subtotal - discountAmount;
+      //Gọi callback báo cho parent biết dữ liệu đã đổi
+      OnOrderChanged.InvokeAsync(currentOrder);
+
+      StateHasChanged();
+  }
+
+  protected override async Task OnInitializedAsync()
+  {
+      if (ordersFormMode == "create")
+      {
+          await GetPromotionsAsync();
+          StateHasChanged();
+      }
+  }
+  void ResetPromotionSelection()
+{
+    promotion = null;
+    currentOrder.Discount = 0;
+    currentOrder.TotalAmount = currentOrder.Subtotal;
+    OnOrderChanged.InvokeAsync(currentOrder);
+}
+
+
+
+
+
+
+
+
+
 }

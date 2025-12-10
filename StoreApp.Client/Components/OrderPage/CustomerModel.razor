@@ -1,3 +1,6 @@
+@using StoreApp.Shared
+@using System.Net.Http.Json
+@inject IJSRuntime JS
 
 <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4">
@@ -5,7 +8,9 @@
         <!-- Header -->
         <div class="flex justify-between items-center p-5 border-b">
             <h3 class="text-xl font-bold">Chọn Khách Hàng</h3>
-            <button class="text-gray-500 hover:text-gray-700">
+            <button 
+            @onclick="async () => await closeModal.InvokeAsync()"
+            class="text-gray-500 hover:text-gray-700">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M6 18L18 6M6 6l12 12" />
@@ -16,10 +21,18 @@
         <!-- Body -->
         <div class="p-5">
             <div class="flex gap-2 mb-4">
-                <input type="text" placeholder="Tìm khách..." class="flex-1 border px-3 py-2 rounded" />
-                <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Tìm kiếm</button>
-                <button class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center">
-                    <ion-icon name="reload-outline" class="text-xl"></ion-icon>
+                <input 
+                @bind-value="searchKeyword"
+                type="text" placeholder="Tìm khách..." class="flex-1 border px-3 py-2 rounded" />
+
+                <button 
+                @onclick="SearchCustomerAsync" 
+                class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Tìm kiếm</button>
+
+                <button
+                    @onclick="ReloadCustomerAsync" 
+                    class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center">
+                    Load
                 </button>
 
 
@@ -32,59 +45,167 @@
                         <tr>
                             <th class="px-4 py-2 text-left">Mã Khách</th>
                             <th class="px-4 py-2 text-left">Tên Khách</th>
-                            <th class="px-4 py-2 text-center">Chọn</th>
                         </tr>
                     </thead>
                     <tbody>
+                        @if(customers.Count==0){
+                            <tr>
+                                <td colspan="2" class="px-4 py-2 text-center text-gray-500">
+                                    Đang tải
+                                </td>
+                            </tr>
+                        }else{
+                            @foreach(var item in customers){
+                                <tr class="border-b hover:bg-gray-50" @onclick="()=>{
+                                   SelectCustomer(item); 
+                                }">
+                                    <td class="px-4 py-2">@item.Id</td>
+                                    <td class="px-4 py-2">@item.FullName</td>
+                                    
+                                </tr> 
 
-                        <!-- Row 1 -->
+                            }
+                        }
+
+                        @* <!-- Row 1 -->
                         <tr class="border-b hover:bg-gray-50">
                             <td class="px-4 py-2">KH001</td>
                             <td class="px-4 py-2">Nguyễn Văn A</td>
-                            <td class="px-4 py-2 text-center">
-                                <input type="radio" name="customer"
-                                       class="w-5 h-5 accent-purple-600 cursor-pointer" />
-                            </td>
-                        </tr>
+                            
+                        </tr> *@
 
-                        <!-- Row 2 -->
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="px-4 py-2">KH002</td>
-                            <td class="px-4 py-2">Trần Thị B</td>
-                            <td class="px-4 py-2 text-center">
-                                <input type="radio" name="customer"
-                                       class="w-5 h-5 accent-purple-600 cursor-pointer" />
-                            </td>
-                        </tr>
+                       
 
-                        <!-- Row 3 -->
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-2">KH003</td>
-                            <td class="px-4 py-2">Lê Văn C</td>
-                            <td class="px-4 py-2 text-center">
-                                <input type="radio" name="customer"
-                                       class="w-5 h-5 accent-purple-600 cursor-pointer" />
-                            </td>
-                        </tr>
+                       
 
                     </tbody>
                 </table>
             </div>
         </div>
 
+       
         <!-- Pagination -->
         <div class="flex justify-center items-center gap-3 mt-4">
-            <button class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Prev</button>
-            <span>1/3</span>
-            <button class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Next</button>
+        @if (currentPage > 1)
+        {
+            <button 
+            @onclick="async () => await OnPageChanged(currentPage - 1)"
+            class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Prev</button>
+        }
+        
+        <span><strong>@currentPage</strong> / <strong>@totalPages</strong></span>
+
+        @if (currentPage < totalPages)
+        {
+            <button 
+            @onclick="async () => await OnPageChanged(currentPage + 1)"
+            class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+            Next  
+            </button>
+        }
         </div>
 
         <!-- Footer -->
         <div class="flex justify-end gap-3 p-5 border-t">
-            <button class="px-6 py-2 bg-purple-500 text-white rounded-lg font-bold hover:bg-purple-600">
+            <button
+            @onclick="HandleSelectCustomer"
+            class="px-6 py-2 bg-purple-500 text-white rounded-lg font-bold hover:bg-purple-600">
                 Chọn Khách
             </button>
         </div>
 
     </div>
 </div>
+
+@code{
+    [Parameter] public OrderDTO CurrentOrder { get; set; } = null!;
+    
+    [Parameter] public EventCallback closeModal { get; set; }
+    int currentPage = 1;
+    int pageSize = 10;
+
+    int totalPages = 1;
+    string searchKeyword = "";
+    CustomerDTO selectedCustomer=null;
+
+    List<CustomerDTO> customers= new List<CustomerDTO>();
+    [Inject] IOrdersClientService _ordersClient { get; set; } = null!;
+
+
+        //Xuất hiện thông báo
+    async Task ShowAlert(string message)
+    {
+        await JS.InvokeVoidAsync("alert", message);
+    }
+
+      
+    async Task  GetCustomersAsync()
+    {
+        var result = await _ordersClient.GetCustomersPagedAndSearchedAsync(
+            currentPage, pageSize, searchKeyword);
+
+        customers = result.Items;
+        totalPages= result.TotalPages;
+    }
+
+    //Hàm tìm kiếm 
+    async Task SearchCustomerAsync()
+    {
+        if (string.IsNullOrWhiteSpace(searchKeyword))
+        {
+        await ShowAlert("Không để rỗng từ khóa tìm kiếm");
+        return;
+        }
+        currentPage = 1;
+        await GetCustomersAsync();
+    }
+
+    async Task ReloadCustomerAsync()
+    {
+        searchKeyword = "";
+        currentPage = 1;
+        await GetCustomersAsync();
+    }
+
+      //Hàm chuyển trang
+    async Task OnPageChanged(int newPage)
+    {
+        if (newPage < 1 || newPage > totalPages) return;
+
+        currentPage = newPage;
+       await GetCustomersAsync();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetCustomersAsync();
+    }
+
+    // Hàm chọn khách 
+    public async Task HandleSelectCustomer()
+    {
+        if (selectedCustomer == null)
+        {
+            await ShowAlert("Vui lòng chọn khách hàng trước!");
+            return;
+        }
+
+        CurrentOrder.CustomerId = selectedCustomer.Id;
+        CurrentOrder.CustomerName = selectedCustomer.FullName;
+
+        await closeModal.InvokeAsync();
+    }
+
+
+    void SelectCustomer(CustomerDTO item)
+    {
+        selectedCustomer = item;
+    }
+
+
+
+
+
+
+
+}

@@ -50,6 +50,7 @@ namespace StoreApp.Services.AI
             builder.Plugins.AddFromObject(new CustomerCategoryPlugin(_serviceProvider), "Category");
             builder.Plugins.AddFromObject(new CustomerPromotionPlugin(_serviceProvider), "Promotion");
             builder.Plugins.AddFromObject(new CustomerOrderPlugin(_serviceProvider, authenticatedCustomerId), "Order");
+            builder.Plugins.AddFromObject(new ProductSemanticSearchPlugin(_serviceProvider), "SemanticSearch");
 
             var kernel = builder.Build();
             var chatCompletion = kernel.GetRequiredService<IChatCompletionService>();
@@ -191,7 +192,8 @@ namespace StoreApp.Services.AI
 
             var (kernel, chatCompletion) = CreateKernelWithPlugins(authenticatedCustomerId);
             var fullResponse = new StringBuilder();
-            var chatHistory = BuildManagedChatHistory(GetCustomerSystemPrompt(), clientHistory, userMessage);
+            var systemPrompt = GetCustomerSystemPrompt(authenticatedCustomerId.HasValue);
+            var chatHistory = BuildManagedChatHistory(systemPrompt, clientHistory, userMessage);
 
             var settings = new OpenAIPromptExecutionSettings
             {
@@ -363,9 +365,13 @@ namespace StoreApp.Services.AI
             return "Đã xảy ra lỗi, vui lòng thử lại";
         }
 
-        private static string GetCustomerSystemPrompt()
+        private static string GetCustomerSystemPrompt(bool isAuthenticated)
         {
             var today = DateTime.UtcNow.ToString("dd/MM/yyyy");
+            var authStatus = isAuthenticated 
+                ? "✅ Khách hàng ĐÃ ĐĂNG NHẬP - có thể xem đơn hàng của họ"
+                : "❌ Khách hàng CHƯA ĐĂNG NHẬP - không thể xem đơn hàng";
+            
             return $"""
                 Bạn là trợ lý mua sắm AI của cửa hàng. Bạn giúp khách hàng tìm kiếm và mua sản phẩm.
 
@@ -373,6 +379,7 @@ namespace StoreApp.Services.AI
                 - Ngày hiện tại: {today}
                 - Đơn vị tiền: VND (format: 1.500.000đ)
                 - Ngôn ngữ: Tiếng Việt
+                - Trạng thái đăng nhập: {authStatus}
 
                 ## QUAN TRỌNG: KHI NÀO GỌI TOOL
                 
@@ -391,11 +398,15 @@ namespace StoreApp.Services.AI
 
                 ## NHIỆM VỤ (chỉ dùng khi được hỏi)
                 1. Tìm kiếm và tư vấn sản phẩm → SearchProducts, GetProductDetail
-                2. Tra cứu đơn hàng của khách → GetMyOrders, GetOrderDetail
+                2. Tra cứu đơn hàng của khách → GetMyOrders, GetOrderDetail (CHỈ khi đã đăng nhập)
                 3. Kiểm tra mã khuyến mãi → CheckPromotion
                 4. Xem danh mục → GetCategories
 
-                ## QUY TẮC
+                ## QUY TẮC XỬ LÝ ĐƠN HÀNG
+                - Nếu khách ĐÃ ĐĂNG NHẬP và hỏi "tra cứu đơn hàng", "đơn hàng của tôi" → GỌI TOOL GetMyOrders NGAY
+                - Nếu khách CHƯA ĐĂNG NHẬP mà hỏi về đơn hàng → Trả lời: "Để xem đơn hàng, bạn vui lòng đăng nhập vào tài khoản."
+
+                ## QUY TẮC CHUNG
                 - Câu hỏi chung: Trả lời trực tiếp, KHÔNG gọi tool
                 - Cần dữ liệu sản phẩm/đơn hàng: Gọi tool phù hợp
                 - Không tìm thấy: Nói thật "Không tìm thấy"
@@ -403,9 +414,10 @@ namespace StoreApp.Services.AI
                 - Luôn thân thiện, lịch sự
                 - Ưu tiên sản phẩm còn hàng
 
-                ## BẢO MẬT THÔNG TIN CÁ NHÂN
-                ⚠️ Khi khách CHƯA ĐĂNG NHẬP mà hỏi về đơn hàng:
-                → Trả lời: "Để xem thông tin này, bạn vui lòng đăng nhập vào tài khoản."
+                ## ĐỊNH DẠNG TRẢ LỜI
+                - KHÔNG dùng bảng markdown (table) vì khung chat nhỏ
+                - Dùng danh sách với emoji: 🛒 **Tên SP** - Giá (còn X)
+                - Giữ câu trả lời ngắn gọn, dễ đọc trên mobile
 
                 ## GIỚI HẠN
                 - KHÔNG tiết lộ thông tin nội bộ cửa hàng

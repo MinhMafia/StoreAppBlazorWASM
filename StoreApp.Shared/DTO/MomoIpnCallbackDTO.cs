@@ -19,44 +19,44 @@ namespace StoreApp.Shared
         Signature:Chữ ký để xác thực dữ liệu
     */
     public class MomoIpnCallbackDTO
-    {
-        //Mã đối tác MoMo
+        {
+        [JsonPropertyName("partnerCode")]
         public string? PartnerCode { get; set; }
 
-        // Mã yêu cầu (requestId) - do bạn gửi lúc tạo đơn
+        [JsonPropertyName("requestId")]
         public string? RequestId { get; set; }
 
-        // Mã đơn hàng của bạn
+        [JsonPropertyName("orderId")]
         public string? OrderId { get; set; }
 
-        // Mã giao dịch MoMo
-        public string? TransId { get; set; }
+        [JsonPropertyName("transId")]
+        public long? TransId { get; set; }
 
-        // Số tiền thanh toán
-        public string? Amount { get; set; }
+        [JsonPropertyName("amount")]
+        public long? Amount { get; set; }
 
-        // Kết quả giao dịch (0 = thành công)
+        [JsonPropertyName("resultCode")]
         public int? ResultCode { get; set; }
 
-        // Thông báo kết quả
+        [JsonPropertyName("message")]
         public string? Message { get; set; }
 
-        // Loại giao dịch (VD: momo_wallet)
+        [JsonPropertyName("orderType")]
         public string? OrderType { get; set; }
 
-        // Thông tin đơn hàng (VD: Thanh toán đơn hàng #123)
+        [JsonPropertyName("orderInfo")]
         public string? OrderInfo { get; set; }
 
-        // Hình thức thanh toán (VD: qr, napas, credit_card,...)
+        [JsonPropertyName("payType")]
         public string? PayType { get; set; }
 
-        // Thời điểm MoMo phản hồi (timestamp)
+        [JsonPropertyName("responseTime")]
         public long? ResponseTime { get; set; }
 
-        // Dữ liệu thêm bạn gửi kèm khi tạo đơn
+        [JsonPropertyName("extraData")]
         public string? ExtraData { get; set; }
 
-        // Chữ ký để xác thực dữ liệu
+        [JsonPropertyName("signature")]
         public string? Signature { get; set; }
-    }
+        }
 }

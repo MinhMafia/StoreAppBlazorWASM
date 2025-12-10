@@ -155,6 +155,7 @@
     border: 2px solid #33CC33;
     border-radius: 8px;
     transition: all 0.2s;
+    position: relative;
 }
 
 .cart-link:hover {
@@ -162,8 +163,30 @@
     color: white;
 }
 
+.cart-icon-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
 .cart-link i {
     font-size: 1.5rem;
+}
+
+.cart-badge {
+    position: absolute;
+    top: -8px;
+    right: -12px;
+    background-color: #ff6b35;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: bold;
+    border: 2px solid white;
 }
 
 .cart-amount {

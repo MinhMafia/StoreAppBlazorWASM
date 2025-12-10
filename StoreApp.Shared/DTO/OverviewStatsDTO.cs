@@ -2,10 +2,13 @@ namespace StoreApp.Shared
 {
     public class OverviewStatsDTO
     {
+        // Statistics properties
         public decimal TodayRevenue { get; set; }
         public decimal RevenueChange { get; set; }
+        public bool HasYesterdayRevenue { get; set; }
         public int TodayOrders { get; set; }
         public int OrdersChange { get; set; }
+        public bool HasYesterdayOrders { get; set; }
         public int TodayProductsSold { get; set; }
         public decimal AverageOrderValue { get; set; }
         public decimal TotalDiscountApplied { get; set; }

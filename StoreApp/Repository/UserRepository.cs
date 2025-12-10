@@ -97,7 +97,10 @@ namespace StoreApp.Repository
             if (user == null)
                 return false;
 
-            _context.Users.Remove(user);
+            user.IsActive = !user.IsActive;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            _context.Users.Update(user);
             await _context.SaveChangesAsync();
             return true;
         }

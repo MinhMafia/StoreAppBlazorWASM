@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using StoreApp.Services.AI;
+using StoreApp.Services;
 using StoreApp.Shared;
 using System.Security.Claims;
 
@@ -10,26 +11,42 @@ namespace StoreApp.Controllers
     public class CustomerAiController : ControllerBase
     {
         private readonly CustomerSemanticKernelService _aiService;
+        private readonly CustomerService _customerService;
         private readonly ILogger<CustomerAiController> _logger;
 
-        public CustomerAiController(CustomerSemanticKernelService aiService, ILogger<CustomerAiController> logger)
+        public CustomerAiController(
+            CustomerSemanticKernelService aiService, 
+            CustomerService customerService,
+            ILogger<CustomerAiController> logger)
         {
             _aiService = aiService;
+            _customerService = customerService;
             _logger = logger;
         }
 
-        private int? GetAuthenticatedCustomerId()
+        private int? GetAuthenticatedUserId()
         {
-            var claim = User.FindFirst("customerId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
-            if (claim != null && int.TryParse(claim.Value, out int id))
-                return id;
+            // Lấy uid từ JWT token (user.Id trong bảng users)
+            var uidClaim = User.FindFirst("uid");
+            if (uidClaim != null && int.TryParse(uidClaim.Value, out int uid))
+                return uid;
 
             return null;
         }
 
-        private int GetSessionUserId(int? customerId)
+        private async Task<int?> GetAuthenticatedCustomerIdAsync()
         {
-            return customerId ?? GetGuestUserId();
+            var userId = GetAuthenticatedUserId();
+            if (!userId.HasValue) return null;
+
+            // Lookup customer.id từ user.id
+            var result = await _customerService.GetCustomerByUserIdAsync(userId.Value);
+            if (result.Success && result.Data != null)
+            {
+                return result.Data.Id;
+            }
+
+            return null;
         }
 
         [HttpPost("stream")]
@@ -40,8 +57,9 @@ namespace StoreApp.Controllers
             Response.Headers.Append("Connection", "keep-alive");
             Response.Headers.Append("X-Accel-Buffering", "no");
 
-            var authenticatedCustomerId = GetAuthenticatedCustomerId();
-            var sessionUserId = GetSessionUserId(authenticatedCustomerId);
+            var authenticatedCustomerId = await GetAuthenticatedCustomerIdAsync();
+            var userId = GetAuthenticatedUserId();
+            var sessionUserId = userId ?? GetGuestUserId();
 
             if (request == null || string.IsNullOrWhiteSpace(request.Message))
             {
@@ -63,8 +81,8 @@ namespace StoreApp.Controllers
 
             try
             {
-                _logger.LogInformation("Customer {CustomerId} (authenticated: {IsAuth}) starting chat", 
-                    sessionUserId, authenticatedCustomerId.HasValue);
+                _logger.LogInformation("Customer {CustomerId} (userId: {UserId}, authenticated: {IsAuth}) starting chat", 
+                    authenticatedCustomerId, sessionUserId, authenticatedCustomerId.HasValue);
 
                 var cancellationToken = HttpContext.RequestAborted;
 
@@ -112,8 +130,8 @@ namespace StoreApp.Controllers
         [HttpGet("conversations")]
         public async Task<ActionResult<List<AiConversationDTO>>> GetConversations()
         {
-            var authenticatedCustomerId = GetAuthenticatedCustomerId();
-            var sessionUserId = GetSessionUserId(authenticatedCustomerId);
+            var userId = GetAuthenticatedUserId();
+            var sessionUserId = userId ?? GetGuestUserId();
 
             try
             {
@@ -133,8 +151,8 @@ namespace StoreApp.Controllers
             if (id <= 0)
                 return BadRequest(new { error = "ID không hợp lệ" });
 
-            var authenticatedCustomerId = GetAuthenticatedCustomerId();
-            var sessionUserId = GetSessionUserId(authenticatedCustomerId);
+            var userId = GetAuthenticatedUserId();
+            var sessionUserId = userId ?? GetGuestUserId();
 
             try
             {
@@ -157,8 +175,8 @@ namespace StoreApp.Controllers
             if (id <= 0)
                 return BadRequest(new { error = "ID không hợp lệ" });
 
-            var authenticatedCustomerId = GetAuthenticatedCustomerId();
-            var sessionUserId = GetSessionUserId(authenticatedCustomerId);
+            var userId = GetAuthenticatedUserId();
+            var sessionUserId = userId ?? GetGuestUserId();
 
             try
             {

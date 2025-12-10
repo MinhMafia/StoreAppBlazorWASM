@@ -2,6 +2,7 @@
  using System.Text;
  using System.Text.Json;
  using Microsoft.AspNetCore.Components.WebAssembly.Http;
+ using Blazored.LocalStorage;
  using StoreApp.Shared;
  
  namespace StoreApp.Client.Services
@@ -13,11 +14,26 @@
      public class CustomerAiChatService : ICustomerAiChatService
      {
          private readonly HttpClient _httpClient;
+         private readonly ILocalStorageService _localStorage;
          private const string API_BASE = "api/customer-ai";
  
-         public CustomerAiChatService(HttpClient httpClient)
+         public CustomerAiChatService(HttpClient httpClient, ILocalStorageService localStorage)
          {
              _httpClient = httpClient;
+             _localStorage = localStorage;
+         }
+
+         private async Task<string?> GetAuthTokenAsync()
+         {
+             try
+             {
+                 var token = await _localStorage.GetItemAsStringAsync("authToken");
+                 return token?.Trim('"');
+             }
+             catch
+             {
+                 return null;
+             }
          }
  
          public async Task StreamMessageAsync(
@@ -46,6 +62,12 @@
                  {
                      Content = content
                  };
+
+                 var token = await GetAuthTokenAsync();
+                 if (!string.IsNullOrEmpty(token))
+                 {
+                     httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                 }
  
                  httpRequest.SetBrowserResponseStreamingEnabled(true);
  
@@ -176,10 +198,19 @@
          {
              try
              {
-                 var result = await _httpClient.GetFromJsonAsync<List<AiConversationSummaryDTO>>(
-                     $"{API_BASE}/conversations"
-                 );
-                 return result ?? new List<AiConversationSummaryDTO>();
+                 var token = await GetAuthTokenAsync();
+                 var request = new HttpRequestMessage(HttpMethod.Get, $"{API_BASE}/conversations");
+                 if (!string.IsNullOrEmpty(token))
+                 {
+                     request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                 }
+
+                 var response = await _httpClient.SendAsync(request);
+                 if (response.IsSuccessStatusCode)
+                 {
+                     return await response.Content.ReadFromJsonAsync<List<AiConversationSummaryDTO>>() ?? new List<AiConversationSummaryDTO>();
+                 }
+                 return new List<AiConversationSummaryDTO>();
              }
              catch (Exception ex)
              {
@@ -192,9 +223,19 @@
          {
              try
              {
-                 return await _httpClient.GetFromJsonAsync<AiConversationDTO>(
-                     $"{API_BASE}/conversations/{id}"
-                 );
+                 var token = await GetAuthTokenAsync();
+                 var request = new HttpRequestMessage(HttpMethod.Get, $"{API_BASE}/conversations/{id}");
+                 if (!string.IsNullOrEmpty(token))
+                 {
+                     request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                 }
+
+                 var response = await _httpClient.SendAsync(request);
+                 if (response.IsSuccessStatusCode)
+                 {
+                     return await response.Content.ReadFromJsonAsync<AiConversationDTO>();
+                 }
+                 return null;
              }
              catch (Exception ex)
              {
@@ -207,7 +248,14 @@
          {
              try
              {
-                 var response = await _httpClient.DeleteAsync($"{API_BASE}/conversations/{id}");
+                 var token = await GetAuthTokenAsync();
+                 var request = new HttpRequestMessage(HttpMethod.Delete, $"{API_BASE}/conversations/{id}");
+                 if (!string.IsNullOrEmpty(token))
+                 {
+                     request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                 }
+
+                 var response = await _httpClient.SendAsync(request);
                  return response.IsSuccessStatusCode;
              }
              catch (Exception ex)

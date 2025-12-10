@@ -68,6 +68,7 @@ namespace StoreApp.Services.AI
             builder.Plugins.AddFromObject(new SupplierPlugin(serviceProvider), "Supplier");
             builder.Plugins.AddFromObject(new StatisticsPlugin(serviceProvider), "Statistics");
             builder.Plugins.AddFromObject(new ReportsPlugin(serviceProvider), "Reports");
+            builder.Plugins.AddFromObject(new ProductSemanticSearchPlugin(serviceProvider), "SemanticSearch");
         }
 
         #region Context Management

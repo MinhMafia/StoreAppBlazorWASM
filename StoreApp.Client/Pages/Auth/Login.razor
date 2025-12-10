@@ -10,11 +10,14 @@
 <PageTitle>Đăng nhập - Store App</PageTitle>
 
 <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light">
-    <div class="card shadow-lg" style="width: 400px; border-radius: 10px;">
+    <div class="card shadow-lg" style="width: 450px; border-radius: 10px;">
         <div class="card-body p-5">
             <div class="text-center mb-4">
-                <h2 class="fw-bold text-primary">Store App</h2>
-                <p class="text-muted">Đăng nhập vào hệ thống</p>
+                <div class="customer-icon-wrapper mb-3">
+                    <i class="bi bi-person-circle text-success" style="font-size: 3rem;"></i>
+                </div>
+                <h2 class="fw-bold text-success">Đăng nhập</h2>
+                <p class="text-muted">Chào mừng bạn quay trở lại!</p>
             </div>
 
             @if (!string.IsNullOrEmpty(errorMessage))
@@ -30,12 +33,13 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">
-                        <i class="bi bi-person-fill me-2"></i>Tên đăng nhập
+                        <i class="bi bi-person-fill me-2"></i>Tên đăng nhập hoặc Email
                     </label>
                     <InputText @bind-Value="loginRequest.Username" 
                                class="form-control form-control-lg" 
-                               placeholder="Nhập tên đăng nhập"
-                               disabled="@isLoading" />
+                               placeholder="Nhập tên đăng nhập hoặc email"
+                               disabled="@isLoading"
+                               autocomplete="username" />
                     <ValidationMessage For="@(() => loginRequest.Username)" class="text-danger small" />
                 </div>
 
@@ -48,11 +52,13 @@
                                    @bind-Value="loginRequest.Password" 
                                    class="form-control form-control-lg" 
                                    placeholder="Nhập mật khẩu"
-                                   disabled="@isLoading" />
+                                   disabled="@isLoading"
+                                   autocomplete="current-password" />
                         <button class="btn btn-outline-secondary" 
                                 type="button" 
                                 @onclick="@(() => showPassword = !showPassword)"
-                                disabled="@isLoading">
+                                disabled="@isLoading"
+                                tabindex="-1">
                             <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")"></i>
                         </button>
                     </div>
@@ -82,11 +88,15 @@
                 </small>
             </div>
 
-            @* Debug Info - Xóa khi production *@
-            <div class="mt-4 p-3 bg-light rounded">
-                <small class="text-muted d-block mb-2"><strong>Tài khoản demo:</strong></small>
-                <small class="d-block">👤 admin / 🔑 admin123</small>
-            </div>
+            <hr class="my-4" />
+
+            @* <div class="text-center">
+                <small class="text-muted">
+                    <i class="bi bi-shield-lock me-1"></i>
+                    Bạn là Admin/Nhân viên? 
+                    <a href="/admin/login" class="text-success text-decoration-none fw-semibold">Đăng nhập quản trị</a>
+                </small>
+            </div> *@
         </div>
     </div>
 </div>
@@ -96,32 +106,33 @@
     private string errorMessage = string.Empty;
     private bool isLoading = false;
     private bool showPassword = false;
-    private bool isInitialized = false;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    @* protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             try
             {
-                // Kiểm tra nếu đã đăng nhập thì redirect
                 var token = await LocalStorage.GetItemAsStringAsync("authToken");
                 if (!string.IsNullOrEmpty(token))
                 {
-                    Nav.NavigateTo("/", forceLoad: true);
+                    var role = await LocalStorage.GetItemAsStringAsync("userRole");
+                    if (role == "admin" || role == "staff")
+                    {
+                        Nav.NavigateTo("/admin/home", forceLoad: true);
+                    }
+                    else
+                    {
+                        Nav.NavigateTo("/store", forceLoad: true);
+                    }
                 }
             }
             catch
             {
-                // Ignore errors during initialization
-            }
-            finally
-            {
-                isInitialized = true;
-                StateHasChanged();
+                // Ignore
             }
         }
-    }
+    } *@
 
     private async Task HandleLogin()
     {
@@ -130,7 +141,7 @@
             isLoading = true;
             errorMessage = string.Empty;
 
-            Console.WriteLine($"🔐 Attempting login with username: {loginRequest.Username}");
+            Console.WriteLine($"🔐 Customer login attempt - Username: {loginRequest.Username}");
 
             var response = await Http.PostAsJsonAsync("api/auth/login", loginRequest);
 
@@ -140,22 +151,25 @@
                 
                 if (authResponse != null)
                 {
+                    Console.WriteLine($"✅ Login successful - Role: {authResponse.Role}");
+
+                    // Kiểm tra role - chỉ cho phép customer
+                    if (authResponse.Role == "admin" || authResponse.Role == "staff")
+                    {
+                        errorMessage = "Vui lòng sử dụng trang đăng nhập quản trị tại /admin/login";
+                        Console.WriteLine($"❌ Wrong login page for role: {authResponse.Role}");
+                        return;
+                    }
+
                     // Lưu token và thông tin user vào LocalStorage
                     await LocalStorage.SetItemAsStringAsync("authToken", authResponse.Token);
                     await LocalStorage.SetItemAsStringAsync("userName", authResponse.UserName);
                     await LocalStorage.SetItemAsStringAsync("userRole", authResponse.Role);
 
-                    Console.WriteLine($"✅ Login successful! Token saved. Role: {authResponse.Role}");
+                    Console.WriteLine($"✅ Customer authenticated successfully");
 
-                    // Redirect dựa trên role
-                    if (authResponse.Role == "admin")
-                    {
-                        Nav.NavigateTo("/admin/home", forceLoad: true);
-                    }
-                    else
-                    {
-                        Nav.NavigateTo("/api/store", forceLoad: true);
-                    }
+                    // Redirect về store
+                    Nav.NavigateTo("/store", forceLoad: true);
                 }
             }
             else
@@ -184,14 +198,14 @@
 
 <style>
     .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         border: none;
         transition: all 0.3s ease;
     }
 
     .btn-primary:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
     }
 
     .card {
@@ -199,7 +213,18 @@
     }
 
     .form-control:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        border-color: #10b981;
+        box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+    }
+
+    .customer-icon-wrapper {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 </style>

@@ -13,16 +13,40 @@ namespace StoreApp.Services
             _repo = repo;
         }
 
-        // Phân trang
-        public async Task<(List<CustomerDTO> Items, int TotalPages)> GetPaginatedAsync(int page, int pageSize)
+        // Phân trang => Code cũ
+        // public async Task<(List<CustomerDTO> Items, int TotalPages)> GetPaginatedAsync(int page, int pageSize)
+        // {
+        //     if (page < 1) page = 1;
+        //     if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+        //     var totalItems = await _repo.CountAsync();
+        //     var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+        //     var customers = await _repo.GetPaginatedAsync(page, pageSize);
+
+        //     var dtos = customers.Select(c => new CustomerDTO
+        //     {
+        //         Id = c.Id,
+        //         FullName = c.FullName,
+        //         Phone = c.Phone,
+        //         Email = c.Email,
+        //         Address = c.Address
+        //     }).ToList();
+
+        //     return (dtos, totalPages);
+        // }
+                // Phân trang
+        public async Task<ResultPaginatedDTO<CustomerDTO>> GetPaginatedAsync(int page, int pageSize, string? search = null)
         {
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
+            // Đếm tổng số bản ghi sau khi đã search
             var totalItems = await _repo.CountAsync();
+
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-            var customers = await _repo.GetPaginatedAsync(page, pageSize);
+            var customers = await _repo.GetPaginatedAsync(page, pageSize, search);
 
             var dtos = customers.Select(c => new CustomerDTO
             {
@@ -30,11 +54,18 @@ namespace StoreApp.Services
                 FullName = c.FullName,
                 Phone = c.Phone,
                 Email = c.Email,
-                Address = c.Address
+                Address = c.Address,
             }).ToList();
 
-            return (dtos, totalPages);
+            return new ResultPaginatedDTO<CustomerDTO>
+            {
+                Items = dtos,
+                CurrentPage = page,
+                TotalPages = totalPages,
+                TotalItems = totalItems
+            };
         }
+
 
         // Tìm kiếm theo tên
         public async Task<List<CustomerDTO>> SearchByNameAsync(string keyword)

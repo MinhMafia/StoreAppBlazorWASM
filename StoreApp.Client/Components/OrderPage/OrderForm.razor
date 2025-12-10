@@ -19,7 +19,7 @@
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Mã đơn hàng</label>
                 <input  
-                    value="@CurrentOrder.OrderNumber"
+                    value="@currentOrder.OrderNumber"
                     readonly
                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium" />
             </div>
@@ -28,61 +28,80 @@
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Khách hàng</label>
                 <div class="flex gap-2">
-                    <input readonly value="@CurrentOrder.CustomerName (@CurrentOrder.CustomerId)"
+                    <input readonly value="@currentOrder.CustomerName (@currentOrder.CustomerId)"
                         class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium" />
-                    <button
-                        class="px-3 py-2.5 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
+
+                    @if(ordersFormMode == "create"){
+                        <button
+                            @onclick="openCustomerModal" 
+                            class="px-3 py-2.5 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+
+                    }
+
                 </div>
             </div>
 
             <!-- Nhân viên -->
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Nhân viên</label>
-                <input readonly value="@CurrentOrder.UserName (@CurrentOrder.UserId)"
+                <input readonly value="@currentOrder.UserName (@currentOrder.UserId)"
                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium" />
             </div>
 
             <!-- Ngày lập phiếu -->
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Ngày lập phiếu</label>
-                <input readonly value="@CurrentOrder.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                <input readonly value="@currentOrder.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium" />
             </div>
 
             <!-- Trạng thái đơn -->
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-700 mb-1">Trạng thái đơn</label>
-                <input readonly value="@CurrentOrder.Status"
-                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50" />
+              
+                <div class="w-full">
+                    <span class="@($"px-4 py-2 rounded-lg font-semibold {GetStatusColor(currentOrder.Status)}")">
+                        @GetPaymentStatusText(currentOrder.Status)
+                    </span>
+                </div>
             </div>
 
-
+            <div class="mb-4">
             <!-- Ghi chú -->
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Ghi chú</label>
-                <textarea readonly rows="2"
-                    class="w-full px-4 py-6 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
-                    @(string.IsNullOrEmpty(CurrentOrder.Note) ? "Không có ghi chú" : CurrentOrder.Note)
+            <!-- Nếu ở trạng thái create thì viết đc -->
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Ghi chú:</label>
+                <textarea 
+                    rows="2"
+                    class="w-full px-4 py-6 border border-gray-300 rounded-lg @(ordersFormMode == "create" ? "bg-white" : "bg-gray-50 text-gray-700")"
+                    @bind="currentOrder.Note"
+                    readonly=@(ordersFormMode != "create")>
                 </textarea>
             </div>
+
 
             
                 
             <DetailOrderForm 
-            ListOrderProducts="ListOrderProducts"
-            ordersFormMode="ordersFormMode"
+            selectedProduct="@selectedProduct"
+            currentOrder="@currentOrder"
+            ListOrderProducts="@ListOrderProducts"
+            ordersFormMode="@ordersFormMode"
+            OnOrderChanged="@OnOrderChanged"
             />
             
 
            
                 
             <PromotionSection 
-            ordersFormMode="ordersFormMode"
+            CurrentOrder="@currentOrder"
+            promotion="@promotion"
+            ordersFormMode="@ordersFormMode"
+            OnOrderChanged="@OnOrderChanged"
             />
 
             
@@ -91,20 +110,43 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">Phương thức</label>
-                    <input readonly value="@(string.IsNullOrEmpty(CurrentOrder.PaymentMethod) ? "N/A" : CurrentOrder.PaymentMethod)"
-                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50" />
+
+                    @if (ordersFormMode == "create")
+                    {
+                        <select @bind="currentOrder.PaymentMethod"
+                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-700">
+                            <option value="cash">Tiền mặt</option>
+                            <option value="other">MOMO</option>
+                        </select>
+                    }
+                    else
+                    {
+                       
+                        <div class="w-full">
+                            <span class="@($"px-4 py-2 rounded-lg font-semibold {GetPaymentMethodColor(currentOrder.PaymentMethod)}")">
+                                @GetPaymentMethodText(currentOrder.PaymentMethod)
+                            </span>
+                        </div>
+
+                    }
                 </div>
+                @if (ordersFormMode != "create"){
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Mã GD</label>
+                        <input readonly value="@(string.IsNullOrEmpty(currentOrder.TransactionRef) ? "N/A" : currentOrder.TransactionRef)"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50" />
 
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Mã GD</label>
-                    <input readonly value="@(string.IsNullOrEmpty(CurrentOrder.TransactionRef) ? "N/A" : CurrentOrder.TransactionRef)"
-                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50" />
+                        <label class="block text-sm font-bold text-gray-700 mb-1 mt-3">Trạng thái</label>
+                        
+                        <div class="w-full">
+                            <span class="@($"px-6 py-2 rounded-lg font-semibold {GetPaymentStatusColor(currentOrder.PaymentStatus)}")">
+                                @GetPaymentStatusText(currentOrder.PaymentStatus)
+                            </span>
+                        </div>
+                    </div>
 
-                    <label class="block text-sm font-bold text-gray-700 mb-1 mt-3">Trạng thái</label>
-                    <input readonly value="@(string.IsNullOrEmpty(CurrentOrder.PaymentStatus) ? "N/A" : CurrentOrder.PaymentStatus)"
-                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50" />
+                }
 
-                </div>
             </div>
 
             <!-- TỔNG TIỀN ĐƠN HÀNG -->
@@ -116,7 +158,7 @@
                     <!-- Tạm tính -->
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600 font-medium">Tạm tính</span>
-                        <span class="text-lg font-semibold text-gray-800">@CurrentOrder.Subtotal</span>
+                        <span class="text-lg font-semibold text-gray-800">@currentOrder.Subtotal</span>
                     </div>
 
                     <!-- Giảm giá - có icon tròn xanh lá nổi bật -->
@@ -127,7 +169,7 @@
                             </span>
                             Giảm giá
                         </span>
-                        <span class="text-lg font-bold text-green-600">@CurrentOrder.Discount</span>
+                        <span class="text-lg font-bold text-green-600">@currentOrder.Discount</span>
                     </div>
 
                     <!-- Đường kẻ chấm chấm đẹp -->
@@ -136,7 +178,7 @@
                     <!-- Thành tiền lớn nhất -->
                     <div class="flex justify-between items-center pt-2">
                         <span class="text-lg font-bold text-gray-800">Khách cần thanh toán</span>
-                        <span class="text-2xl font-extrabold text-indigo-600">@CurrentOrder.TotalAmount</span>
+                        <span class="text-2xl font-extrabold text-indigo-600">@currentOrder.TotalAmount</span>
                     </div>
                 </div>
 
@@ -146,6 +188,7 @@
             @if(ordersFormMode == "create"){
                 <div class="flex justify-end">
                     <button
+                        @onclick="createNewOrder"
                         class="px-7 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg transition">
                         Tạo Đơn Hàng
                     </button>
@@ -153,14 +196,108 @@
 
             }
 
-
         </div>
     </div>
+    @* {/* Modal chọn khách hàng */} => Phục vụ cho việc chọn khách cho việc tạo đơn , ẩn ban đầu và hiện ra khi nhấn nút chọn khách trong Form đơn hàng*@
+    @if (showCustomerModal)
+    {
+        <CustomerModel 
+        CurrentOrder="@currentOrder"
+        closeModal="@closeCustomerModal"/>
+    }
+
+    @* {/* Modal chọn sản phẩm */} => Phục vụ cho việc chọn sản phẩm cho tạo đơn, ẩn ban đầu và hiện ra khi nhấn nút chọn sản phẩm trong Form đơn hàng*@
+
 </div>
+
 @code{
-    [Parameter] public OrderDTO CurrentOrder { get; set; } = null!;
+    [Parameter] public OrderDTO currentOrder { get; set; } = null!;
+    [Parameter] public EventCallback<OrderDTO> OnOrderChanged { get; set; }
+
     [Parameter] public List<OrderItemReponse> ListOrderProducts { get; set; } = new List<OrderItemReponse>();
     [Parameter] public string ordersFormMode { get; set; } = "create";
     [Parameter] public EventCallback OnCloseOrdersForm { get; set; }
+    [Parameter] public PromotionDTO? promotion { get; set; }
+
+    [Parameter] public ProductDTO? selectedProduct { get; set;  }
+    [Parameter] public EventCallback createNewOrder { get; set; }
+    bool showCustomerModal = false;
+    
+
+
+    void openCustomerModal()
+    {
+        showCustomerModal = true;
+        StateHasChanged();
+    }
+    void closeCustomerModal()
+    {
+        showCustomerModal = false;
+        StateHasChanged();
+    }
+
+    //  Trạng thái đơn hàng
+    string GetStatusColor(string status)
+    {
+        // Trả về class màu theo trạng thái
+        return status.ToLower() switch
+        {
+            "pending" => "bg-yellow-100 text-yellow-800",
+            "paid" => "bg-blue-100 text-blue-800",
+            "completed" => "bg-green-100 text-green-800",
+            "cancelled" => "bg-red-100 text-red-800",
+            _ => "bg-gray-100 text-gray-800"
+        };
+    }
+    string GetPaymentMethodText(string method)
+    {
+        return method?.ToLower() switch
+        {
+            "cash" => "Tiền mặt",
+            "card" => "Thẻ",
+            "ecard" => "Thẻ điện tử",
+            "other" => "MOMO",
+            _ => "-"
+        };
+    }
+
+    string GetPaymentMethodColor(string method)
+    {
+        return method?.ToLower() switch
+        {
+            "cash" => "bg-yellow-100 text-yellow-800",
+            "card" => "bg-blue-100 text-blue-800",
+            "other" => "bg-pink-100 text-pink-800",
+            "ecard" => "bg-gray-50 text-gray-700",
+            _ => "bg-gray-50 text-gray-700"
+        };
+    }
+
+
+    string GetPaymentStatusText(string paymentStatus)
+    {
+        return paymentStatus?.ToLower() switch
+        {
+            "pending" => "Chưa thanh toán",
+            "paid" => "Đã thanh toán",
+            "completed" => "Hoàn tất thanh toán",
+            "failed" => "Thanh toán thất bại",
+            _ => paymentStatus ?? "-"
+        };
+    }
+
+    // Trạng thái thanh toán
+    string GetPaymentStatusColor(string paymentStatus)
+    {
+        return paymentStatus?.ToLower() switch
+        {
+            "pending" => "bg-yellow-100 text-yellow-800",
+            "paid" => "bg-green-100 text-green-800",
+            "failed" => "bg-red-100 text-red-800",
+            _ => "bg-gray-100 text-gray-800"
+        };
+    }
+
+  
 
 }

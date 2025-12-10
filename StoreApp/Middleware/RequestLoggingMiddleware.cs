@@ -1,6 +1,4 @@
 using StoreApp.Services;
-using StoreApp.Models;
-using StoreApp.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -9,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Collections.Generic;
+using System.Security.Claims;
 
 namespace StoreApp.Middlewares
 {
@@ -17,7 +15,7 @@ namespace StoreApp.Middlewares
     {
         private readonly RequestDelegate _next;
         private readonly IServiceProvider _serviceProvider;
-        private const int MaxPayloadLength = 1000; // giới hạn ký tự payload
+        private const int MaxPayloadLength = 1000;
 
         public RequestLoggingMiddleware(RequestDelegate next, IServiceProvider serviceProvider)
         {
@@ -30,19 +28,24 @@ namespace StoreApp.Middlewares
             try
             {
                 var request = context.Request;
-                string method = request.Method.ToUpper();
+                var method = request.Method.ToUpper();
 
+                // Chỉ log POST / PUT / DELETE
                 if (method == "POST" || method == "PUT" || method == "DELETE")
                 {
                     string bodyText = "[Empty Body]";
+
+                    // Đọc request body nhưng KHÔNG phá stream
                     if (request.ContentLength > 0)
                     {
                         try
                         {
-                            request.EnableBuffering();
+                            request.EnableBuffering(); // 🔥 BẮT BUỘC để JWT đọc lại được body
+
                             using var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true);
                             bodyText = await reader.ReadToEndAsync();
-                            request.Body.Position = 0;
+
+                            request.Body.Position = 0; // 🔥 Reset để các middleware sau đọc được body
                         }
                         catch
                         {
@@ -50,9 +53,11 @@ namespace StoreApp.Middlewares
                         }
                     }
 
+                    // Extract info
                     string path = request.Path.ToString();
                     string entityName = NormalizeEntityName(ExtractEntityName(path));
                     string entityId = ExtractEntityId(path);
+
                     string action = method switch
                     {
                         "POST" => $"CREATE_{entityName}",
@@ -61,141 +66,133 @@ namespace StoreApp.Middlewares
                         _ => $"HTTP_{method}_{entityName}"
                     };
 
+                    // Lấy IP
                     string ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-                    int? userId = GetUserId(context);
-                    string userName = context.User?.Identity?.Name ?? "anonymous";
 
-                    // Serialize và lọc payload
+                    // Lấy UserId từ JWT
+                    int? userId = GetUserId(context);
+
+                    // Lấy Username từ JWT nếu có
+                    string userName =
+                        context.User?.FindFirst("username")?.Value ??
+                        context.User?.FindFirst(ClaimTypes.Name)?.Value ??
+                        "anonymous";
+
                     string payload = PreparePayload(bodyText);
 
-                    Console.WriteLine($"[RequestLoggingMiddleware] Logging {action} for {entityName}#{entityId}");
+                    Console.WriteLine($"[LOG MIDDLEWARE] {action} on {entityName}#{entityId}");
 
-                    // 🔹 Ghi log vào DB
+                    // ================================
+                    // Ghi vào DB
+                    // ================================
                     try
                     {
                         using var scope = _serviceProvider.CreateScope();
                         var logService = scope.ServiceProvider.GetRequiredService<ActivityLogService>();
+
                         await logService.LogAsync(
-                            userId ?? 2,
-                            action ?? "UnknownAction",
-                            entityName ?? "UnknownEntity",
-                            entityId ?? "0",
-                            payload ?? "{}",
-                            ip ?? "unknown"
+                            userId ?? 0,
+                            action,
+                            entityName,
+                            entityId,
+                            payload,
+                            ip
                         );
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[RequestLoggingMiddleware] LogAsync failed: {ex}");
+                        Console.WriteLine($"[LOG MIDDLEWARE] DB error: {ex}");
                     }
 
-                    // 🔹 Ghi log ra file
+                    // ================================
+                    // Ghi ra file
+                    // ================================
                     try
                     {
-                        var logLine = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | User:{userName} | Action:{action} | Entity:{entityName}#{entityId} | IP:{ip} | Payload:{payload}";
+                        var logLine =
+                            $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | User:{userName} | Action:{action} | Entity:{entityName}#{entityId} | IP:{ip} | Payload:{payload}";
                         await File.AppendAllTextAsync("request_log.txt", logLine + Environment.NewLine);
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[RequestLoggingMiddleware] File log failed: {ex}");
+                        Console.WriteLine($"[LOG MIDDLEWARE] File write error: {ex}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[RequestLoggingMiddleware] Unexpected error: {ex}");
+                Console.WriteLine($"[LOG MIDDLEWARE] Unexpected error: {ex}");
             }
 
             await _next(context);
         }
 
-        #region Helper Methods
+        // ================================
+        //	   Helper Methods
+        // ================================
 
-        private string NormalizeEntityName(string entityName)
-        {
-            return entityName switch
+        private string NormalizeEntityName(string name) =>
+            name switch
             {
                 "Inventoryadjustment" => "Inventory_Adjustment",
-                _ => entityName
+                _ => name
             };
-        }
 
         private string ExtractEntityName(string path)
         {
-            try
-            {
-                var match = Regex.Match(path, @"^/api/([^/]+)");
-                if (!match.Success || string.IsNullOrEmpty(match.Groups[1].Value))
-                    return "Unknown";
-                string name = match.Groups[1].Value;
-                return char.ToUpper(name[0]) + (name.Length > 1 ? name.Substring(1).ToLower() : "");
-            }
-            catch
-            {
-                return "Unknown";
-            }
+            var match = Regex.Match(path, @"^/api/([^/]+)");
+            if (!match.Success) return "Unknown";
+            string name = match.Groups[1].Value;
+            return char.ToUpper(name[0]) + name.Substring(1).ToLower();
         }
 
         private string ExtractEntityId(string path)
         {
-            try
-            {
-                var match = Regex.Match(path, @"^/api/[^/]+/([^/?]+)");
-                return match.Success && !string.IsNullOrEmpty(match.Groups[1].Value) ? match.Groups[1].Value : "0";
-            }
-            catch
-            {
-                return "0";
-            }
+            var match = Regex.Match(path, @"^/api/[^/]+/([^/?]+)");
+            return match.Success ? match.Groups[1].Value : "0";
         }
 
         private int? GetUserId(HttpContext context)
         {
-            if (context.User.Identity != null && context.User.Identity.IsAuthenticated)
-            {
-                var claim = context.User.FindFirst("userId") ?? context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-                if (claim != null && int.TryParse(claim.Value, out int id))
-                    return id;
-            }
-            return null; // anonymous
+            if (context.User?.Identity?.IsAuthenticated != true)
+                return null;
+
+            var claim =
+                context.User.FindFirst("uid") ??
+                context.User.FindFirst(ClaimTypes.NameIdentifier);
+
+            return int.TryParse(claim?.Value, out int id) ? id : null;
         }
 
         private string PreparePayload(string text)
         {
-            object parsed = TryParseJson(text);
-            string json = System.Text.Json.JsonSerializer.Serialize(parsed);
+            object parsed;
+            try
+            {
+                parsed = JsonSerializer.Deserialize<object>(text) ?? new { raw = text };
+            }
+            catch
+            {
+                parsed = new { raw = text };
+            }
 
-            // Lọc các field nhạy cảm
+            string json = JsonSerializer.Serialize(parsed);
+
             json = FilterSensitiveFields(json);
 
-            // Giới hạn độ dài
             if (json.Length > MaxPayloadLength)
                 json = json.Substring(0, MaxPayloadLength) + "...[truncated]";
 
             return json;
         }
 
-        private object TryParseJson(string text)
-        {
-            try
-            {
-                return System.Text.Json.JsonSerializer.Deserialize<object>(text) ?? new { raw = text };
-            }
-            catch
-            {
-                return new { raw = text };
-            }
-        }
-
         private string FilterSensitiveFields(string json)
         {
-            if (string.IsNullOrEmpty(json)) return json;
+            string[] keys = { "password", "token", "creditCard" };
 
-            // Replace common sensitive fields
-            var sensitiveKeys = new[] { "password", "token", "creditCard" };
-            foreach (var key in sensitiveKeys)
+            foreach (var key in keys)
             {
-                json = System.Text.RegularExpressions.Regex.Replace(
+                json = Regex.Replace(
                     json,
                     $"\"{key}\"\\s*:\\s*\".*?\"",
                     $"\"{key}\":\"[REDACTED]\"",
@@ -205,7 +202,5 @@ namespace StoreApp.Middlewares
 
             return json;
         }
-
-        #endregion
     }
 }

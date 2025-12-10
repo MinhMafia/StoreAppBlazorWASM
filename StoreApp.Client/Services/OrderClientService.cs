@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.WebUtilities;
 using System.Net.Http.Json;
-using StoreApp.Shared; 
+using StoreApp.Shared;
+using Microsoft.JSInterop; 
 
 public interface IOrdersClientService
 {
@@ -13,6 +14,24 @@ public interface IOrdersClientService
         DateTime? endDate = null,
         string? search = null);  
     Task<List<OrderItemReponse>> GetOrderItemsByOrderIdAsync(int orderId); 
+    Task<PromotionDTO?> GetPromotionByIdAsync(int orderId);
+    Task<PaginationResult<ProductDTO>> GetProductsPagedAndSearchedAsync(
+        int pageNumber,
+        int pageSize,
+        string? searchKeyword = null);
+
+    Task<ResultPaginatedDTO<CustomerDTO>> GetCustomersPagedAndSearchedAsync(
+        int pageNumber,
+        int pageSize,
+        string? searchKeyword = null
+    );
+    Task<List<PromotionDTO>> GetListActivePromotion();
+    Task<bool> ReduceMultipleAsync(List<ReduceInventoryDto> items);
+    Task<bool> ApplyPromotionAsync(ApplyPromotionRequest req);
+    Task<bool> SaveListOrderItem (List<OrderItemReponse> items);
+    Task<PaymentResult> PayWithMomoAsync(int orderId, decimal amount);
+    Task<PaymentResult> PayOfflineAsync(int orderId, decimal amount);
+
         
                                                   
 }
@@ -20,11 +39,14 @@ public interface IOrdersClientService
 public class OrdersClientService : IOrdersClientService
 {
     private readonly HttpClient _http;
+    private readonly IJSRuntime _js;
 
-    public OrdersClientService(HttpClient http) 
+    public OrdersClientService(HttpClient http,IJSRuntime js)
     {
-        _http = http;
+         _http = http;
+         _js = js;
     }
+  
 
 
     // 1. Tạo đơn tạm (draft) → trả về OrderDTO có Id + OrderNumber
@@ -54,7 +76,7 @@ public class OrdersClientService : IOrdersClientService
         return result;
     }
 
-    // 3. Tìm kiếm + phân trang (đã có, chỉ tối ưu lại chút)
+    // 3. Tìm kiếm + phân trang 
     public async Task<ResultPaginatedDTO<OrderDTO>> LoadOrdersAdvanced(
         int pageNumber,
         int pageSize,
@@ -96,8 +118,291 @@ public class OrdersClientService : IOrdersClientService
         ) ?? new List<OrderItemReponse>();
     }
 
+    // Lấy danh sách Promotion mà khách hàng đã sử dụng trong đơn hàng
+    public async Task<PromotionDTO?> GetPromotionByIdAsync(int Id)
+    {
+        try
+        {
+            // GIẢ SỬ PromotionsController có route là "api/promotions"
+            return await _http.GetFromJsonAsync<PromotionDTO?>(
+                $"api/promotions/{Id}" 
+            );
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
+
+    // Kết hợp 2 api là lấy danh sách sản phẩm có phân trang và tìm kiếm sản phẩm
+    public async Task<PaginationResult<ProductDTO>> GetProductsPagedAndSearchedAsync(
+        int pageNumber,
+        int pageSize,
+        string? searchKeyword = null)
+    {
+        // Validate
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 20;
+
+        // Trim keyword nếu có
+        searchKeyword = searchKeyword?.Trim();
+
+        string url;
+        if (string.IsNullOrEmpty(searchKeyword))
+        {
+            // Chỉ phân trang
+            url = $"api/products/available?page={pageNumber}&pageSize={pageSize}";
+        }
+        else
+        {
+            // Phân trang + tìm kiếm
+            var queryParams = new Dictionary<string, string>
+            {
+                ["page"] = pageNumber.ToString(),
+                ["pageSize"] = pageSize.ToString(),
+                ["keyword"] = searchKeyword
+            };
+
+            url = QueryHelpers.AddQueryString("api/products/search", queryParams);
+        }
+
+        try
+        {
+            var result = await _http.GetFromJsonAsync<PaginationResult<ProductDTO>>(url);
+            return result ?? new PaginationResult<ProductDTO>();
+        }
+        catch
+        {
+            return new PaginationResult<ProductDTO>();
+        }
+    }
+
+    public async Task<ResultPaginatedDTO<CustomerDTO>> GetCustomersPagedAndSearchedAsync(
+        int pageNumber,
+        int pageSize,
+        string? searchKeyword
+    )
+    {
+        // Build query string
+        var queryParams = new Dictionary<string, string>
+        {
+            ["page"] = pageNumber.ToString(),
+            ["pageSize"] = pageSize.ToString(),
+        };
+
+        if (!string.IsNullOrWhiteSpace(searchKeyword))
+            queryParams["search"] = searchKeyword;
+
+        string url = QueryHelpers.AddQueryString("api/customers/paginated", queryParams);
+
+        try
+        {
+            var result = await _http.GetFromJsonAsync<ResultPaginatedDTO<CustomerDTO>>(url);
+            return result ?? new ResultPaginatedDTO<CustomerDTO>();
+        }
+        catch
+        {
+            return new ResultPaginatedDTO<CustomerDTO>();
+        }
+    }
+
+    // Lấy các khuyến mãi đang hoạt động
+    public async Task<List<PromotionDTO>> GetListActivePromotion()
+    {
+        try
+        {
+            var data = await _http.GetFromJsonAsync<List<PromotionDTO>>("api/promotions/active");
+            return data ?? new List<PromotionDTO>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading promotions: {ex.Message}");
+            return new List<PromotionDTO>();
+        }
+    }
+
+    // Lưu danh sách orderitem
+    public async Task<bool> SaveListOrderItem (List<OrderItemReponse> items)
+    {
+        if (items.Count == 0) return false;
+
+        var response = await _http.PostAsJsonAsync("api/orderitem/create", items);
+
+        if (!response.IsSuccessStatusCode)
+            return false;
+
+        // API trả về true/false dạng JSON hoặc plain text
+        var result = await response.Content.ReadFromJsonAsync<bool>();
+        return result;
+        
+    }
+
+    // Gỉam list sản phẩm 
+    public async Task<bool> ReduceMultipleAsync(List<ReduceInventoryDto> items)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync("api/inventory/reduce-multiple", items);
+
+            // Nếu response null hoặc status code lỗi → return false
+            if (response == null || !response.IsSuccessStatusCode)
+                return false;
+
+            return true;
+        }
+        catch
+        {
+            // Bất kỳ exception nào cũng không crash → return false
+            return false;
+        }
+    }
+
+    // Apply promotion
+    public async Task<bool> ApplyPromotionAsync(ApplyPromotionRequest req)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync(
+                "api/promotions/apply",
+                req
+            );
+
+            return response?.IsSuccessStatusCode ?? false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<PaymentResult> PayWithMomoAsync(int orderId, decimal amount)
+    {
+        try
+        {
+            // 1) Tạo request body
+            var body = new MomoPaymentRequestDTO
+            {
+                OrderId = orderId,
+                Amount = amount,
+                ReturnUrl = "",
+                NotifyUrl = "https://stainful-asher-unfeigningly.ngrok-free.dev/api/payment/momo/ipn"
+            };
+
+            // 2) Gọi API create
+            var res = await _http.PostAsJsonAsync("api/payment/momo/create", body);
+
+            if (!res.IsSuccessStatusCode)
+                return new PaymentResult { Success = false, Message = "Không tạo được payment MoMo" };
+
+            var json = await res.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+            if (json == null || !json.ContainsKey("payUrl"))
+                return new PaymentResult { Success = false, Message = "Thiếu payUrl" };
+
+            string payUrl = json["payUrl"].ToString()!;
+
+            // 3) Mở popup
+            // var popup = await _js.InvokeAsync<object?>(
+            //     "window.open",
+            //     payUrl,
+            //     "_blank",
+            //     "width=480,height=700"
+            // );
+
+            // if (popup == null)
+            //     return new PaymentResult { Success = false, Message = "Trình duyệt chặn popup" };
+            // SỬA THÀNH DÒNG NÀY – AN TOÀN TUYỆT ĐỐI
+            await _js.InvokeVoidAsync("openMoMoPayment", payUrl);
+
+            // 4) Polling → giống JS
+            int counter = 0;
+
+            while (true)
+            {
+                await Task.Delay(2000);
+                counter++;
+
+                var statusRes = await _http.GetAsync($"api/payment/status/{orderId}");
+                if (statusRes.IsSuccessStatusCode)
+                {
+                    var data = await statusRes.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+
+                    if (data != null && data.ContainsKey("status"))
+                    {
+                        string status = data["status"];
+
+                        if (status == "completed")
+                        {
+                            return new PaymentResult
+                            {
+                                Success = true,
+                                Message = "Thanh toán thành công!"
+                            };
+                        }
+                    }
+                }
+
+                // Timeout 60 lần → 2 phút
+                if (counter >= 60)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Quá thời gian chờ thanh toán"
+                    };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return new PaymentResult
+            {
+                Success = false,
+                Message = "Lỗi client: " + ex.Message
+            };
+        }
+    }
+
+    public async Task<PaymentResult> PayOfflineAsync(int orderId, decimal amount)
+    {
+        try
+        {
+            var body = new 
+            {
+                OrderId = orderId,
+                Amount = amount,
+                Method = "cash",
+                Status = "completed"
+            };
+
+            var res = await _http.PostAsJsonAsync("api/payment/offlinepayment", body);
+
+            if (!res.IsSuccessStatusCode)
+                return new PaymentResult { Success = false, Message = "Không tạo được offline payment" };
+
+            return new PaymentResult
+            {
+                Success = true,
+                Message = "Thanh toán tiền mặt thành công!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PaymentResult
+            {
+                Success = false,
+                Message = "Lỗi offline payment: " + ex.Message
+            };
+        }
+    }
+
+
+
+
+
+
+
 }
 
-// Kết quả phân trang chung
 
 

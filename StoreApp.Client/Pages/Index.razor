@@ -3,36 +3,52 @@
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager Nav
 
-@code {
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            try
-            {
-                var token = await LocalStorage.GetItemAsStringAsync("authToken");
-                var role = await LocalStorage.GetItemAsStringAsync("userRole");
+<div class="min-vh-100 d-flex justify-content-center align-items-center bg-light">
+    <div class="text-center">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="text-muted">Đang kiểm tra đăng nhập...</p>
+    </div>
+</div>
 
-                if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(role))
-                {
-                    if (role == "admin")
-                    {
-                        Nav.NavigateTo("/admin/home", forceLoad: true);
-                    }
-                    else
-                    {
-                        Nav.NavigateTo("/api/store", forceLoad: true);
-                    }
-                }
-                else
-                {
-                    Nav.NavigateTo("/login", forceLoad: true);
-                }
-            }
-            catch
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var token = await LocalStorage.GetItemAsStringAsync("authToken");
+            
+            if (string.IsNullOrEmpty(token))
             {
+                // Chưa đăng nhập -> redirect login
+                Nav.NavigateTo("/login", forceLoad: true);
+                return;
+            }
+
+            var role = await LocalStorage.GetItemAsStringAsync("userRole");
+            
+            // Redirect dựa trên role
+            if (role == "admin" || role == "staff")
+            {
+                Nav.NavigateTo("/admin/home", forceLoad: true);
+            }
+            else if (role == "customer")
+            {
+                Nav.NavigateTo("/store", forceLoad: true);
+            }
+            else
+            {
+                // Role không xác định
+                await LocalStorage.RemoveItemAsync("authToken");
+                await LocalStorage.RemoveItemAsync("userName");
+                await LocalStorage.RemoveItemAsync("userRole");
                 Nav.NavigateTo("/login", forceLoad: true);
             }
+        }
+        catch
+        {
+            Nav.NavigateTo("/login", forceLoad: true);
         }
     }
 }

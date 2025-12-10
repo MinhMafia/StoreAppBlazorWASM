@@ -17,14 +17,23 @@ namespace StoreApp.Controllers
             _userService = userService;
         }
 
-        // GET api/customers/paginated?page=1&pageSize=10
+        // GET api/customers/paginated?page=1&pageSize=10=>CODE CŨ
+        // [HttpGet("paginated")]
+        // public async Task<ActionResult> GetPaginated(
+        //     [FromQuery] int page = 1,
+        //     [FromQuery] int pageSize = 10)
+        // {
+        //     var (items, totalPages) = await _service.GetPaginatedAsync(page, pageSize);
+        //     return Ok(new { items, totalPages });
+        // }
         [HttpGet("paginated")]
         public async Task<ActionResult> GetPaginated(
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10)
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null)
         {
-            var (items, totalPages) = await _service.GetPaginatedAsync(page, pageSize);
-            return Ok(new { items, totalPages });
+            var result = await _service.GetPaginatedAsync(page, pageSize, search);
+            return Ok(result);
         }
 
         // GET api/customers/search?keyword=...

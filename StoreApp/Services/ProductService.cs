@@ -248,19 +248,40 @@ namespace StoreApp.Services
 
 
         // lÀM ƠN ĐỪUNG XÓA CỦA => LẤY DANH SÁCH SẢN PHẨM CÒN HÀNG TRONG CỬA HÀNG
-        public async Task<PaginationResult<Product>> GetAvailableProductsAsync(int page, int pageSize)
+        public async Task<PaginationResult<ProductDTO>> GetAvailableProductsAsync(int page, int pageSize)
         {
-            return await _productRepository.GetAvailableProductsPaginatedAsync(page, pageSize);
+            return await _productRepository.GetAvailableProductsPaginatedAsync(page, pageSize)
+                .ContinueWith(t =>
+                {
+                    var result = t.Result;
+                    return new PaginationResult<ProductDTO>
+                    {
+                        Items = result.Items.Select(MapToProductDto).ToList(),
+                        TotalItems = result.TotalItems,
+                        CurrentPage = result.CurrentPage,
+                        PageSize = result.PageSize,
+                        TotalPages = result.TotalPages,
+                        HasPrevious = result.HasPrevious,
+                        HasNext = result.HasNext
+                    };
+                });
         }
 
         // Search using repository filtered query for efficiency
-        public async Task<List<ProductDTO>> SearchProductsAsync(string keyword, int maxResults = 50)
+        public async Task<PaginationResult<ProductDTO>> SearchProductsAsync(string keyword, int page = 1, int PageSize=20)
         {
-            if (string.IsNullOrWhiteSpace(keyword)) return new List<ProductDTO>();
-
             // use filtered API: page=1, pageSize=maxResults, search=keyword
-            var filtered = await _productRepository.GetFilteredAsync(1, maxResults, null, null, null, null, null, keyword);
-            return filtered.Items.Select(MapToProductDto).ToList();
+            var filtered = await _productRepository.GetFilteredAsync(page, PageSize, null, null, null, null, null, keyword);
+            return new PaginationResult<ProductDTO>
+            {
+                Items = filtered.Items.Select(MapToProductDto).ToList(),
+                TotalItems = filtered.TotalItems,
+                CurrentPage = filtered.CurrentPage,
+                PageSize = filtered.PageSize,
+                TotalPages = filtered.TotalPages,
+                HasPrevious = filtered.HasPrevious,
+                HasNext = filtered.HasNext
+            };
         }
 
     }

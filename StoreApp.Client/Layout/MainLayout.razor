@@ -25,3 +25,17 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+<script>
+    window.openMoMoPayment = function (payUrl) {
+        const popup = window.open(
+            payUrl,
+            "_blank",
+            "width=480,height=700,scrollbars=yes,resizable=yes,menubar=no,toolbar=no,location=no,status=no"
+        );
+
+        if (!popup || popup.closed || typeof popup.closed === "undefined") {
+            alert("Trình duyệt đã chặn popup! Vui lòng bật popup để thanh toán MoMo.");
+        }
+    };
+</script>

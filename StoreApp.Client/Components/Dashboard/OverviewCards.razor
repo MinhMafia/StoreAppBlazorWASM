@@ -6,18 +6,32 @@
     <div class="bg-white p-6 rounded-lg shadow">
         <p class="text-gray-500 text-sm">Doanh thu hôm nay</p>
         <p class="text-3xl font-bold text-blue-600">@FormatCurrency(Overview?.TodayRevenue ?? 0)</p>
-        <p class="text-sm mt-2 @(RevenueChangeClass)">
-            @RevenueChangeIcon @Math.Abs(Overview?.RevenueChange ?? 0).ToString("F1")% so với hôm qua
-        </p>
+        @if (Overview?.HasYesterdayRevenue == true)
+        {
+            <p class="text-sm mt-2 @(RevenueChangeClass)">
+                @RevenueChangeIcon @Math.Abs(Overview?.RevenueChange ?? 0).ToString("F1")% so với hôm qua
+            </p>
+        }
+        else
+        {
+            <p class="text-sm mt-2 text-gray-400">Không có dữ liệu hôm qua</p>
+        }
     </div>
 
     <!-- Số đơn hàng -->
     <div class="bg-white p-6 rounded-lg shadow">
         <p class="text-gray-500 text-sm">Số đơn hàng</p>
         <p class="text-3xl font-bold text-green-600">@(Overview?.TodayOrders ?? 0)</p>
-        <p class="text-sm mt-2 @(OrdersChangeClass)">
-            @OrdersChangeIcon @Math.Abs(Overview?.OrdersChange ?? 0).ToString("F1")% so với hôm qua
-        </p>
+        @if (Overview?.HasYesterdayOrders == true)
+        {
+            <p class="text-sm mt-2 @(OrdersChangeClass)">
+                @OrdersChangeIcon @Math.Abs(Overview?.OrdersChange ?? 0).ToString("F1")% so với hôm qua
+            </p>
+        }
+        else
+        {
+            <p class="text-sm mt-2 text-gray-400">Không có dữ liệu hôm qua</p>
+        }
     </div>
 
     <!-- Sản phẩm bán được -->

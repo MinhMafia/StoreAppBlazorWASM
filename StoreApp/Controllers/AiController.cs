@@ -34,7 +34,7 @@ namespace StoreApp.Controllers
             Response.Headers.Append("Content-Type", "text/event-stream");
             Response.Headers.Append("Cache-Control", "no-cache");
             Response.Headers.Append("Connection", "keep-alive");
-            Response.Headers.Append("X-Accel-Buffering", "no");
+            // Response.Headers.Append("X-Accel-Buffering", "no");
 
             var userId = GetCurrentUserId();
 
