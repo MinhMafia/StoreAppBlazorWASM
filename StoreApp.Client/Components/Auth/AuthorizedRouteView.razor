@@ -33,11 +33,16 @@ else
     private bool isChecked = false;
     private bool isAuthorized = false;
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        isChecked = false;
-        isAuthorized = false;
+        if (firstRender)
+        {
+            await CheckAuthorizationAsync();
+        }
+    }
 
+    private async Task CheckAuthorizationAsync()
+    {
         var path = Nav.ToBaseRelativePath(Nav.Uri).ToLower();
         
         // Các trang công khai không cần auth
@@ -55,7 +60,6 @@ else
                     
                     if (path.StartsWith("admin/login"))
                     {
-                        // Đang ở trang admin login mà đã đăng nhập
                         if (role == "admin" || role == "staff")
                         {
                             Nav.NavigateTo("/admin/home", forceLoad: true);
@@ -64,7 +68,6 @@ else
                     }
                     else if (path.StartsWith("login") && !path.StartsWith("admin/login"))
                     {
-                        // Đang ở trang customer login mà đã đăng nhập
                         if (role == "customer")
                         {
                             Nav.NavigateTo("/store", forceLoad: true);
@@ -82,6 +85,7 @@ else
             
             isAuthorized = true;
             isChecked = true;
+            StateHasChanged();
             return;
         }
 
@@ -93,7 +97,6 @@ else
             if (string.IsNullOrEmpty(token))
             {
                 Console.WriteLine($"❌ Not authenticated - Path: {path}");
-                // Redirect về login phù hợp
                 if (path.StartsWith("admin"))
                 {
                     Nav.NavigateTo("/admin/login", forceLoad: true);
@@ -110,7 +113,6 @@ else
             // Kiểm tra quyền truy cập
             if (path.StartsWith("admin"))
             {
-                // Khu vực admin
                 if (role != "admin" && role != "staff")
                 {
                     Console.WriteLine($"❌ Access denied to admin area - Role: {role}");
@@ -120,7 +122,6 @@ else
             }
             else if (path.StartsWith("store"))
             {
-                // Khu vực store
                 if (role != "customer")
                 {
                     Console.WriteLine($"❌ Access denied to store - Role: {role}");
@@ -130,7 +131,6 @@ else
             }
             else if (string.IsNullOrEmpty(path) || path == "/")
             {
-                // Root path - redirect theo role
                 if (role == "admin" || role == "staff")
                 {
                     Nav.NavigateTo("/admin/home", forceLoad: true);
@@ -158,6 +158,7 @@ else
         finally
         {
             isChecked = true;
+            StateHasChanged();
         }
     }
 }

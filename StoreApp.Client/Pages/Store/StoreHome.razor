@@ -1,18 +1,17 @@
-@page "/api/store"
+@page "/store"
 @layout StoreLayout
 @using StoreApp.Shared
 @inject IProductClientService ProductService
 @inject ICategoryClientService CategoryService
 @inject NavigationManager Navigation
 
- AllowedRoles="@(new List<string> { "customer" })" RedirectTo="/login"
 <PageTitle>Cửa Hàng Tiện Lợi</PageTitle>
 
 <!-- Breadcrumb -->
 <div class="breadcrumb-bar">
     <div class="container">
         <nav class="breadcrumb-nav">
-            <a href="/api/store">TRANG CHỦ</a> / 
+            <a href="/store">TRANG CHỦ</a> / 
             <span>CỬA HÀNG</span>
         </nav>
     </div>
@@ -39,7 +38,7 @@
                         {
                             @foreach (var category in categories)
                             {
-                                <a href="/api/store/products?category=@category.Id" class="category-item">
+                                <a href="/store/products?category=@category.Id" class="category-item">
                                     <i class="bi bi-chevron-right category-icon"></i>
                                     <span>@category.Name</span>
                                 </a>
@@ -404,7 +403,7 @@
 
     private void GoToProduct(int productId)
     {
-        Navigation.NavigateTo($"/api/store/products/{productId}");
+        Navigation.NavigateTo($"/store/products/{productId}");
     }
 
     private async Task OnSortOrderChanged()

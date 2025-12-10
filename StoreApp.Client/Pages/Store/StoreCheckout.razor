@@ -1,4 +1,4 @@
-@page "/api/store/checkout"
+@page "/store/checkout"
 @inject NavigationManager Navigation
 @layout StoreLayout
 
@@ -198,7 +198,7 @@
                         <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition"></div>
                     </button>
 
-                    <a href="/api/store/products"
+                    <a href="/store/products"
                         class="block text-center text-primary font-semibold py-4 border-2 border-primary rounded-xl hover:bg-primaryLight/20 transition mt-4">
                         ← Quay lại giỏ hàng
                     </a>
@@ -213,5 +213,5 @@
     </div>
 </div>
 @code {
-    private void GoToThankYouPage() => Navigation.NavigateTo("/api/store/thankyou");
+    private void GoToThankYouPage() => Navigation.NavigateTo("/store/thankyou");
 }
