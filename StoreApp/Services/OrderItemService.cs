@@ -13,14 +13,34 @@ namespace StoreApp.Services
             _orderItemRepository = orderItemRepository;
         }
 
-        // Lưu list OrderItem
-        public async Task<bool> SaveOrderItemsAsync(List<OrderItem> items)
+        // Code cũ
+        // // Lưu list OrderItem
+        // public async Task<bool> SaveOrderItemsAsync(List<OrderItem> items)
+        // {
+        //     if (items == null || !items.Any())
+        //         return false;
+
+        //     await _orderItemRepository.AddOrderItemsAsync(items);
+        //     return true;
+        // }
+
+                // Lưu list OrderItem
+        public async Task<bool> SaveOrderItemsAsync(List<OrderItemReponse> dtos)
         {
-            if (items == null || !items.Any())
+            if (dtos == null || !dtos.Any())
                 return false;
 
-            await _orderItemRepository.AddOrderItemsAsync(items);
-            return true;
+            var items = dtos.Select(x => new OrderItem
+            {
+                OrderId=x.orderid,
+                ProductId = x.id,
+                Quantity = x.qty,
+                UnitPrice = x.price,
+                TotalPrice = x.total,
+                CreatedAt = DateTime.Now
+            }).ToList();
+
+            return await _orderItemRepository.AddOrderItemsAsync(items);
         }
 
         // Lấy theo OrderId

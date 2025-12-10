@@ -84,6 +84,8 @@ namespace StoreApp.Services
                 CreatedAt, UpdatedAt: thời gian hiện tại
 
         */
+        // Hàm tạo đơn tạm cho khách khi mua online
+ 
         public async Task<OrderDTO> CreateTemporaryOrderAsync()
         {
             int maxId = await _orderRepo.GetMaxIdAsync();
@@ -91,7 +93,15 @@ namespace StoreApp.Services
             string orderCode = Guid.NewGuid().ToString();
 
             // Lấy user_id thực tế
-            int userId = GetCurrentUserId();
+            int userId = 2;
+            try
+            {
+                userId=GetCurrentUserId();
+            }
+            catch
+            {
+                
+            }
             var user = await _userRepo.GetByIdAsync(userId);
             string userName = user?.FullName ?? $"Nhân viên #{userId}";
 
@@ -115,14 +125,17 @@ namespace StoreApp.Services
                 UpdatedAt = DateTime.UtcNow,
                 CustomerName = customerName,
                 UserName = userName,
-                PromotionCode = null
+                PromotionCode = null,
+                PaymentMethod="cash",
+                PaymentStatus="pending",
+                TransactionRef=null
             };
 
             return tempOrder;
         }
 
 
-        // Lưu đơn hàng (frontend đã gửi đủ dữ liệu)
+                // Lưu đơn hàng (frontend đã gửi đủ dữ liệu)
         public async Task<bool> CreateOrderAsync(OrderDTO dto)
         {
             var order = new Order

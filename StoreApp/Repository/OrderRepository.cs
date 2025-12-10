@@ -52,11 +52,14 @@ namespace StoreApp.Repository
         {
             try
             {
-                _context.Orders.Update(order); 
-                return true;
+                await _context.Orders.AddAsync(order); // INSERT đúng
+                var result = await _context.SaveChangesAsync();
+
+                return result > 0;  // Chỉ true khi DB thực sự lưu
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine("Lỗi lưu Order: " + ex.Message);
                 return false;
             }
         }

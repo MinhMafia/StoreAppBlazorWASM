@@ -4,6 +4,7 @@ using StoreApp.Repository;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
 using System.Text;
+using StoreApp.Shared;
 
 namespace StoreApp.Services
 {
@@ -105,8 +106,7 @@ namespace StoreApp.Services
             };
             await _paymentRepo.AddPaymentAsync(payment);
 
-            // Log activity
-            await _logService.LogAsync(userId, "CREATE_PAYMENT", "Payment", orderId, JsonConvert.SerializeObject(req), "system");
+           
 
             return new MomoPaymentResponseDTO
             {
@@ -142,7 +142,7 @@ namespace StoreApp.Services
             string expected = SignSHA256(rawSignature, secretKey);
             if (callback.Signature != expected)
             {
-                await _logService.LogAsync(0, "INVALID_SIGNATURE", "Payment", callback.OrderId ?? "", "Chữ ký MoMo không hợp lệ", "system");
+                
                 return false;
             }
 
@@ -154,13 +154,28 @@ namespace StoreApp.Services
                 {
                     payment.Status = "completed";
                     await _paymentRepo.UpdatePaymentAsync(payment);
-                    await _orderRepo.UpdateOrderStatusAsync(payment.OrderId, "paid");
-                    await _logService.LogAsync(payment.OrderId, "PAYMENT_SUCCESS", "Payment", payment.TransactionRef, JsonConvert.SerializeObject(callback), "system");
+                    await _orderRepo.UpdateOrderStatusAsync(payment.OrderId, "completed");
+                    
                 }
             }
 
             return true;
         }
+
+        public async Task<PaymentResponseDTO?> GetByOrderIdAsync(int orderId)
+        {
+            var payment = await _paymentRepo.GetByOrderIdAsyncVer2(orderId);
+
+            if (payment == null)
+                return null;
+
+            return new PaymentResponseDTO(
+                method: payment.Method,
+                transaction_ref: payment.TransactionRef,
+                status: payment.Status
+            );
+        }
+
 
     }
 }

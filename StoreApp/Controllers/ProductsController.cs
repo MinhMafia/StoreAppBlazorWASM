@@ -3,6 +3,7 @@ using StoreApp.Models;
 using StoreApp.Services;
 using StoreApp.Shared;
 
+
 namespace StoreApp.Controllers
 {
     [ApiController]
@@ -209,6 +210,8 @@ namespace StoreApp.Controllers
 
         // ĐỪNG XÓA LÀM ƠN = lẤY DANH SÁCH SẢN PHẨM CÒN HÀNG TRONG CỬA HÀNG
 
+// ĐỪNG XÓA LÀM ƠN = lẤY DANH SÁCH SẢN PHẨM CÒN HÀNG TRONG CỬA HÀNG
+
         [HttpGet("available")]
         public async Task<ActionResult<PaginationResult<ProductDTO>>> GetAvailableProducts(
             [FromQuery] int page = 1,
@@ -240,15 +243,29 @@ namespace StoreApp.Controllers
 
         // TÌM KIẾM
         // GET api/products/search?keyword=...
+        // TÌM KIẾM
+        // GET api/products/search?keyword=...
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<ProductDTO>>> SearchProducts([FromQuery] string keyword)
+        public async Task<ActionResult<PaginationResult<ProductDTO>>> SearchProducts(
+            [FromQuery] string keyword,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
         {
             try
             {
+                // Validate input
                 if (string.IsNullOrWhiteSpace(keyword))
                     return BadRequest("Search keyword is required");
 
-                var products = await _productService.SearchProductsAsync(keyword);
+                if (page < 1) page = 1;
+                if (pageSize < 1 || pageSize > 100) pageSize = 20;
+
+                // Trim keyword
+                keyword = keyword.Trim();
+
+                // Call service
+                var products = await _productService.SearchProductsAsync(keyword, page, pageSize);
+
                 return Ok(products);
             }
             catch (Exception ex)

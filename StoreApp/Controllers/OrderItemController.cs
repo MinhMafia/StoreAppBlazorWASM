@@ -1,6 +1,7 @@
 using StoreApp.Models;
 using StoreApp.Services;
 using Microsoft.AspNetCore.Mvc;
+using StoreApp.Shared;
 
 namespace StoreApp.Controllers
 {
@@ -15,21 +16,38 @@ namespace StoreApp.Controllers
             _orderItemService = orderItemService;
         }
 
-        // POST: api/OrderItem/create
+        // POST: api/OrderItem/create=> CODE CŨ
+        // [HttpPost("create")]
+        // public async Task<IActionResult> CreateOrderItems([FromBody] List<OrderItem> items)
+        // {
+        //     if (items == null || !items.Any())
+        //         return BadRequest(false);
+
+        //     try
+        //     {
+        //         bool success = await _orderItemService.SaveOrderItemsAsync(items);
+        //         return Ok(success);
+        //     }
+        //     catch (Exception)
+        //     {
+        //         return StatusCode(500, false);
+        //     }
+        // }
+                // POST: api/OrderItem/create
         [HttpPost("create")]
-        public async Task<IActionResult> CreateOrderItems([FromBody] List<OrderItem> items)
+        public async Task<IActionResult> CreateOrderItems([FromBody] List<OrderItemReponse> items)
         {
             if (items == null || !items.Any())
-                return BadRequest(false);
+                return BadRequest("Empty list");
 
             try
             {
                 bool success = await _orderItemService.SaveOrderItemsAsync(items);
                 return Ok(success);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500, false);
+                return StatusCode(500, $"Internal error: {ex.Message}");
             }
         }
 

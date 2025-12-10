@@ -4,8 +4,12 @@
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @using StoreApp.Client.Components.OrderPage
+@using System.Text.Json
+@inject IOrdersClientService  _ordersClient
+
 
 @inject IJSRuntime JS
+
 
 <div class="max-w-8xl mx-auto p-4 sm:p-6">
 
@@ -27,6 +31,7 @@
         </div>
 
         <button
+            @onclick="CreateNewOrder"
             class="w-full sm:w-auto px-6 py-3 bg-purple-500 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg transition">
             Tạo Đơn Hàng Mới
         </button>
@@ -84,10 +89,14 @@
     @if (showOrderModel)
     {
         <OrderForm
-        ListOrderProducts="listOrderProducts"
-        CurrentOrder="currentOrder" 
-        ordersFormMode="ordersFormMode"
-        OnCloseOrdersForm="() => showOrderModel = false"  
+        selectedProduct="@selectedProduct"
+        promotion="@promotion"
+        ListOrderProducts="@listOrderProducts"
+        currentOrder="@currentOrder" 
+        ordersFormMode="@ordersFormMode"
+        OnCloseOrdersForm="() => showOrderModel = false" 
+        OnOrderChanged="HandleOrderChanged" 
+        createNewOrder="createNewOrder"
         />
     }
 
@@ -98,35 +107,18 @@
         currentPage="@currentPage" 
         totalPages="@totalPages"
         ViewOrderDetail="ViewOrderDetail"
-        onPageChange="@(page => OnPageChanged(page))" />
+        onPageChange="@(page => OnPageChanged(page))"
+         />
 
 
-    @* {/* Modal chọn khách hàng */} => Phục vụ cho việc chọn khách cho việc tạo đơn , ẩn ban đầu và hiện ra khi nhấn nút chọn khách trong Form đơn hàng*@
-    @if (showCustomerModal)
-    {
-        <CustomerModel />
-    }
 
-    @* {/* Modal chọn sản phẩm */} => Phục vụ cho việc chọn sản phẩm cho tạo đơn, ẩn ban đầu và hiện ra khi nhấn nút chọn sản phẩm trong Form đơn hàng*@
-    @if (showProductModal)
-    {
-        <ProductModel />
-    }
 
 
 </div>
 @code {
 
-    private readonly IOrdersClientService _ordersClient;
-
-    public OrdersPage(IOrdersClientService ordersClient)
-    {
-        _ordersClient = ordersClient;
-    }
 
     // Biến điều khiển hiển thị modal khách hàng, sản phẩm và form đơn hàng
-    bool showCustomerModal = false;
-    bool showProductModal = false;
     bool showOrderModel = false;
 
     // Chế độ form đơn hàng: "create" hoặc "detail"
@@ -137,11 +129,14 @@
 
 
     // Sản phẩm được chọn => selectedProduct
+    ProductDTO? selectedProduct = null;
     // Danh sách sản phẩm trong đơn => listOrderProducts
     List<OrderItemReponse> listOrderProducts = new();
+
     // Khách hàng được chọn => selectedCustomer
     // Thông tin thanh toán được chọn => payment
     // Thông tin khuyến mãi của đơn => promotion
+    PromotionDTO? promotion = null;
 
 
     // Danh sách đơn hàng => listOrders
@@ -163,31 +158,6 @@
     // Từ khóa tìm kiếm => searchKeyword
     string searchKeyword = "";
 
-    // Hàm để mở đóng các model
-    void openCustomerModal()
-    {
-        showCustomerModal = true;
-    }
-    void closeCustomerModal()
-    {
-        showCustomerModal = false;
-    }
-
-    void openProductModal()
-    {
-        showProductModal = true;
-    }
-
-    void closeProductModal()
-    {
-        showProductModal = false;
-    }
-
-    // Mỏ form đơn hàng => Trạng thái tạo đơn mới
-    void openOrderModal()
-    {
-
-    }
 
     /**
     * Lấy danh sách có phân trang nâng cao (Phân trang bình thường, lọc theo trạng thái đơn hàng, lọc theo ngày bắt đầu kết
@@ -214,7 +184,14 @@ thúc, tìm kiếm )
         ordersFormMode = "detail";
         // Lấy danh sách sản phẩm của đơn hàng
         listOrderProducts = await _ordersClient.GetOrderItemsByOrderIdAsync(order.Id);
+
+        //Lấy thông tin khuyến mãi nếu có
+        if (order.PromotionId != null){
+            promotion = await _ordersClient.GetPromotionByIdAsync(order.PromotionId.Value);
+        }
+        
         showOrderModel = true;
+        StateHasChanged();
     }
 
 
@@ -231,9 +208,7 @@ thúc, tìm kiếm )
         currentPage = 1;
         await LoadOrdersAdvanced();
 
-        await ShowAlert(string.IsNullOrEmpty(selectedStatus)
-            ? "Hiển thị tất cả trạng thái"
-            : $"Đang lọc trạng thái: {selectedStatus}");
+
     }
 
 
@@ -249,9 +224,6 @@ thúc, tìm kiếm )
 
         currentPage = 1;
 
-        // Thông báo lọc ngày
-        await JS.InvokeVoidAsync("alert", $"Đang lọc theo ngày: {selectedStartDate?.ToString("dd/MM/yyyy")} → {selectedEndDate?.ToString("dd/MM/yyyy")}");
-
         await LoadOrdersAdvanced();
     }
 
@@ -260,12 +232,10 @@ thúc, tìm kiếm )
     {
         if (string.IsNullOrWhiteSpace(searchKeyword))
         {
-            await ShowAlert("Từ khóa tìm kiếm rỗng, hiển thị tất cả đơn hàng");
+            ShowAlert("Không để rỗng từ khóa tìm kiếm");
+            return;
         }
-        else
-        {
-            await ShowAlert($"Đang tìm kiếm với từ khóa: \"{searchKeyword}\"");
-        }
+        
 
         currentPage = 1;
         await LoadOrdersAdvanced();
@@ -287,4 +257,234 @@ thúc, tìm kiếm )
 
         }
     }
+
+    // Xử tạo đơn hàng mới
+    async Task CreateNewOrder()
+    {
+        ordersFormMode = "create";
+        //Gọi một đơn tạm vởi server để lấy id đơn hàng mới
+        currentOrder = await _ordersClient.CreateTemporaryOrderAsync();
+        listOrderProducts.Clear();
+        selectedProduct=null;
+        promotion = null;
+        showOrderModel = true;
+    }
+
+    void HandleOrderChanged(OrderDTO updatedOrder)
+    {
+        currentOrder = updatedOrder;
+        StateHasChanged(); // đảm bảo re-render
+    }
+
+    // Tạo đơn hàng mới 
+    async Task createNewOrder (){
+        if (listOrderProducts.Count==0){
+            ShowAlert("Vui lòng chọn sản phẩm để mua");
+            return;
+
+        }
+        // In ra console.log của trình duyệt
+        JS.InvokeVoidAsync("console.log", "Đơn hàng:", currentOrder);
+      
+
+        bool result = await _ordersClient.SaveFinalOrderAsync(currentOrder);
+        if(result==false){
+            JS.InvokeVoidAsync("console.log", "Lưu order bị lỗi");
+            return ;
+        }
+
+        listOrderProducts?.ForEach(item => item.orderid = currentOrder.Id);
+        JS.InvokeVoidAsync("console.log", "Danh sách sản phẩm muốn mua:", listOrderProducts);
+        bool result2= await _ordersClient.SaveListOrderItem (listOrderProducts);
+        if(result2==false){
+
+            return ;
+        }
+        List <ReduceInventoryDto> reducelist=preparedListReduceInventoryDto(listOrderProducts);
+        bool result3= await _ordersClient.ReduceMultipleAsync(reducelist);
+        if(result3==false){
+
+            return ;
+        }
+
+        if(currentOrder.PromotionId!=null){
+            // Apply Promotion
+            ApplyPromotionRequest requesst=preparedPromotion (currentOrder);
+            bool result4=await _ordersClient.ApplyPromotionAsync(requesst);
+            if(result4==false){
+
+                return ;
+            }
+        }
+
+        PaymentResult paymentResult;
+        if (currentOrder.PaymentMethod=="cash"){
+            paymentResult= await _ordersClient.PayOfflineAsync(currentOrder.Id, currentOrder.TotalAmount);
+            if(paymentResult.Success==false){
+
+                return ;
+            }else{
+                ShowAlert("Đã tạo đơn hàng thành công");
+              
+            }
+        }else{
+            paymentResult=await _ordersClient.PayWithMomoAsync(currentOrder.Id, currentOrder.TotalAmount);
+                if(paymentResult.Success==false){
+                JS.InvokeVoidAsync("console.log", $"Lỗi thanh toán MoMo: {paymentResult.Message}");
+                return ;
+            }else{
+                ShowAlert("Đã tạo đơn hàng thành công");
+               
+            }
+
+        }
+        bool wantPrint = await JS.InvokeAsync<bool>("confirm", "Bạn có muốn in hóa đơn không?");
+        if (wantPrint){
+            await  PrintInvoiceAsync(currentOrder, listOrderProducts);
+        }
+    
+        showOrderModel=false;
+        
+
+    }
+
+    // Chuẩn bị listOrderProducts
+    public void preparedlistOrderProducts(int orderid){
+        foreach(var item in listOrderProducts){
+            item.orderid =orderid;
+        }
+    }
+
+    // Chuẩn bị ApplyPromotionRequest
+    public ApplyPromotionRequest preparedPromotion (OrderDTO order){
+        return new ApplyPromotionRequest{
+            PromotionId = order.PromotionId ?? 0,
+            OrderId=order.Id,
+            CustomerId=order.CustomerId
+
+        };
+
+    }
+
+    // Chuẩn bị List ReduceInventoryDto
+    public List<ReduceInventoryDto> preparedListReduceInventoryDto(List<OrderItemReponse> items){
+        List <ReduceInventoryDto> list=new List<ReduceInventoryDto>();
+        foreach (var item in items){
+            list.Add(new ReduceInventoryDto{
+                ProductId=item.id,
+                Quantity=item.qty
+            });
+        }
+        return list;
+
+    }
+
+    // Hàm in hóa đơn 
+    public async Task PrintInvoiceAsync(OrderDTO order, List<OrderItemReponse> items)
+    {
+        Func<decimal, string> fmt = (num) =>
+            string.Format(new System.Globalization.CultureInfo("vi-VN"), "{0:C0}", num);
+
+        string rows = "";
+        foreach (var p in items)
+        {
+            rows += $@"
+                <tr>
+                    <td style='text-align:left; padding-left:10px;'>{p.product}</td>
+                    <td>{p.qty}</td>
+                    <td>{fmt(p.price)}</td>
+                    <td>{fmt(p.total)}</td>
+                </tr>";
+        }
+
+        string promotionHtml = "";
+        if (!string.IsNullOrEmpty(order.PromotionCode))
+        {
+            promotionHtml = $@"
+                <div style='color:red; font-weight:bold; margin-top:5px;'>
+                    Khuyến mãi ({order.PromotionCode}): -{fmt(order.Discount)}
+                </div>";
+        }
+
+        string paymentHtml = order.PaymentMethod?.ToLower() switch
+        {
+            "cash" => "TIỀN MẶT",
+            "momo" => "MOMO",
+            _       => (order.PaymentMethod ?? "cash").ToUpper()
+        };
+
+        string html = $@"
+        <!DOCTYPE html>
+        <html><head>
+        <meta charset='utf-8'>
+        <title>Hóa đơn #{order.OrderNumber ?? order.Id.ToString()}</title>
+
+        <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; font-size: 14px; }}
+        h2 {{ text-align: center; color: #1a9a7d; margin: 0 0 15px 0; }}
+        .info {{ margin: 4px 0; }}
+        table {{ width: 100%; border-collapse: collapse; margin: 15px 0; }}
+        th, td {{ border: 1px solid #000; padding: 8px; text-align: center; }}
+        th {{ background: #f0f0f0; }}
+        .total {{ text-align: right; font-weight: bold; font-size: 18px; margin-top: 10px; }}
+        .footer {{ margin-top: 40px; text-align: center; font-size: 18px; font-weight: bold; }}
+        </style>
+
+        </head><body>
+        <h2>PHIẾU THANH TOÁN</h2>
+
+        <div class='info'><strong>Mã đơn:</strong> #{order.OrderNumber ?? order.Id.ToString()}</div>
+        <div class='info'><strong>Khách hàng:</strong> {(order.CustomerName)}</div>
+        <div class='info'><strong>Thời gian:</strong> {DateTime.Now:dd/MM/yyyy HH:mm:ss}</div>
+
+        <table>
+            <tr><th>Sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr>
+            {rows}
+        </table>
+
+        <div class='total'>TỔNG TIỀN: {fmt(order.TotalAmount)}</div>
+
+        {promotionHtml}
+
+        <div style='margin-top:15px; font-size:17px; font-weight:bold;'>
+            Thanh toán: {paymentHtml}
+        </div>
+
+        <div class='footer'>CẢM ƠN QUÝ KHÁCH!<br>HẸN GẶP LẠI</div>
+        </body></html>";
+
+        string safeHtml = html.Replace("`", "\\`");
+
+        string js = $@"
+            var iframe = document.createElement('iframe');
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = 'none';
+            document.body.appendChild(iframe);
+
+            var doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(`{safeHtml}`);
+            doc.close();
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+
+            iframe.contentWindow.onafterprint = () => document.body.removeChild(iframe);
+        ";
+
+        await JS.InvokeVoidAsync("eval", js);
+    }
+
+
+
+
+
+
+
+
+
+
 }

@@ -17,11 +17,11 @@ namespace StoreApp.Repository
         }
 
         // Lưu nhiều OrderItem
-        public async Task<List<OrderItem>> AddOrderItemsAsync(List<OrderItem> items)
+        public async Task<bool> AddOrderItemsAsync(List<OrderItem> items)
         {
             _context.OrderItems.AddRange(items);
             await _context.SaveChangesAsync();
-            return items;
+            return true;
         }
 
         // Lấy danh sách OrderItem theo OrderId
@@ -43,6 +43,7 @@ namespace StoreApp.Repository
                 await _context.SaveChangesAsync();
             }
         }
+        
         public async Task<List<OrderItemReponse>> GetByOrderIdAsyncVer2(int orderId)
         {
             return await _context.OrderItems
@@ -58,5 +59,8 @@ namespace StoreApp.Repository
                 })
                 .ToListAsync();
         }
+
+
+
     }
 }

@@ -1,10 +1,16 @@
+@using StoreApp.Shared
+@using System.Net.Http.Json
+@inject IJSRuntime JS
+
 <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
   <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4">
 
     <!-- Header -->
     <div class="flex justify-between items-center p-5 border-b">
       <h3 class="text-xl font-bold">Chọn Sản Phẩm</h3>
-      <button class="text-gray-500 hover:text-gray-700">
+      <button 
+      @onclick="async () => await closeModal.InvokeAsync()"
+      class="text-gray-500 hover:text-gray-700">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -16,10 +22,17 @@
 
       <!-- Search -->
       <div class="flex gap-2 mb-4">
-        <input type="text" placeholder="Tìm sản phẩm..." class="flex-1 border px-3 py-2 rounded" />
-        <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Tìm kiếm</button>
-        <button class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center">
-          <ion-icon name="reload-outline" class="text-xl"></ion-icon>
+        <input 
+        @bind-value="searchKeyword"
+        type="text" placeholder="Tìm sản phẩm..." class="flex-1 border px-3 py-2 rounded" />
+        <button
+        @onclick="SearchProductsAsync" 
+        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Tìm kiếm</button>
+
+        <button
+        @onclick="ReloadProductsAsync" 
+        class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center">
+          Load
         </button>
 
 
@@ -34,40 +47,33 @@
               <th class="px-4 py-2 text-left">Tên SP</th>
               <th class="px-4 py-2 text-right">Giá</th>
               <th class="px-4 py-2 text-right">Tồn kho</th>
-              <th class="px-4 py-2 text-center">Chọn</th>
             </tr>
           </thead>
 
           <tbody>
-            <tr class="hover:bg-gray-50 cursor-pointer">
-              <td class="px-4 py-2">1</td>
-              <td class="px-4 py-2">Sản phẩm A</td>
-              <td class="px-4 py-2 text-right font-bold">120.000₫</td>
-              <td class="px-4 py-2 text-right">35</td>
-              <td class="px-4 py-2 text-center">
-                <input type="radio" name="selectedProduct" />
-              </td>
-            </tr>
+            @if(products.Count == 0)
+            {
+              <tr>
+                <td colspan="5" class="px-4 py-2 text-center text-gray-500">
+                  Không có sản phẩm nào.
+                </td>
+              </tr>
+            }
+            else
+            {
+              @foreach (var product in products)
+              {
+                <tr class="cursor-pointer @(selectedProduct?.Id == product.Id ? "bg-indigo-100" : "hover:bg-gray-50")"
+                  @onclick="() => selectedProduct = product">
+                  <td class="px-4 py-2">@product.Id</td>
+                  <td class="px-4 py-2">@product.ProductName</td>
+                  <td class="px-4 py-2 text-right font-bold">@product.Price.ToString("C")</td>
+                  <td class="px-4 py-2 text-right">@product.Inventory.Quantity</td>
+                </tr>
+              }
 
-            <tr class="hover:bg-gray-50 cursor-pointer">
-              <td class="px-4 py-2">2</td>
-              <td class="px-4 py-2">Sản phẩm B</td>
-              <td class="px-4 py-2 text-right font-bold">85.000₫</td>
-              <td class="px-4 py-2 text-right">12</td>
-              <td class="px-4 py-2 text-center">
-                <input type="radio" name="selectedProduct" />
-              </td>
-            </tr>
-
-            <tr class="hover:bg-gray-50 cursor-pointer">
-              <td class="px-4 py-2">3</td>
-              <td class="px-4 py-2">Sản phẩm C</td>
-              <td class="px-4 py-2 text-right font-bold">50.000₫</td>
-              <td class="px-4 py-2 text-right">78</td>
-              <td class="px-4 py-2 text-center">
-                <input type="radio" name="selectedProduct" />
-              </td>
-            </tr>
+            }
+          
           </tbody>
         </table>
       </div>
@@ -75,17 +81,125 @@
 
     <!-- Pagination -->
     <div class="flex justify-center items-center gap-3 mt-4">
-      <button class="px-3 py-1 bg-blue-600 text-white rounded">Prev</button>
-      <span>1 / 5</span>
-      <button class="px-3 py-1 bg-blue-600 text-white rounded">Next</button>
+      @if (currentPage > 1)
+      {
+        <button 
+        @onclick="async () => await OnPageChanged(currentPage - 1)"
+        class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Prev</button>
+      }
+      
+      <span><strong>@currentPage</strong> / <strong>@totalPages</strong></span>
+
+      @if (currentPage < totalPages)
+      {
+        <button 
+        @onclick="async () => await OnPageChanged(currentPage + 1)"
+         class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+          Next  
+        </button>
+      }
     </div>
 
     <!-- Footer -->
     <div class="flex justify-end gap-3 p-5 border-t">
-      <button class="px-6 py-2 bg-purple-500 text-white rounded-lg font-bold hover:bg-purple-600">
+      <button 
+      @onclick="ConfirmSelection"
+      class="px-6 py-2 bg-purple-500 text-white rounded-lg font-bold hover:bg-purple-600">
         Chọn Sản Phẩm
       </button>
     </div>
 
   </div>
 </div>
+
+@code {
+  int currentPage = 1;
+  int pageSize = 10;
+
+  int totalPages = 1;
+  string searchKeyword = "";
+
+  List<ProductDTO> products = new();  
+
+  [Parameter]
+  public EventCallback<ProductDTO> OnProductSelected { get; set; }
+
+  [Parameter]
+   public ProductDTO? selectedProduct { get; set; }
+
+  [Parameter] public EventCallback closeModal { get; set; }
+
+
+
+  [Inject] IOrdersClientService _ordersClient { get; set; } = null!;
+
+
+    //Xuất hiện thông báo
+  async Task ShowAlert(string message)
+  {
+      await JS.InvokeVoidAsync("alert", message);
+  }
+
+  // Lấy danh sách sản phẩm từ API
+  async Task  GetProductsAsync()
+  {
+    var result = await _ordersClient.GetProductsPagedAndSearchedAsync(
+        currentPage, pageSize, searchKeyword);
+
+    products = result.Items;
+    totalPages= result.TotalPages;
+  }
+
+  //Hàm tìm kiếm sản phẩm
+  async Task SearchProductsAsync()
+  {
+    if (string.IsNullOrWhiteSpace(searchKeyword))
+    {
+      await ShowAlert("Không để rỗng từ khóa tìm kiếm");
+      return;
+    }
+    currentPage = 1;
+    await GetProductsAsync();
+  }
+
+    //Hàm relodad danh sách sản phẩm
+  async Task ReloadProductsAsync()
+  {
+    searchKeyword = "";
+    currentPage = 1;
+    await GetProductsAsync();
+  }
+
+  //Hàm chuyển trang
+  async Task OnPageChanged(int newPage)
+  {
+    if (newPage < 1 || newPage > totalPages) return;
+
+    currentPage = newPage;
+    await GetProductsAsync();
+  }
+
+  async Task ConfirmSelection()
+{
+    if (selectedProduct == null)
+    {
+        await ShowAlert("Vui lòng chọn sản phẩm");
+        return;
+    }
+
+    // Gửi sản phẩm được chọn về parent
+    await OnProductSelected.InvokeAsync(selectedProduct);
+
+    // Đóng modal
+    await closeModal.InvokeAsync();
+}
+
+
+protected override async Task OnInitializedAsync()
+{
+    await GetProductsAsync();
+}
+
+
+
+}
