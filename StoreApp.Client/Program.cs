@@ -42,6 +42,7 @@ AddHttpClientWithAuth<IStatisticsService, StatisticsService>();
 AddHttpClientWithAuth<IPromotionService, PromotionService>();
 AddHttpClientWithAuth<ICustomerAuthService, CustomerAuthService>();
 AddHttpClientWithAuth<IOrdersClientService, OrdersClientService>(); 
+AddHttpClientWithAuth<IMeClientService, MeClientService>();
 // Store Cart Service
 AddHttpClientWithAuth<IStoreCartService, StoreCartService>();
 

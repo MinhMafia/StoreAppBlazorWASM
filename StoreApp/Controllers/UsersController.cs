@@ -15,6 +15,15 @@ namespace StoreApp.Controllers
             _userService = userService;
         }
 
+        [HttpGet("staffs")]
+        public async Task<ActionResult> GetNonAdminPaginated(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            var users = await _userService.GetNonAdminPaginatedAsync(page, pageSize);
+            return Ok(users);
+        }
+
         // GET api/users/paginated?page=1&pageSize=10
         [HttpGet("paginated")]
         public async Task<ActionResult> GetPaginated(

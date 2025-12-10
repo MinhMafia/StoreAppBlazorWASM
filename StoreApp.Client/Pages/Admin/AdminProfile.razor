@@ -1,0 +1,260 @@
+@page "/admin/profile"
+@layout Layout.MainLayout
+@inject IMeClientService MeClientService
+
+<PageTitle>Thông tin cá nhân</PageTitle>
+
+<div class="container py-4">
+    <div class="row mb-3">
+        <div class="col">
+            <p class="text-uppercase text-primary fw-semibold small mb-1">Tài khoản</p>
+            <h1 class="h3 fw-bold text-dark">Thông tin cá nhân</h1>
+            <p class="text-muted">Xem và cập nhật hồ sơ quản trị.</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(AlertMessage))
+    {
+        <div class="alert @AlertCss" role="alert">
+            @AlertMessage
+        </div>
+    }
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            @if (IsLoading)
+            {
+                <div class="text-muted">Đang tải...</div>
+            }
+            else
+            {
+                <EditForm Model="@ProfileForm" OnSubmit="@HandleProfileSubmit">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input class="form-control" value="@ProfileForm.Username" readonly />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input class="form-control" value="@ProfileForm.Email" readonly />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Họ tên</label>
+                            <InputText class="form-control" @bind-Value="ProfileForm.FullName" placeholder="Nhập họ tên" />
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="LoadProfileAsync" disabled="@IsSaving">
+                            Tải lại
+                        </button>
+                        <button type="submit" class="btn btn-primary" disabled="@IsSaving">
+                            @(IsSaving ? "Đang lưu..." : "Lưu thay đổi")
+                        </button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="mb-0">Đổi mật khẩu</h5>
+                    <small class="text-muted">Bảo vệ tài khoản của bạn.</small>
+                </div>
+            </div>
+            <EditForm Model="@PasswordForm" OnSubmit="@HandlePasswordSubmit">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Mật khẩu hiện tại</label>
+                        <div class="input-group">
+                            <InputText type="@(ShowCurrentPassword ? "text" : "password")" class="form-control" @bind-Value="PasswordForm.CurrentPassword" required minlength="6" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="() => ShowCurrentPassword = !ShowCurrentPassword">
+                                <i class="bi @(ShowCurrentPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Mật khẩu mới</label>
+                        <div class="input-group">
+                            <InputText type="@(ShowNewPassword ? "text" : "password")" class="form-control" @bind-Value="PasswordForm.NewPassword" required minlength="6" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="() => ShowNewPassword = !ShowNewPassword">
+                                <i class="bi @(ShowNewPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Xác nhận mật khẩu mới</label>
+                        <div class="input-group">
+                            <InputText type="@(ShowConfirmPassword ? "text" : "password")" class="form-control" @bind-Value="PasswordForm.ConfirmNewPassword" required minlength="6" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="() => ShowConfirmPassword = !ShowConfirmPassword">
+                                <i class="bi @(ShowConfirmPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary" disabled="@IsPasswordSaving">
+                        @(IsPasswordSaving ? "Đang lưu..." : "Đổi mật khẩu")
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ProfileModel ProfileForm = new();
+    private PasswordModel PasswordForm = new();
+    private bool IsLoading = true;
+    private bool IsSaving;
+    private bool IsPasswordSaving;
+    private string AlertMessage = string.Empty;
+    private string AlertCss = "alert-info";
+    private bool ShowCurrentPassword;
+    private bool ShowNewPassword;
+    private bool ShowConfirmPassword;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProfileAsync();
+    }
+
+    private async Task LoadProfileAsync()
+    {
+        IsLoading = true;
+        AlertMessage = string.Empty;
+
+        try
+        {
+            var data = await MeClientService.GetProfileAsync();
+            if (data == null)
+            {
+                AlertCss = "alert-danger";
+                AlertMessage = "Không thể tải thông tin cá nhân.";
+                return;
+            }
+
+            ProfileForm = new ProfileModel
+            {
+                Username = data.Username ?? string.Empty,
+                Email = data.Email ?? string.Empty,
+                FullName = data.FullName ?? string.Empty
+            };
+        }
+        catch (Exception ex)
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task HandleProfileSubmit(EditContext _)
+    {
+        var trimmedUsername = (ProfileForm.Username ?? string.Empty).Trim();
+        var trimmedEmail = (ProfileForm.Email ?? string.Empty).Trim();
+
+        if (trimmedUsername.Length < 3)
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = "Username phải có ít nhất 3 ký tự.";
+            return;
+        }
+
+        if (!trimmedEmail.Contains("@"))
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = "Email không hợp lệ.";
+            return;
+        }
+
+        IsSaving = true;
+        AlertMessage = string.Empty;
+
+        try
+        {
+            var payload = new MeDTO
+            {
+                Username = trimmedUsername,
+                Email = trimmedEmail,
+                FullName = string.IsNullOrWhiteSpace(ProfileForm.FullName) ? string.Empty : ProfileForm.FullName.Trim()
+            };
+
+            var updated = await MeClientService.UpdateProfileAsync(payload);
+            ProfileForm = new ProfileModel
+            {
+                Username = updated.Username ?? trimmedUsername,
+                Email = updated.Email ?? trimmedEmail,
+                FullName = updated.FullName ?? ProfileForm.FullName
+            };
+
+            AlertCss = "alert-success";
+            AlertMessage = "Thông tin cá nhân đã được cập nhật.";
+        }
+        catch (Exception ex)
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = ex.Message;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private async Task HandlePasswordSubmit(EditContext _)
+    {
+        if (PasswordForm.NewPassword != PasswordForm.ConfirmNewPassword)
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = "Mật khẩu xác nhận không khớp.";
+            return;
+        }
+
+        IsPasswordSaving = true;
+        AlertMessage = string.Empty;
+
+        try
+        {
+            var payload = new MeDTO
+            {
+                CurrentPassword = PasswordForm.CurrentPassword,
+                NewPassword = PasswordForm.NewPassword,
+                ConfirmNewPassword = PasswordForm.ConfirmNewPassword
+            };
+
+            await MeClientService.ChangePasswordAsync(payload);
+            AlertCss = "alert-success";
+            AlertMessage = "Đã đổi mật khẩu.";
+            PasswordForm = new PasswordModel();
+        }
+        catch (Exception ex)
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = ex.Message;
+        }
+        finally
+        {
+            IsPasswordSaving = false;
+        }
+    }
+
+    private sealed class ProfileModel
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string? FullName { get; set; }
+    }
+
+    private sealed class PasswordModel
+    {
+        public string CurrentPassword { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+        public string ConfirmNewPassword { get; set; } = string.Empty;
+    }
+}

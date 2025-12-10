@@ -51,6 +51,37 @@ namespace StoreApp.Repository
             };
         }
 
+        public async Task<PaginationResult<User>> GetNonAdminPaginatedAsync(int page, int pageSize)
+        {
+            if (page < 1) page = 1;
+            if (pageSize <= 0) pageSize = 20;
+
+            var query = _context.Users
+                .AsNoTracking()
+                .Where(u => u.Role != "admin");
+
+            var totalItems = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(u => u.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var calculatedTotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            var totalPages = Math.Max(1, calculatedTotalPages);
+
+            return new PaginationResult<User>
+            {
+                Items = items,
+                TotalItems = totalItems,
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                HasPrevious = page > 1,
+                HasNext = page < totalPages
+            };
+        }
+
         // Lấy user theo Id
         public async Task<User?> GetByIdAsync(int id)
         {
