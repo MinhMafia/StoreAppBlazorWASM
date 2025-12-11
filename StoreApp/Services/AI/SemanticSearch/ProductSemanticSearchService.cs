@@ -24,43 +24,7 @@ namespace StoreApp.Services.AI.SemanticSearch
             _logger = logger;
         }
 
-        public async Task<List<Product>> SearchProductsAsync(string query, int limit = 20, CancellationToken ct = default)
-        {
-            if (string.IsNullOrWhiteSpace(query)) return new List<Product>();
-
-            try
-            {
-                var queryVector = await _embeddingService.GetEmbeddingAsync(query, ct);
-                var filters = new Dictionary<string, object> { ["is_active"] = true };
-                var results = await _vectorStoreService.SearchAsync(
-                    AiConstants.ProductCollectionName,
-                    queryVector,
-                    limit,
-                    filters,
-                    ct);
-
-                if (!results.Any()) return new List<Product>();
-
-                var ids = results.Select(r => r.id).ToList();
-                var products = await _productRepository.GetByIdsAsync(ids);
-
-                var productDict = products.ToDictionary(p => p.Id);
-                var ordered = new List<Product>();
-
-                foreach (var (id, score, _) in results)
-                {
-                    if (productDict.TryGetValue(id, out var p))
-                        ordered.Add(p);
-                }
-
-                return ordered;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Semantic search failed for query: {Query}", query);
-                return new List<Product>();
-            }
-        }
+       
 
         public async Task<List<SemanticSearchResultDTO>> SearchWithScoresAsync(string query, int limit = 20, CancellationToken ct = default)
         {
