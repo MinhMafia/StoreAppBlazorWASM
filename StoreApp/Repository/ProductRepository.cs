@@ -63,7 +63,39 @@ namespace StoreApp.Repository
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
+
+            // Tự động tạo SKU nếu trống (sau khi có ID)
+            if (string.IsNullOrWhiteSpace(product.Sku))
+            {
+                product.Sku = GenerateSku(product.Id);
+                _context.Products.Update(product);
+                await _context.SaveChangesAsync();
+            }
+
             return product;
+        }
+
+        /// <summary>
+        /// Tạo SKU tự động dựa trên ID sản phẩm
+        /// Format: 89000000000{Id} (13 chữ số)
+        /// Ví dụ: ID 79 -> 8900000000079, ID 80 -> 8900000000080, ID 100 -> 8900000000100
+        /// </summary>
+        private string GenerateSku(int productId)
+        {
+            const string prefix = "89000000000";
+            var idString = productId.ToString();
+            var remainingDigits = 13 - prefix.Length;
+            
+            var paddedId = idString.PadLeft(remainingDigits, '0');
+            
+            if (idString.Length > remainingDigits)
+            {
+                var adjustedPrefixLength = 13 - idString.Length;
+                var adjustedPrefix = prefix.Substring(0, adjustedPrefixLength);
+                return adjustedPrefix + idString;
+            }
+            
+            return prefix + paddedId;
         }
 
         public async Task<Product> UpdateAsync(Product product)

@@ -20,6 +20,13 @@ namespace StoreApp.Services
             foreach (var item in items)
             {
                 var inventory = await _inventoryRepo.GetByProductIdAsync(item.ProductId);
+                
+                if (inventory == null)
+                {
+                    // Nếu không tìm thấy inventory, bỏ qua hoặc tạo mới
+                    // Tùy vào logic nghiệp vụ, có thể throw exception hoặc tạo mới
+                    continue;
+                }
 
                 inventory.Quantity = inventory.Quantity - item.Quantity;
                 inventory.UpdatedAt = DateTime.Now;
