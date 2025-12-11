@@ -1,0 +1,555 @@
+@page "/admin/users"
+@layout Layout.MainLayout
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>Nhân viên</PageTitle>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <p class="text-uppercase text-primary fw-semibold small mb-1">Tài khoản</p>
+            <h1 class="h3 fw-bold text-dark">Quản lý nhân viên</h1>
+            <p class="text-muted mb-0">Xem chi tiết, sửa, khóa/mở và đặt lại mật khẩu cho nhân viên.</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(AlertMessage))
+    {
+        <div class="alert @AlertCss" role="alert">@AlertMessage</div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Email</th>
+                            <th>Username</th>
+                            <th>Vai trò</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (IsLoading)
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">Đang tải...</td>
+                            </tr>
+                        }
+                        else if (Users.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">Chưa có người dùng.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var u in Users)
+                            {
+                                <tr>
+                                    <td>@(u.Email ?? "—")</td>
+                                    <td class="fw-semibold text-dark">@u.Username</td>
+                                    <td>
+                                        <span class="@RoleBadge(u.Role)">
+                                            @(u.Role?.ToUpperInvariant())
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="@StatusBadge(u.IsActive)">
+                                            @(u.IsActive ? "Đang hoạt động" : "Đã khoá")
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-secondary" title="Chi tiết" @onclick="() => OpenDetail(u)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-primary" title="Sửa thông tin" @onclick="() => OpenEditModal(u)">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-outline-warning" title="Đặt lại mật khẩu" @onclick="() => OpenResetModal(u)">
+                                                <i class="bi bi-key"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary" title="Khoá/Mở" @onclick="() => ToggleStatus(u)" disabled="@ToggleLoading">
+                                                <i class="@StatusIcon(u.IsActive)"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Meta.TotalPages > 1)
+            {
+                <div class="d-flex justify-content-between align-items-center pt-2">
+                    <span class="text-muted small">
+                        Trang @Meta.CurrentPage / @Meta.TotalPages — @Meta.TotalItems người dùng
+                    </span>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="PrevPage" disabled="@(Meta.CurrentPage <= 1)">Trước</button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="NextPage" disabled="@(Meta.CurrentPage >= Meta.TotalPages)">Sau</button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (ShowDetailModal && SelectedUser != null)
+{
+    <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.35);" tabindex="-1">
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chi tiết nhân viên</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDetailModal"></button>
+                </div>
+                <div class="modal-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">Username</dt>
+                        <dd class="col-sm-8 fw-semibold text-dark">@SelectedUser.Username</dd>
+
+                        <dt class="col-sm-4 text-muted">Email</dt>
+                        <dd class="col-sm-8 fw-semibold text-dark">@SelectedUser.Email</dd>
+
+                        <dt class="col-sm-4 text-muted">Họ tên</dt>
+                        <dd class="col-sm-8 fw-semibold text-dark">@SelectedUser.FullName</dd>
+
+                        <dt class="col-sm-4 text-muted">Vai trò</dt>
+                        <dd class="col-sm-8 fw-semibold text-dark">@SelectedUser.Role</dd>
+
+                        <dt class="col-sm-4 text-muted">Trạng thái</dt>
+                        <dd class="col-sm-8 fw-semibold text-dark">
+                            @(SelectedUser.IsActive ? "Đang hoạt động" : "Đã khoá")
+                        </dd>
+                    </dl>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseDetailModal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ShowEditModal && EditingUser != null)
+{
+    <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.35);" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chỉnh sửa nhân viên</h5>
+                    <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input class="form-control" value="@EditForm.Username" readonly />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input class="form-control" value="@EditForm.Email" readonly />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Họ tên</label>
+                            <InputText class="form-control" @bind-Value="EditForm.FullName" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Vai trò</label>
+                            <InputSelect class="form-select" @bind-Value="EditForm.Role">
+                                <option value="staff">Staff</option>
+                                <option value="admin">Admin</option>
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Trạng thái</label>
+                            <InputSelect class="form-select" @bind-Value="EditForm.IsActive">
+                                <option value="true">Đang hoạt động</option>
+                                <option value="false">Đã khoá</option>
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mật khẩu mới (tuỳ chọn)</label>
+                            <div class="input-group">
+                                <InputText @bind-Value="EditForm.NewPassword" type="@(EditForm.ShowPassword ? "text" : "password")" class="form-control" />
+                                <button class="btn btn-outline-secondary" type="button" @onclick="() => EditForm.ShowPassword = !EditForm.ShowPassword">
+                                    <i class="bi @(EditForm.ShowPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Xác nhận mật khẩu</label>
+                            <div class="input-group">
+                                <InputText @bind-Value="EditForm.ConfirmPassword" type="@(EditForm.ShowConfirm ? "text" : "password")" class="form-control" />
+                                <button class="btn btn-outline-secondary" type="button" @onclick="() => EditForm.ShowConfirm = !EditForm.ShowConfirm">
+                                    <i class="bi @(EditForm.ShowConfirm ? "bi-eye-slash" : "bi-eye")"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" @onclick="CloseEditModal">Hủy</button>
+                    <button class="btn btn-primary" @onclick="SubmitEditAsync" disabled="@IsSaving">
+                        @(IsSaving ? "Đang lưu..." : "Lưu thay đổi")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ShowResetModal && ResetUser != null)
+{
+    <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.35);" tabindex="-1">
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Đặt lại mật khẩu</h5>
+                    <button type="button" class="btn-close" @onclick="CloseResetModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu mới</label>
+                        <div class="input-group">
+                            <InputText @bind-Value="ResetPasswordForm.NewPassword" type="@(ResetPasswordForm.Show ? "text" : "password")" class="form-control" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="() => ResetPasswordForm.Show = !ResetPasswordForm.Show">
+                                <i class="bi @(ResetPasswordForm.Show ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Xác nhận mật khẩu</label>
+                        <div class="input-group">
+                            <InputText @bind-Value="ResetPasswordForm.ConfirmPassword" type="@(ResetPasswordForm.ShowConfirm ? "text" : "password")" class="form-control" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="() => ResetPasswordForm.ShowConfirm = !ResetPasswordForm.ShowConfirm">
+                                <i class="bi @(ResetPasswordForm.ShowConfirm ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" @onclick="CloseResetModal">Hủy</button>
+                    <button class="btn btn-primary" @onclick="SubmitResetAsync" disabled="@IsSaving">
+                        @(IsSaving ? "Đang lưu..." : "Lưu mật khẩu")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<UserDTO> Users { get; set; } = new();
+    private PaginationResult<UserDTO> Meta { get; set; } = new() { CurrentPage = 1, TotalPages = 1, TotalItems = 0, PageSize = 10 };
+    private bool IsLoading = true;
+    private bool ToggleLoading;
+    private bool IsSaving;
+    private string AlertMessage = string.Empty;
+    private string AlertCss = "alert-info";
+
+    private UserDTO? SelectedUser;
+    private bool ShowDetailModal;
+
+    private UserDTO? EditingUser;
+    private EditModel EditForm = new();
+    private bool ShowEditModal;
+
+    private UserDTO? ResetUser;
+    private ResetModel ResetPasswordForm = new();
+    private bool ShowResetModal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers(Meta.CurrentPage);
+    }
+
+    private async Task LoadUsers(int page)
+    {
+        IsLoading = true;
+        AlertMessage = string.Empty;
+
+        try
+        {
+            var resp = await Http.GetFromJsonAsync<PaginationResult<UserDTO>>($"api/users/paginated?page={page}&pageSize={Meta.PageSize}");
+            if (resp != null)
+            {
+                Users = resp.Items ?? new List<UserDTO>();
+                Meta = resp;
+            }
+        }
+        catch (Exception ex)
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void OpenDetail(UserDTO user)
+    {
+        SelectedUser = user;
+        ShowDetailModal = true;
+    }
+
+    private void CloseDetailModal()
+    {
+        ShowDetailModal = false;
+        SelectedUser = null;
+    }
+
+    private void OpenEditModal(UserDTO user)
+    {
+        EditingUser = user;
+        EditForm = new EditModel
+        {
+            Username = user.Username,
+            Email = user.Email ?? string.Empty,
+            FullName = user.FullName ?? string.Empty,
+            Role = user.Role ?? "staff",
+            IsActive = user.IsActive
+        };
+        ShowEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        ShowEditModal = false;
+        EditingUser = null;
+        IsSaving = false;
+    }
+
+    private async Task SubmitEditAsync()
+    {
+        if (EditingUser == null) return;
+
+        IsSaving = true;
+        AlertMessage = string.Empty;
+
+        try
+        {
+            if (!string.IsNullOrEmpty(EditForm.NewPassword) && EditForm.NewPassword != EditForm.ConfirmPassword)
+            {
+                AlertCss = "alert-danger";
+                AlertMessage = "Mật khẩu xác nhận không khớp.";
+                IsSaving = false;
+                return;
+            }
+
+            var payload = new UserDTO
+            {
+                Username = EditForm.Username,
+                Email = EditForm.Email,
+                FullName = string.IsNullOrWhiteSpace(EditForm.FullName) ? null : EditForm.FullName.Trim(),
+                Role = EditForm.Role,
+                IsActive = EditForm.IsActive,
+                Password = string.IsNullOrWhiteSpace(EditForm.NewPassword) ? null : EditForm.NewPassword.Trim()
+            };
+
+            var resp = await Http.PutAsJsonAsync($"api/users/{EditingUser.Id}", payload);
+            if (resp.IsSuccessStatusCode)
+            {
+                var updated = await resp.Content.ReadFromJsonAsync<UserDTO>() ?? payload;
+                var idx = Users.FindIndex(x => x.Id == EditingUser.Id);
+                if (idx >= 0)
+                {
+                    Users[idx] = updated;
+                }
+
+                AlertCss = "alert-success";
+                AlertMessage = "Đã cập nhật thông tin.";
+                ShowEditModal = false;
+            }
+            else
+            {
+                AlertCss = "alert-danger";
+                AlertMessage = $"Không thể cập nhật (mã {resp.StatusCode}).";
+            }
+        }
+        catch (Exception ex)
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = ex.Message;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void OpenResetModal(UserDTO user)
+    {
+        ResetUser = user;
+        ResetPasswordForm = new ResetModel();
+        ShowResetModal = true;
+    }
+
+    private void CloseResetModal()
+    {
+        ShowResetModal = false;
+        ResetUser = null;
+        IsSaving = false;
+    }
+
+    private async Task SubmitResetAsync()
+    {
+        if (ResetUser == null) return;
+
+        var newPass = ResetPasswordForm.NewPassword?.Trim() ?? string.Empty;
+        var confirm = ResetPasswordForm.ConfirmPassword?.Trim() ?? string.Empty;
+
+        if (newPass.Length < 6)
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = "Mật khẩu phải tối thiểu 6 ký tự.";
+            return;
+        }
+
+        if (newPass != confirm)
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = "Mật khẩu xác nhận không khớp.";
+            return;
+        }
+
+        IsSaving = true;
+        AlertMessage = string.Empty;
+
+        try
+        {
+            var payload = new UserDTO
+            {
+                Username = ResetUser.Username,
+                Email = ResetUser.Email ?? string.Empty,
+                FullName = ResetUser.FullName,
+                Role = ResetUser.Role,
+                IsActive = ResetUser.IsActive,
+                Password = newPass
+            };
+
+            var resp = await Http.PutAsJsonAsync($"api/users/{ResetUser.Id}", payload);
+            if (resp.IsSuccessStatusCode)
+            {
+                AlertCss = "alert-success";
+                AlertMessage = "Đã đặt lại mật khẩu.";
+                ShowResetModal = false;
+            }
+            else
+            {
+                AlertCss = "alert-danger";
+                AlertMessage = "Không thể đặt lại mật khẩu.";
+            }
+        }
+        catch (Exception ex)
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = ex.Message;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private async Task ToggleStatus(UserDTO user)
+    {
+        ToggleLoading = true;
+        AlertMessage = string.Empty;
+
+        try
+        {
+            var newStatus = !user.IsActive;
+            var resp = await Http.PatchAsync($"api/users/{user.Id}/status?isActive={newStatus}", null);
+            if (resp.IsSuccessStatusCode)
+            {
+                user.IsActive = newStatus;
+                AlertCss = "alert-success";
+                AlertMessage = "Đã cập nhật trạng thái.";
+            }
+            else
+            {
+                AlertCss = "alert-danger";
+                AlertMessage = $"Không thể cập nhật trạng thái (mã {resp.StatusCode}).";
+            }
+        }
+        catch (Exception ex)
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = ex.Message;
+        }
+        finally
+        {
+            ToggleLoading = false;
+        }
+    }
+
+    private async Task<bool> ConfirmAsync(string message)
+    {
+        return await JS.InvokeAsync<bool>("confirm", message);
+    }
+
+    private async Task PrevPage()
+    {
+        if (Meta.CurrentPage > 1)
+        {
+            await LoadUsers(Meta.CurrentPage - 1);
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (Meta.CurrentPage < Meta.TotalPages)
+        {
+            await LoadUsers(Meta.CurrentPage + 1);
+        }
+    }
+
+    private static string RoleBadge(string? role)
+    {
+        var normalized = role?.ToLowerInvariant() ?? string.Empty;
+        var tone = normalized == "admin"
+            ? "bg-danger-subtle text-danger fw-semibold"
+            : "bg-primary-subtle text-primary fw-semibold";
+        return $"badge rounded-pill {tone}";
+    }
+
+    private static string StatusBadge(bool active)
+    {
+        return active
+            ? "badge rounded-pill bg-success-subtle text-success fw-semibold"
+            : "badge rounded-pill bg-secondary-subtle text-secondary fw-semibold";
+    }
+
+    private static string StatusIcon(bool active) => active ? "bi bi-lock" : "bi bi-unlock";
+
+    private sealed class EditModel
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string? FullName { get; set; }
+        public string Role { get; set; } = "staff";
+        public bool IsActive { get; set; }
+        public string? NewPassword { get; set; }
+        public string? ConfirmPassword { get; set; }
+        public bool ShowPassword { get; set; }
+        public bool ShowConfirm { get; set; }
+    }
+
+    private sealed class ResetModel
+    {
+        public string? NewPassword { get; set; }
+        public string? ConfirmPassword { get; set; }
+        public bool Show { get; set; }
+        public bool ShowConfirm { get; set; }
+    }
+}

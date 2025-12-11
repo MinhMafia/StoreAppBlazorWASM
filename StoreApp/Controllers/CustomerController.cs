@@ -9,10 +9,12 @@ namespace StoreApp.Controllers
     public class CustomersController : ControllerBase
     {
         private readonly CustomerService _service;
+        private readonly UserService _userService;
 
-        public CustomersController(CustomerService service)
+        public CustomersController(CustomerService service,UserService userService)
         {
             _service = service;
+            _userService = userService;
         }
 
         // GET api/customers/paginated?page=1&pageSize=10=>CODE CŨ
@@ -84,6 +86,48 @@ namespace StoreApp.Controllers
         [HttpPost("")]
         public async Task<ActionResult> CreateCustomer([FromBody] CustomerCreateDTO createDto)
         {
+            if (createDto == null) return BadRequest("Payload is required.");
+
+            // Nếu chưa có UserId thì tạo mới user với role "customer", sau đó gán UserId cho customer
+            if (!createDto.UserId.HasValue)
+            {
+                // Chuẩn hóa dữ liệu user đầu vào
+                var username = !string.IsNullOrWhiteSpace(createDto.Phone)
+                    ? createDto.Phone.Trim()
+                    : (!string.IsNullOrWhiteSpace(createDto.Email) ? createDto.Email.Trim() : $"customer_{Guid.NewGuid():N}");
+
+                var email = !string.IsNullOrWhiteSpace(createDto.Email)
+                    ? createDto.Email.Trim()
+                    : $"{username}@auto.local";
+
+                var password = !string.IsNullOrWhiteSpace(createDto.Phone)
+                    ? createDto.Phone.Trim()
+                    : "123456";
+
+                var userDto = new UserDTO
+                {
+                    Username = username,
+                    Email = email,
+                    FullName = createDto.FullName,
+                    Role = "customer",
+                    IsActive = true,
+                    IsLocked = false,
+                    Password = password
+                };
+
+                // Kiểm tra trùng username/email
+                if (await _userService.UserExistsUsernameAsync(userDto.Username))
+                    return Conflict("Username already exists.");
+                if (await _userService.UserExistsEmailAsync(userDto.Email))
+                    return Conflict("Email already exists.");
+
+                var createdUser = await _userService.CreateUserAsync(userDto);
+                if (createdUser == null)
+                    return StatusCode(500, "Unable to create user.");
+
+                createDto.UserId = createdUser.Id;
+            }
+
             var result = await _service.CreateCustomerAsync(createDto);
             if (!result.Success && result.StatusCode == 409)
             {

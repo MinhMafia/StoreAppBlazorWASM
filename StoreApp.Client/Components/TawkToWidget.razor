@@ -38,17 +38,13 @@
 (function() {
 window.Tawk_API = window.Tawk_API || {};
 
-// --- ĐẶT WIDGET NGANG VỚI AI CHAT ---
-// AI chat button ở bottom-6 right-6 (24px từ bottom, 24px từ right)
-// Đặt Tawk.to cùng độ cao (yOffset ~30) và xOffset để đặt bên trái AI chat
-// xOffset: khoảng cách từ cạnh phải màn hình (càng lớn = càng xa bên phải = càng gần bên trái)
+// Đặt widget ở góc dưới bên trái, cùng hàng với AI chat (nếu có)
 window.Tawk_API.customStyle = {
 visibility: {
-desktop: { position: 'br', xOffset: 100, yOffset: 22 },
-mobile: { position: 'br', xOffset: 80, yOffset: 22 }
+desktop: { position: 'bl', xOffset: 30, yOffset: 22 },
+mobile: { position: 'bl', xOffset: 24, yOffset: 22 }
 }
 };
-// --------------------------------------
 
 window.Tawk_LoadStart = new Date();
 var s1 = document.createElement('script');

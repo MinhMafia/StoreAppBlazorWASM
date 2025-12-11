@@ -1,8 +1,8 @@
-using System.Security.Cryptography;
-using System.Text;
 using StoreApp.Shared;
 using StoreApp.Models;
 using StoreApp.Repository;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace StoreApp.Services
 {
@@ -31,6 +31,22 @@ namespace StoreApp.Services
         public async Task<PaginationResult<UserDTO>> GetPaginatedAsync(int page, int pageSize)
         {
             var result = await _userRepository.GetPaginatedAsync(page, pageSize);
+
+            return new PaginationResult<UserDTO>
+            {
+                Items = result.Items.Select(MapToUserDto).ToList(),
+                TotalItems = result.TotalItems,
+                CurrentPage = result.CurrentPage,
+                PageSize = result.PageSize,
+                TotalPages = result.TotalPages,
+                HasPrevious = result.HasPrevious,
+                HasNext = result.HasNext
+            };
+        }
+
+        public async Task<PaginationResult<UserDTO>> GetNonAdminPaginatedAsync(int page, int pageSize)
+        {
+            var result = await _userRepository.GetNonAdminPaginatedAsync(page, pageSize);
 
             return new PaginationResult<UserDTO>
             {
@@ -190,14 +206,28 @@ namespace StoreApp.Services
 
         private static string HashPassword(string password)
         {
-            var passwordBytes = Encoding.UTF8.GetBytes(password);
-            var hash = SHA256.HashData(passwordBytes);
+            return BCrypt.Net.BCrypt.HashPassword(password);
+        }
+
+        private static string HashPasswordLegacy(string password)
+        {
+            var bytes = Encoding.UTF8.GetBytes(password);
+            var hash = SHA256.HashData(bytes);
             return Convert.ToHexString(hash);
         }
 
         private static bool VerifyPassword(string hashedPassword, string password)
         {
-            return string.Equals(hashedPassword, HashPassword(password), StringComparison.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(hashedPassword)) return false;
+
+            // BCrypt hash starts with $2...
+            if (hashedPassword.StartsWith("$2"))
+            {
+                return BCrypt.Net.BCrypt.Verify(password, hashedPassword);
+            }
+
+            // Legacy SHA256 fallback
+            return string.Equals(hashedPassword, HashPasswordLegacy(password), StringComparison.OrdinalIgnoreCase);
         }
     }
 }

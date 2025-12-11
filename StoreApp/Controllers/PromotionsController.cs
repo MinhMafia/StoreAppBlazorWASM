@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StoreApp.Models;
 using StoreApp.Services;
@@ -8,6 +9,7 @@ namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class PromotionsController : ControllerBase
     {
         private readonly PromotionService _promotionService;

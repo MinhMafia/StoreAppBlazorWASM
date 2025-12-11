@@ -16,21 +16,27 @@ namespace StoreApp.Services
         private readonly ProductRepository _productRepo;
         private readonly CustomerRepository _customerRepo;
         private readonly InventoryRepository _inventoryRepo;
+        private readonly CategoryRepository? _categoryRepo;
+        private readonly SupplierRepository? _supplierRepo;
+        private readonly UnitRepository? _unitRepo;
         private readonly AppDbContext _context;
 
         public ImportService(
             ProductRepository productRepo,
             CustomerRepository customerRepo,
             InventoryRepository inventoryRepo,
-            AppDbContext context)
+            AppDbContext context,
+            CategoryRepository? categoryRepo = null,
+            SupplierRepository? supplierRepo = null,
+            UnitRepository? unitRepo = null)
         {
             _productRepo = productRepo;
             _customerRepo = customerRepo;
             _inventoryRepo = inventoryRepo;
             _context = context;
-
-            // EPPlus license context (non-commercial use)
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            _categoryRepo = categoryRepo;
+            _supplierRepo = supplierRepo;
+            _unitRepo = unitRepo;
         }
 
         // ========== PRODUCT IMPORT ==========
@@ -53,7 +59,7 @@ namespace StoreApp.Services
                 }
                 else
                 {
-                    rows = ParseExcelFile<ProductImportDTO>(file.OpenReadStream());
+                    rows = await ParseExcelFileAsync<ProductImportDTO>(file.OpenReadStream());
                 }
             }
             catch (Exception ex)
@@ -89,45 +95,60 @@ namespace StoreApp.Services
                     var row = rows[i];
                     var rowNumber = i + 2; // +2 vì có header và index bắt đầu từ 0
 
-                    // Validate row
-                    var validationErrors = ValidateProductRow(row, rowNumber);
-                    if (validationErrors.Any())
+                    try
                     {
-                        result.Errors.AddRange(validationErrors);
-                        result.Skipped++;
-                        continue;
-                    }
-
-                    // Upsert
-                    Product? existing = null;
-                    if (!string.IsNullOrWhiteSpace(row.Sku))
-                    {
-                        existing = await _productRepo.GetBySkuAsync(row.Sku);
-                    }
-
-                    if (existing != null)
-                    {
-                        // Update existing product
-                        UpdateProductFromImport(existing, row);
-                        await _productRepo.UpdateAsync(existing);
-                        result.Updated++;
-                    }
-                    else
-                    {
-                        // Create new product
-                        var product = MapToProduct(row);
-                        var created = await _productRepo.CreateAsync(product);
-
-                        // Create inventory record
-                        var inventory = new Inventory
+                        // Validate row
+                        var validationErrors = await ValidateProductRowAsync(row, rowNumber);
+                        if (validationErrors.Any())
                         {
-                            ProductId = created.Id,
-                            Quantity = 0,
-                            UpdatedAt = DateTime.UtcNow
-                        };
-                        await _inventoryRepo.CreateAsync(inventory);
+                            result.Errors.AddRange(validationErrors);
+                            result.Skipped++;
+                            continue;
+                        }
 
-                        result.Created++;
+                        // Upsert
+                        Product? existing = null;
+                        if (!string.IsNullOrWhiteSpace(row.Sku))
+                        {
+                            existing = await _productRepo.GetBySkuAsync(row.Sku);
+                        }
+
+                        if (existing != null)
+                        {
+                            // Update existing product
+                            UpdateProductFromImport(existing, row);
+                            await _productRepo.UpdateAsync(existing);
+                            result.Updated++;
+                        }
+                        else
+                        {
+                            // Create new product
+                            var product = MapToProduct(row);
+                            var created = await _productRepo.CreateAsync(product);
+
+                            // Create inventory record
+                            var inventory = new Inventory
+                            {
+                                ProductId = created.Id,
+                                Quantity = 0,
+                                UpdatedAt = DateTime.UtcNow
+                            };
+                            await _inventoryRepo.CreateAsync(inventory);
+
+                            result.Created++;
+                        }
+                    }
+                    catch (Exception rowEx)
+                    {
+                        // Log error for this specific row
+                        var errorMessage = GetDetailedErrorMessage(rowEx);
+                        result.Errors.Add(new ImportErrorDTO
+                        {
+                            RowNumber = rowNumber,
+                            Field = "System",
+                            Message = $"Lỗi ở dòng {rowNumber}: {errorMessage}"
+                        });
+                        result.Skipped++;
                     }
                 }
 
@@ -136,11 +157,12 @@ namespace StoreApp.Services
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
+                var errorMessage = GetDetailedErrorMessage(ex);
                 result.Errors.Add(new ImportErrorDTO
                 {
                     RowNumber = 0,
                     Field = "System",
-                    Message = $"Lỗi hệ thống: {ex.Message}"
+                    Message = $"Lỗi hệ thống: {errorMessage}"
                 });
             }
 
@@ -167,7 +189,7 @@ namespace StoreApp.Services
                 }
                 else
                 {
-                    rows = ParseExcelFile<CustomerImportDTO>(file.OpenReadStream());
+                    rows = await ParseExcelFileAsync<CustomerImportDTO>(file.OpenReadStream());
                 }
             }
             catch (Exception ex)
@@ -271,10 +293,34 @@ namespace StoreApp.Services
             return csv.GetRecords<T>().ToList();
         }
 
-        private List<T> ParseExcelFile<T>(Stream stream)
+        private async Task<List<T>> ParseExcelFileAsync<T>(Stream stream)
         {
             using var package = new ExcelPackage(stream);
-            var worksheet = package.Workbook.Worksheets[0];
+            
+            // Tìm đúng worksheet - ưu tiên sheet "Products" cho ProductImportDTO
+            OfficeOpenXml.ExcelWorksheet? worksheet = null;
+            var isProductImport = typeof(T) == typeof(ProductImportDTO);
+            
+            if (isProductImport)
+            {
+                // Tìm sheet "Products" cho import sản phẩm
+                worksheet = package.Workbook.Worksheets.FirstOrDefault(ws => 
+                    ws.Name.Equals("Products", StringComparison.OrdinalIgnoreCase));
+                
+                // Nếu không tìm thấy, dùng sheet đầu tiên
+                worksheet ??= package.Workbook.Worksheets[0];
+            }
+            else
+            {
+                // Cho CustomerImportDTO, dùng sheet đầu tiên hoặc sheet "Customers"
+                worksheet = package.Workbook.Worksheets.FirstOrDefault(ws => 
+                    ws.Name.Equals("Customers", StringComparison.OrdinalIgnoreCase)) 
+                    ?? package.Workbook.Worksheets[0];
+            }
+            
+            if (worksheet == null)
+                return new List<T>();
+            
             var rows = new List<T>();
 
             if (worksheet.Dimension == null)
@@ -308,11 +354,40 @@ namespace StoreApp.Services
                     propertyMap[col] = property;
             }
 
+            // Special handling for ProductImportDTO - support name mapping
+            // isProductImport đã được khai báo ở trên (dòng 302)
+            Dictionary<string, int>? categoryNameToId = null;
+            Dictionary<string, int>? supplierNameToId = null;
+            Dictionary<string, int>? unitNameToId = null;
+            Dictionary<string, int>? unitCodeToId = null;
+
+            if (isProductImport)
+            {
+                // Pre-load mappings for name-to-id conversion
+                if (_categoryRepo != null)
+                {
+                    var categories = await _categoryRepo.GetAllAsync();
+                    categoryNameToId = categories.ToDictionary(c => c.Name.ToLowerInvariant(), c => c.Id);
+                }
+                if (_supplierRepo != null)
+                {
+                    var suppliers = await _supplierRepo.GetAllAsync();
+                    supplierNameToId = suppliers.ToDictionary(s => s.Name.ToLowerInvariant(), s => s.Id);
+                }
+                if (_unitRepo != null)
+                {
+                    var units = await _unitRepo.GetAllAsync(isActive: true);
+                    unitNameToId = units.ToDictionary(u => u.Name.ToLowerInvariant(), u => u.Id);
+                    unitCodeToId = units.ToDictionary(u => u.Code.ToLowerInvariant(), u => u.Id);
+                }
+            }
+
             // Read data rows
             for (int row = 2; row <= rowCount; row++)
             {
                 var obj = Activator.CreateInstance<T>();
                 bool hasData = false;
+                bool hasRequiredField = false; // Check if row has at least one required field
 
                 foreach (var kvp in propertyMap)
                 {
@@ -322,11 +397,102 @@ namespace StoreApp.Services
 
                     if (cellValue != null)
                     {
+                        var stringValue = cellValue.ToString()?.Trim();
+                        
+                        // Skip rows that are clearly instructions (for ProductImportDTO)
+                        if (isProductImport && !string.IsNullOrEmpty(stringValue))
+                        {
+                            var lowerValue = stringValue.ToLowerInvariant();
+                            if (lowerValue.StartsWith("hướng dẫn") || 
+                                lowerValue.StartsWith("ví dụ:") ||
+                                lowerValue.StartsWith("1.") || 
+                                lowerValue.StartsWith("2.") || 
+                                lowerValue.StartsWith("3.") || 
+                                lowerValue.StartsWith("4.") ||
+                                lowerValue.Contains("có thể nhập") ||
+                                lowerValue.Contains("nhập số"))
+                            {
+                                // This is an instruction row, skip it
+                                hasData = false;
+                                hasRequiredField = false;
+                                break;
+                            }
+                        }
+
                         hasData = true;
+                        
+                        // Check if this is a required field (for ProductImportDTO: ProductName)
+                        // Only consider it valid if ProductName has actual content (not just whitespace)
+                        if (isProductImport && property.Name == "ProductName")
+                        {
+                            if (!string.IsNullOrWhiteSpace(stringValue) && stringValue.Length >= 2)
+                            {
+                                hasRequiredField = true;
+                            }
+                        }
+                        
                         try
                         {
-                            var value = ConvertValue(cellValue, property.PropertyType);
-                            property.SetValue(obj, value);
+                            object? value = null;
+                            var propertyName = property.Name;
+
+                            // Special handling for ProductImportDTO - map names to IDs before conversion
+                            if (isProductImport && obj is ProductImportDTO productDto)
+                            {
+                                // Map CategoryName to CategoryId
+                                if (propertyName == "CategoryId" && categoryNameToId != null && !string.IsNullOrEmpty(stringValue))
+                                {
+                                    if (int.TryParse(stringValue, out var categoryId))
+                                    {
+                                        value = categoryId; // Already an ID
+                                    }
+                                    else if (categoryNameToId.TryGetValue(stringValue.ToLowerInvariant(), out var mappedCategoryId))
+                                    {
+                                        value = mappedCategoryId; // Map name to ID
+                                    }
+                                }
+                                // Map SupplierName to SupplierId
+                                else if (propertyName == "SupplierId" && supplierNameToId != null && !string.IsNullOrEmpty(stringValue))
+                                {
+                                    if (int.TryParse(stringValue, out var supplierId))
+                                    {
+                                        value = supplierId; // Already an ID
+                                    }
+                                    else if (supplierNameToId.TryGetValue(stringValue.ToLowerInvariant(), out var mappedSupplierId))
+                                    {
+                                        value = mappedSupplierId; // Map name to ID
+                                    }
+                                }
+                                // Map UnitName or UnitCode to UnitId
+                                else if (propertyName == "UnitId" && (unitNameToId != null || unitCodeToId != null) && !string.IsNullOrEmpty(stringValue))
+                                {
+                                    if (int.TryParse(stringValue, out var unitId))
+                                    {
+                                        value = unitId; // Already an ID
+                                    }
+                                    else if (unitNameToId != null && unitNameToId.TryGetValue(stringValue.ToLowerInvariant(), out var mappedUnitId))
+                                    {
+                                        value = mappedUnitId; // Map name to ID
+                                    }
+                                    else if (unitCodeToId != null && unitCodeToId.TryGetValue(stringValue.ToLowerInvariant(), out var mappedUnitIdByCode))
+                                    {
+                                        value = mappedUnitIdByCode; // Map code to ID
+                                    }
+                                }
+                                else
+                                {
+                                    // Normal conversion for other fields
+                                    value = ConvertValue(cellValue, property.PropertyType);
+                                }
+                            }
+                            else
+                            {
+                                // Normal conversion for non-ProductImportDTO
+                                value = ConvertValue(cellValue, property.PropertyType);
+                            }
+                            
+                            if (value != null)
+                                property.SetValue(obj, value);
                         }
                         catch
                         {
@@ -335,8 +501,11 @@ namespace StoreApp.Services
                     }
                 }
 
-                if (hasData)
+                // Only add row if it has data AND at least one required field (for ProductImportDTO: ProductName)
+                if (hasData && (isProductImport ? hasRequiredField : true))
+                {
                     rows.Add(obj);
+                }
             }
 
             return rows;
@@ -381,7 +550,7 @@ namespace StoreApp.Services
 
         // ========== VALIDATION ==========
 
-        private List<ImportErrorDTO> ValidateProductRow(ProductImportDTO row, int rowNumber)
+        private async Task<List<ImportErrorDTO>> ValidateProductRowAsync(ProductImportDTO row, int rowNumber)
         {
             var errors = new List<ImportErrorDTO>();
 
@@ -405,29 +574,115 @@ namespace StoreApp.Services
                 });
             }
 
-            // Validate CategoryId exists (optional)
-            if (row.CategoryId.HasValue && row.CategoryId.Value <= 0)
+            // Validate CategoryId exists (if provided)
+            if (row.CategoryId.HasValue)
             {
-                errors.Add(new ImportErrorDTO
+                if (row.CategoryId.Value <= 0)
                 {
-                    RowNumber = rowNumber,
-                    Field = nameof(row.CategoryId),
-                    Message = "CategoryId không hợp lệ"
-                });
+                    errors.Add(new ImportErrorDTO
+                    {
+                        RowNumber = rowNumber,
+                        Field = nameof(row.CategoryId),
+                        Message = "CategoryId phải lớn hơn 0"
+                    });
+                }
+                else if (_categoryRepo != null)
+                {
+                    var categoryExists = await _categoryRepo.GetByIdAsync(row.CategoryId.Value);
+                    if (categoryExists == null)
+                    {
+                        errors.Add(new ImportErrorDTO
+                        {
+                            RowNumber = rowNumber,
+                            Field = nameof(row.CategoryId),
+                            Message = $"CategoryId {row.CategoryId.Value} không tồn tại trong hệ thống"
+                        });
+                    }
+                }
             }
 
-            // Validate SupplierId exists (optional)
-            if (row.SupplierId.HasValue && row.SupplierId.Value <= 0)
+            // Validate SupplierId exists (if provided)
+            if (row.SupplierId.HasValue)
             {
-                errors.Add(new ImportErrorDTO
+                if (row.SupplierId.Value <= 0)
                 {
-                    RowNumber = rowNumber,
-                    Field = nameof(row.SupplierId),
-                    Message = "SupplierId không hợp lệ"
-                });
+                    errors.Add(new ImportErrorDTO
+                    {
+                        RowNumber = rowNumber,
+                        Field = nameof(row.SupplierId),
+                        Message = "SupplierId phải lớn hơn 0"
+                    });
+                }
+                else if (_supplierRepo != null)
+                {
+                    var supplierExists = await _supplierRepo.GetByIdAsync(row.SupplierId.Value);
+                    if (supplierExists == null)
+                    {
+                        errors.Add(new ImportErrorDTO
+                        {
+                            RowNumber = rowNumber,
+                            Field = nameof(row.SupplierId),
+                            Message = $"SupplierId {row.SupplierId.Value} không tồn tại trong hệ thống"
+                        });
+                    }
+                }
+            }
+
+            // Validate UnitId exists (if provided)
+            if (row.UnitId.HasValue)
+            {
+                if (row.UnitId.Value <= 0)
+                {
+                    errors.Add(new ImportErrorDTO
+                    {
+                        RowNumber = rowNumber,
+                        Field = nameof(row.UnitId),
+                        Message = "UnitId phải lớn hơn 0"
+                    });
+                }
+                else if (_unitRepo != null)
+                {
+                    var unitExists = await _unitRepo.GetByIdAsync(row.UnitId.Value);
+                    if (unitExists == null)
+                    {
+                        errors.Add(new ImportErrorDTO
+                        {
+                            RowNumber = rowNumber,
+                            Field = nameof(row.UnitId),
+                            Message = $"UnitId {row.UnitId.Value} không tồn tại trong hệ thống"
+                        });
+                    }
+                }
             }
 
             return errors;
+        }
+
+        private string GetDetailedErrorMessage(Exception ex)
+        {
+            var message = ex.Message;
+            
+            // Include inner exception if available
+            if (ex.InnerException != null)
+            {
+                message += $" | Chi tiết: {ex.InnerException.Message}";
+            }
+
+            // Check for common database errors
+            if (ex.Message.Contains("foreign key constraint") || ex.Message.Contains("FOREIGN KEY"))
+            {
+                message += " | Lỗi: Khóa ngoại không hợp lệ (CategoryId, SupplierId hoặc UnitId không tồn tại)";
+            }
+            else if (ex.Message.Contains("unique constraint") || ex.Message.Contains("UNIQUE") || ex.Message.Contains("Duplicate entry"))
+            {
+                message += " | Lỗi: Dữ liệu trùng lặp (có thể SKU đã tồn tại)";
+            }
+            else if (ex.Message.Contains("cannot be null") || ex.Message.Contains("NOT NULL"))
+            {
+                message += " | Lỗi: Thiếu dữ liệu bắt buộc";
+            }
+
+            return message;
         }
 
         private List<ImportErrorDTO> ValidateCustomerRow(CustomerImportDTO row, int rowNumber)

@@ -1,0 +1,322 @@
+@using StoreApp.Shared
+@using Microsoft.AspNetCore.Components.Forms
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-upload"></i> Import sản phẩm từ Excel
+                </h5>
+                <button type="button" class="btn-close btn-close-white" @onclick="CloseModal" disabled="@uploading"></button>
+            </div>
+            
+            <div class="modal-body">
+                @if (importResult == null)
+                {
+                    @* Upload Form *@
+                    <div>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> 
+                            <strong>Hướng dẫn:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Định dạng file: .xlsx, .xls, .csv</li>
+                                <li>Kích thước tối đa: 10MB</li>
+                                <li>File phải có header ở dòng đầu tiên</li>
+                                <li>Nếu SKU đã tồn tại, sản phẩm sẽ được cập nhật</li>
+                            </ul>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Chọn file Excel/CSV</label>
+                            <InputFile OnChange="HandleFileSelected" accept=".xlsx,.xls,.csv" class="form-control" />
+                            @if (selectedFile != null)
+                            {
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-file-earmark-excel"></i> 
+                                        @selectedFile.Name (@FormatFileSize(selectedFile.Size))
+                                    </small>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary" @onclick="DownloadExcelTemplate" disabled="@downloadingTemplate">
+                                <i class="bi bi-download"></i> 
+                                @if (downloadingTemplate)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Tải template Excel
+                            </button>
+                            <button class="btn btn-outline-secondary" @onclick="DownloadCsvTemplate" disabled="@downloadingTemplate">
+                                <i class="bi bi-download"></i> 
+                                @if (downloadingTemplate)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Tải template CSV
+                            </button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @* Import Result *@
+                    <div>
+                        <div class="alert @GetResultAlertClass()">
+                            <h6 class="alert-heading">
+                                <i class="bi @GetResultIcon()"></i> Kết quả import
+                            </h6>
+                            <hr>
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <div class="fw-bold text-primary">@importResult.TotalRows</div>
+                                    <small>Tổng dòng</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="fw-bold text-success">@importResult.Created</div>
+                                    <small>Đã tạo</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="fw-bold text-info">@importResult.Updated</div>
+                                    <small>Đã cập nhật</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="fw-bold text-warning">@importResult.Skipped</div>
+                                    <small>Đã bỏ qua</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (importResult.Errors != null && importResult.Errors.Count > 0)
+                        {
+                            <div class="alert alert-danger">
+                                <h6 class="alert-heading">
+                                    <i class="bi bi-exclamation-triangle"></i> 
+                                    Có @importResult.Errors.Count lỗi
+                                </h6>
+                                <div class="table-responsive" style="max-height: 300px;">
+                                    <table class="table table-sm table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 80px;">Dòng</th>
+                                                <th style="width: 150px;">Trường</th>
+                                                <th>Lỗi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var error in importResult.Errors)
+                                            {
+                                                <tr>
+                                                    <td>@error.RowNumber</td>
+                                                    <td><small>@error.Field</small></td>
+                                                    <td><small class="text-danger">@error.Message</small></td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            
+            <div class="modal-footer">
+                @if (importResult == null)
+                {
+                    <button class="btn btn-secondary" @onclick="CloseModal" disabled="@uploading">Đóng</button>
+                    <button class="btn btn-primary" @onclick="HandleImport" disabled="@(selectedFile == null || uploading)">
+                        @if (uploading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-upload me-1"></i>
+                        }
+                        Import
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-primary" @onclick="HandleCloseAfterImport">Đóng</button>
+                    <button class="btn btn-outline-secondary" @onclick="ResetImport">Import tiếp</button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnSuccess { get; set; }
+
+    private IBrowserFile? selectedFile;
+    private ImportResultDTO? importResult;
+    private bool uploading = false;
+    private bool downloadingTemplate = false;
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        importResult = null; // Reset result when new file selected
+    }
+
+    private async Task DownloadExcelTemplate()
+    {
+        await DownloadTemplate("excel");
+    }
+
+    private async Task DownloadCsvTemplate()
+    {
+        await DownloadTemplate("csv");
+    }
+
+    private async Task DownloadTemplate(string format)
+    {
+        downloadingTemplate = true;
+        try
+        {
+            var formatParam = format.ToLowerInvariant();
+            var response = await Http.GetAsync($"api/import/template/products?format={formatParam}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                var fileName = formatParam == "csv" ? "product_template.csv" : "product_template.xlsx";
+                
+                // Convert bytes to base64 for JS interop
+                var base64 = Convert.ToBase64String(fileBytes);
+                var contentType = formatParam == "csv" ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                
+                // Use JS interop to download file
+                await JS.InvokeVoidAsync("downloadFileFromBase64", fileName, base64, contentType);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                await JS.InvokeVoidAsync("alert", $"Không thể tải template: {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            downloadingTemplate = false;
+        }
+    }
+
+    private async Task HandleImport()
+    {
+        if (selectedFile == null) return;
+
+        uploading = true;
+        importResult = null;
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            using var fileStream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB
+            var streamContent = new StreamContent(fileStream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(selectedFile.ContentType);
+            content.Add(streamContent, "file", selectedFile.Name);
+
+            var response = await Http.PostAsync("api/import/products", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                importResult = await response.Content.ReadFromJsonAsync<ImportResultDTO>();
+            }
+            else
+            {
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                importResult = new ImportResultDTO
+                {
+                    Errors = new List<ImportErrorDTO>
+                    {
+                        new ImportErrorDTO
+                        {
+                            RowNumber = 0,
+                            Field = "File",
+                            Message = errorMessage
+                        }
+                    }
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            importResult = new ImportResultDTO
+            {
+                Errors = new List<ImportErrorDTO>
+                {
+                    new ImportErrorDTO
+                    {
+                        RowNumber = 0,
+                        Field = "System",
+                        Message = $"Lỗi: {ex.Message}"
+                    }
+                }
+            };
+        }
+        finally
+        {
+            uploading = false;
+        }
+    }
+
+    private async Task HandleCloseAfterImport()
+    {
+        if (importResult != null && !importResult.HasErrors)
+        {
+            await OnSuccess.InvokeAsync();
+        }
+        await CloseModal();
+    }
+
+    private void ResetImport()
+    {
+        selectedFile = null;
+        importResult = null;
+    }
+
+    private async Task CloseModal()
+    {
+        ResetImport();
+        await OnClose.InvokeAsync();
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    private string GetResultAlertClass()
+    {
+        if (importResult == null) return "alert-info";
+        return importResult.HasErrors ? "alert-warning" : "alert-success";
+    }
+
+    private string GetResultIcon()
+    {
+        if (importResult == null) return "bi-info-circle";
+        return importResult.HasErrors ? "bi-exclamation-triangle" : "bi-check-circle";
+    }
+}
+

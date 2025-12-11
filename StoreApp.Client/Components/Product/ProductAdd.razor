@@ -57,7 +57,17 @@
                                 
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-bold">Đơn vị</label>
-                                    <InputText class="@($"form-control {GetValidationClass("Unit")}")" @bind-Value="formData.Unit" placeholder="vd: Cái, Hộp, Kg..." />
+                                    <InputSelect class="form-select" @bind-Value="formData.UnitId">
+                                        <option value="">-- Chọn đơn vị --</option>
+                                        @if (Units != null)
+                                        {
+                                            @foreach (var unit in Units.Where(u => u.IsActive))
+                                            {
+                                                <option value="@unit.Id">@unit.Name (@unit.Code)</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                    <small class="text-muted">Chọn đơn vị tính cho sản phẩm</small>
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">
@@ -154,6 +164,7 @@
 @code {
     [Parameter] public List<CategoryDTO>? Categories { get; set; }
     [Parameter] public List<SupplierDTO>? Suppliers { get; set; }
+    [Parameter] public List<UnitDTO>? Units { get; set; }
     [Parameter] public bool Saving { get; set; }
     [Parameter] public EventCallback<ProductDTO> OnSave { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.WebUtilities;
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
+using Blazored.LocalStorage;
 using StoreApp.Shared;
 
 namespace StoreApp.Client.Services;
@@ -50,16 +52,41 @@ public interface IPromotionService
 public class PromotionService : IPromotionService
 {
     private readonly HttpClient _http;
+    private readonly ILocalStorageService _localStorage;
 
-    public PromotionService(HttpClient http)
+    public PromotionService(HttpClient http, ILocalStorageService localStorage)
     {
         _http = http;
+        _localStorage = localStorage;
+    }
+
+    private async Task<string?> GetAuthTokenAsync()
+    {
+        try
+        {
+            var token = await _localStorage.GetItemAsStringAsync("authToken");
+            return token?.Trim('"');
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task SetAuthHeaderAsync()
+    {
+        var token = await GetAuthTokenAsync();
+        if (!string.IsNullOrEmpty(token))
+        {
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
     }
 
     public async Task<ResultPaginatedDTO<PromotionDTO>> GetPromotionsPaginated(int page = 1, int pageSize = 12, string? search = null, string? status = null, string? type = null)
     {
         try
         {
+            await SetAuthHeaderAsync();
             var queryParams = new Dictionary<string, string?>
             {
                 ["page"] = page.ToString(),
@@ -84,6 +111,7 @@ public class PromotionService : IPromotionService
     {
         try
         {
+            await SetAuthHeaderAsync();
             return await _http.GetFromJsonAsync<PromotionDTO>($"api/promotions/{id}");
         }
         catch
@@ -96,6 +124,7 @@ public class PromotionService : IPromotionService
     {
         try
         {
+            await SetAuthHeaderAsync();
             var response = await _http.PostAsJsonAsync("api/promotions", promotion);
             if (response.IsSuccessStatusCode)
             {
@@ -113,6 +142,7 @@ public class PromotionService : IPromotionService
     {
         try
         {
+            await SetAuthHeaderAsync();
             var response = await _http.PutAsJsonAsync($"api/promotions/{id}", promotion);
             return response.IsSuccessStatusCode;
         }
@@ -126,6 +156,7 @@ public class PromotionService : IPromotionService
     {
         try
         {
+            await SetAuthHeaderAsync();
             var response = await _http.DeleteAsync($"api/promotions/{id}");
             return response.IsSuccessStatusCode;
         }
@@ -139,6 +170,7 @@ public class PromotionService : IPromotionService
     {
         try
         {
+            await SetAuthHeaderAsync();
             var response = await _http.PatchAsync($"api/promotions/{id}/toggle", null);
             return response.IsSuccessStatusCode;
         }
@@ -152,6 +184,7 @@ public class PromotionService : IPromotionService
     {
         try
         {
+            await SetAuthHeaderAsync();
             return await _http.GetFromJsonAsync<PromotionOverviewStats>("api/promotions/overview-stats");
         }
         catch
@@ -164,6 +197,7 @@ public class PromotionService : IPromotionService
     {
         try
         {
+            await SetAuthHeaderAsync();
             return await _http.GetFromJsonAsync<PromotionDetailStats>($"api/promotions/{id}/stats");
         }
         catch
@@ -176,6 +210,7 @@ public class PromotionService : IPromotionService
     {
         try
         {
+            await SetAuthHeaderAsync();
             var result = await _http.GetFromJsonAsync<List<PromotionRedemption>>($"api/promotions/{id}/redemptions");
             return result ?? new List<PromotionRedemption>();
         }

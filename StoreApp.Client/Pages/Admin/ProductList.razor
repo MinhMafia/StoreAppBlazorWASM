@@ -283,6 +283,7 @@
             <ProductAdd 
                 Categories="@categories"
                 Suppliers="@suppliers"
+                Units="@units"
                 Saving="@saving"
                 OnSave="@((p) => HandleSave(p, ModalMode.Create))"
                 OnCancel="@CloseModal" />
@@ -293,6 +294,7 @@
                 Product="@modalState.Product"
                 Categories="@categories"
                 Suppliers="@suppliers"
+                Units="@units"
                 Saving="@saving"
                 OnSave="@((p) => HandleSave(p, ModalMode.Edit))"
                 OnCancel="@CloseModal"
@@ -303,25 +305,10 @@
 @* Import Modal *@
 @if (importModalOpen)
 {
-    <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title"><i class="bi bi-upload"></i> Import sản phẩm từ Excel</h5>
-                    <button type="button" class="btn-close btn-close-white" @onclick="() => importModalOpen = false"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Chức năng import Excel sẽ được phát triển sau.</p>
-                    <div class="alert alert-warning">
-                        <i class="bi bi-info-circle"></i> Định dạng file: .xlsx, .xls
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="() => importModalOpen = false">Đóng</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <ImportModal 
+        IsOpen="importModalOpen"
+        OnClose="() => importModalOpen = false"
+        OnSuccess="HandleImportSuccess" />
 }
 
 @code {
@@ -332,6 +319,7 @@
     private List<ProductDTO>? products;
     private List<CategoryDTO>? categories = new();
     private List<SupplierDTO>? suppliers = new();
+    private List<UnitDTO>? units = new();
     private int totalItems;
     private int totalPages = 1;
 
@@ -368,7 +356,8 @@
         await Task.WhenAll(
             LoadProducts(),
             LoadCategories(),
-            LoadSuppliers()
+            LoadSuppliers(),
+            LoadUnits()
         );
     }
 
@@ -390,6 +379,16 @@
             suppliers = result ?? new();
         }
         catch { suppliers = new(); }
+    }
+
+    private async Task LoadUnits()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<UnitDTO>>("api/units");
+            units = result ?? new();
+        }
+        catch { units = new(); }
     }
 
     private async Task LoadProducts()
@@ -473,6 +472,13 @@
     private void OpenImportModal()
     {
         importModalOpen = true;
+    }
+
+    private async Task HandleImportSuccess()
+    {
+        importModalOpen = false;
+        ShowNotification("Import sản phẩm thành công!", NotificationType.Success);
+        await LoadProducts();
     }
 
     private async Task HandleSave(ProductDTO product, ModalMode mode)
