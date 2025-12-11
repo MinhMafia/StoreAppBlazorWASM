@@ -533,11 +533,17 @@ public class OrdersClientService : IOrdersClientService
     }
 
     // Hủy đơn
-   public async Task<bool> HandleCancelClick(int orderId)
+    public async Task<bool> HandleCancelClick(int orderId)
     {
         try
         {
-            return await _http.GetFromJsonAsync<bool>($"api/orders/{orderId}/cancel");
+            var response = await _http.PostAsync($"api/orders/{orderId}/cancel", null);
+
+            if (!response.IsSuccessStatusCode)
+                return false;
+
+            // Backend trả Ok(true/false), nên cần đọc nội dung JSON
+            return await response.Content.ReadFromJsonAsync<bool>();
         }
         catch
         {

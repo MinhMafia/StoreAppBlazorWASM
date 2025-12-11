@@ -196,42 +196,46 @@ namespace StoreApp.Repository
             return true;
         }
 
-        /// <summary>
-        /// Hủy đơn hàng pending với payment pending + method cash.
-        /// Cập nhật trạng thái order, payment và cộng lại tồn kho.
-        /// Áp dụng cho mỗi order chỉ có 1 payment.
-        /// </summary>
         public async Task<bool> CancelOrderAsync(int orderId)
         {
-            // Lấy đơn hàng kèm payment và order items
+            // Truy vấn gọn, chỉ lấy dữ liệu cần
             var order = await _context.Orders
-                .Include(o => o.Payments) // giả sử Payments chỉ có 1 phần tử
-                .Include(o => o.OrderItems)
-                .FirstOrDefaultAsync(o => o.Id == orderId);
+                .Where(o => o.Id == orderId)
+                .Select(o => new 
+                {
+                    Order = o,
+                    Payment = o.Payments.FirstOrDefault(),
+                    Items = o.OrderItems
+                })
+                .AsSplitQuery()
+                .FirstOrDefaultAsync();
 
             if (order == null)
-                return false; // Không tìm thấy đơn
+                return false;
 
-            if (order.Status != "pending")
-                return false; // Chỉ hủy đơn pending
+            // Chỉ hủy đơn pending
+            if (!string.Equals(order.Order.Status, "pending", StringComparison.OrdinalIgnoreCase))
+                return false;
 
-            var payment = order.Payments.FirstOrDefault();
+            var payment = order.Payment;
 
-            if (payment == null || payment.Status != "pending" )
-                return false; // Payment không thỏa điều kiện
+            // Chỉ hủy nếu payment pending hoặc failed
+            if (payment == null ||
+                !(payment.Status == "pending" || payment.Status == "failed"))
+                return false;
 
             using var transaction = await _context.Database.BeginTransactionAsync();
-
             try
             {
-                // Hủy order
-                order.Status = "cancelled";
-                order.UpdatedAt = DateTime.UtcNow;
-                payment.Status = "cancelled";
-            
+                var now = DateTime.UtcNow;
 
-                // Cập nhật tồn kho
-                foreach (var item in order.OrderItems)
+                // Cập nhật trạng thái order 
+                order.Order.Status = "cancelled";
+                order.Order.UpdatedAt = now;
+
+
+                // Cộng lại tồn kho
+                foreach (var item in order.Items)
                 {
                     var inventory = await _context.Inventory
                         .FirstOrDefaultAsync(i => i.ProductId == item.ProductId);
@@ -239,7 +243,7 @@ namespace StoreApp.Repository
                     if (inventory != null)
                     {
                         inventory.Quantity += item.Quantity;
-                        inventory.UpdatedAt = DateTime.UtcNow;
+                        inventory.UpdatedAt = now;
                     }
                 }
 
@@ -254,6 +258,7 @@ namespace StoreApp.Repository
                 throw;
             }
         }
+
 
         /// <summary>
         /// Lấy đơn hàng theo orderId

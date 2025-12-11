@@ -108,6 +108,7 @@
         totalPages="@totalPages"
         ViewOrderDetail="ViewOrderDetail"
         onPageChange="@(page => OnPageChanged(page))"
+        OnReload="ReloadOrders"
          />
 
 
@@ -246,6 +247,11 @@ thúc, tìm kiếm )
         currentPage = page;
         await LoadOrdersAdvanced();
     }
+    private async Task ReloadOrders()
+    {
+        await LoadOrdersAdvanced(); 
+    }
+
 
     // Hiển thị danh sách đơn hàng khi trang được tải
 protected override async Task OnInitializedAsync()

@@ -97,26 +97,35 @@
                                     </button>
 
                                     @* Nút Xử lý chỉ cho order online *@
-                                    @if (order.Status == "pending" && (
-                                        (order.PaymentMethod?.ToLower() == "cash" && order.PaymentStatus == "pending") ||
-                                        (order.PaymentMethod?.ToLower() != "other" && order.PaymentStatus == "completed")
+                                    @if (order.Status == "pending" &&
+                                        (
+                                            // Cash: chưa thanh toán → xử lý để thu tiền
+                                            (order.PaymentMethod?.ToLower() == "cash" && order.PaymentStatus == "pending")
+
+                                            // MoMo: đã thanh toán thành công
+                                            || (order.PaymentMethod?.ToLower() == "other" && order.PaymentStatus == "completed")
                                         ))
                                     {
                                         <button
-                                        @onclick="() => HandleProcessOrder(order)"  
-                                        class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700">
+                                            @onclick="() => HandleProcessOrder(order)"
+                                            class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700">
                                             Xử lý
                                         </button>
                                     }
 
 
+
                                     @* Nút Hủy chỉ khi order online, cash, pending *@
                                     
-                                    @if (order.Status == "pending" && order.PaymentStatus == "pending" && order.PaymentMethod?.ToLower() == "cash")
+                                    @if (order.Status == "pending"
+                                        && (
+                                            (order.PaymentStatus == "pending" && order.PaymentMethod?.ToLower() == "cash")
+                                            || order.PaymentStatus == "failed"
+                                        ))
                                     {
                                         <button
-                                        @onclick="() => HandleCancelOrder(order.Id)" 
-                                        class="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700">
+                                            @onclick="() => HandleCancelOrder(order.Id)"
+                                            class="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700">
                                             Hủy
                                         </button>
                                     }
@@ -171,6 +180,8 @@
 
 </div>
 @code {
+    [Parameter] 
+    public EventCallback OnReload { get; set; }
     [Parameter]
     public List<OrderDTO> listOrders { get; set; }
 
@@ -198,6 +209,8 @@
         bool result = await _ordersClient.HandleProcessClick(item);
         if(result){
             await ShowAlert("Xử lý đơn thành công");
+            if (OnReload.HasDelegate)
+            await OnReload.InvokeAsync();
             
         }else{
             await ShowAlert("Xử lý đơn không thành công");
@@ -211,6 +224,8 @@
         bool result = await _ordersClient.HandleCancelClick(id);
         if(result){
             await ShowAlert("Hủy đơn thành công");
+            if (OnReload.HasDelegate)
+            await OnReload.InvokeAsync();
         }else{
             await ShowAlert("Hủy đơn không thành công");
         }
