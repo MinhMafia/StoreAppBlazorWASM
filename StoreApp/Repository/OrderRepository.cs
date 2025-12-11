@@ -164,21 +164,7 @@ namespace StoreApp.Repository
         }
 
 
-        /// <summary>
-        /// Cập nhật trạng thái đơn hàng theo trạng thái mong muốn.
-        /// </summary>
-        public async Task<bool> UpdateOrderStatusVer2Async(int orderId, string newStatus)
-        {
-            var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
-            if (order == null)
-                return false; // Không tìm thấy đơn
 
-            order.Status = newStatus;
-            order.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-            return true;
-        }
 
         /// <summary>
         /// Cập nhật user xử lý đơn hàng theo user_id bạn truyền vào.

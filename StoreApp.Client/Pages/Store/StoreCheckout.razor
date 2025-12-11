@@ -208,10 +208,7 @@
                             <span>Tạm tính</span>
                             <span id="subtotal" class="font-semibold">@currentOrder.Subtotal.ToString() ₫</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span>Phí vận chuyển</span>
-                            <span id="shipping" class="font-semibold">30.000 ₫</span>
-                        </div>
+                       
                         <div class="flex justify-between text-primary font-bold text-lg">
                             <span>Giảm giá</span>
                             <span id="discount">- @currentOrder.Discount ₫</span>
@@ -356,15 +353,13 @@
     {
         decimal tongTien = checkoutItems.Sum(item => item.Total);
 
-        // Tính phí vận chuyển (Ví dụ: 30000 ₫)
-        decimal shippingFee = 30000;
+        
         
         // Cập nhật Subtotal (chỉ tiền hàng)
         currentOrder.Subtotal = tongTien;
-        @* currentOrder.TotalAmount = tongTien; *@
+        currentOrder.TotalAmount = tongTien;
 
-        // Tính Total Amount ban đầu (tiền hàng + phí ship - giảm giá)
-        currentOrder.TotalAmount = tongTien + shippingFee - currentOrder.Discount;
+        
     }
 
 
