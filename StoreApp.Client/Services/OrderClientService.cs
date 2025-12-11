@@ -25,12 +25,22 @@ public interface IOrdersClientService
         int pageSize,
         string? searchKeyword = null
     );
+    Task<bool> HandleProcessClick(OrderDTO order);
     Task<List<PromotionDTO>> GetListActivePromotion();
     Task<bool> ReduceMultipleAsync(List<ReduceInventoryDto> items);
     Task<bool> ApplyPromotionAsync(ApplyPromotionRequest req);
     Task<bool> SaveListOrderItem (List<OrderItemReponse> items);
     Task<PaymentResult> PayWithMomoAsync(int orderId, decimal amount);
     Task<PaymentResult> PayOfflineAsync(int orderId, decimal amount);
+    Task<bool> HandleCancelClick(int orderId);
+    Task<OrderDTO> CreateTemporaryOnlineOrderAsync();
+    Task<PaymentResult> PayCashInOnlineOrderAsync(int orderId, decimal amount);
+    Task<PaymentResult> PayWithMomoWitOnlineOrderAsync(int orderId, decimal amount);
+    Task<OrderDTO?> GetOrderDTOAsync(int orderId);
+    
+   
+    
+    
 
         
                                                   
@@ -45,6 +55,17 @@ public class OrdersClientService : IOrdersClientService
     {
          _http = http;
          _js = js;
+    }
+        // 1. Tạo đơn tạm cho đươn hàng online(draft) → trả về OrderDTO có Id + OrderNumber
+    public async Task<OrderDTO> CreateTemporaryOnlineOrderAsync()
+    {
+        var response = await _http.PostAsync("api/orders/createonlineordertemp", null);
+
+        if (!response.IsSuccessStatusCode)
+            return new OrderDTO();
+
+        var order = await response.Content.ReadFromJsonAsync<OrderDTO>();
+        return order ?? new OrderDTO();
     }
   
 
@@ -253,7 +274,7 @@ public class OrdersClientService : IOrdersClientService
         }
         catch
         {
-            // Bất kỳ exception nào cũng không crash → return false
+            
             return false;
         }
     }
@@ -280,7 +301,7 @@ public class OrdersClientService : IOrdersClientService
     {
         try
         {
-            // 1) Tạo request body
+            
             var body = new MomoPaymentRequestDTO
             {
                 OrderId = orderId,
@@ -301,17 +322,85 @@ public class OrdersClientService : IOrdersClientService
 
             string payUrl = json["payUrl"].ToString()!;
 
-            // 3) Mở popup
-            // var popup = await _js.InvokeAsync<object?>(
-            //     "window.open",
-            //     payUrl,
-            //     "_blank",
-            //     "width=480,height=700"
-            // );
+            
+            await _js.InvokeVoidAsync("openMoMoPayment", payUrl);
 
-            // if (popup == null)
-            //     return new PaymentResult { Success = false, Message = "Trình duyệt chặn popup" };
-            // SỬA THÀNH DÒNG NÀY – AN TOÀN TUYỆT ĐỐI
+            // 4) Polling → giống JS
+            int counter = 0;
+
+            while (true)
+            {
+                await Task.Delay(2000);
+                counter++;
+
+                var statusRes = await _http.GetAsync($"api/payment/status/{orderId}");
+                if (statusRes.IsSuccessStatusCode)
+                {
+                    var data = await statusRes.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+
+                    if (data != null && data.ContainsKey("status"))
+                    {
+                        string status = data["status"];
+
+                        if (status == "completed")
+                        {
+                            return new PaymentResult
+                            {
+                                Success = true,
+                                Message = "Thanh toán thành công!"
+                            };
+                        }
+                    }
+                }
+
+                // Timeout 60 lần → 2 phút
+                if (counter >= 60)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Quá thời gian chờ thanh toán"
+                    };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return new PaymentResult
+            {
+                Success = false,
+                Message = "Lỗi client: " + ex.Message
+            };
+        }
+    }
+
+    
+    public async Task<PaymentResult> PayWithMomoWitOnlineOrderAsync(int orderId, decimal amount)
+    {
+        try
+        {
+            
+            var body = new MomoPaymentRequestDTO
+            {
+                OrderId = orderId,
+                Amount = amount,
+                ReturnUrl = "",
+                NotifyUrl = "https://stainful-asher-unfeigningly.ngrok-free.dev/api/payment/momo/ipnonline"
+            };
+
+            // 2) Gọi API create
+            var res = await _http.PostAsJsonAsync("api/payment/momo/create", body);
+
+            if (!res.IsSuccessStatusCode)
+                return new PaymentResult { Success = false, Message = "Không tạo được payment MoMo" };
+
+            var json = await res.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+            if (json == null || !json.ContainsKey("payUrl"))
+                return new PaymentResult { Success = false, Message = "Thiếu payUrl" };
+
+            string payUrl = json["payUrl"].ToString()!;
+
+            
             await _js.InvokeVoidAsync("openMoMoPayment", payUrl);
 
             // 4) Polling → giống JS
@@ -395,6 +484,86 @@ public class OrdersClientService : IOrdersClientService
             };
         }
     }
+
+    public async Task<PaymentResult> PayCashInOnlineOrderAsync(int orderId, decimal amount)
+    {
+        try
+        {
+            var body = new 
+            {
+                OrderId = orderId,
+                Amount = amount,
+                Method = "cash",
+                Status = "pending"
+            };
+
+            var res = await _http.PostAsJsonAsync("api/payment/offlinepayment", body);
+
+            if (!res.IsSuccessStatusCode)
+                return new PaymentResult { Success = false, Message = "Không tạo được offline payment" };
+
+            return new PaymentResult
+            {
+                Success = true,
+                Message = "Thanh toán tiền mặt thành công!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PaymentResult
+            {
+                Success = false,
+                Message = "Lỗi offline payment: " + ex.Message
+            };
+        }
+    }
+
+    //Xử lí đơn hàng
+    public async Task<bool> HandleProcessClick(OrderDTO order)
+    {
+        var response = await _http.PostAsJsonAsync("/api/orders/process", order);
+
+        if (response.IsSuccessStatusCode)
+        {
+            bool result = await response.Content.ReadFromJsonAsync<bool>();
+            return result; // true / false
+        }
+
+        return false;
+    }
+
+    // Hủy đơn
+   public async Task<bool> HandleCancelClick(int orderId)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<bool>($"api/orders/{orderId}/cancel");
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+   
+    // Lấy đơn hàng theo orderId
+    public async Task<OrderDTO?> GetOrderDTOAsync(int orderId)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<OrderDTO>(
+                $"api/orders/getOrderByOrderId/{orderId}"
+            );
+
+            return result;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+
 
 
 

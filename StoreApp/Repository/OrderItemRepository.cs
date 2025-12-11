@@ -55,7 +55,8 @@ namespace StoreApp.Repository
                     product = x.Product != null ? x.Product.ProductName : "N/A",
                     qty = x.Quantity,
                     price = x.UnitPrice,
-                    total = x.TotalPrice
+                    total = x.TotalPrice,
+                    img = x.Product != null ? x.Product.ImageUrl : "N/A",
                 })
                 .ToListAsync();
         }

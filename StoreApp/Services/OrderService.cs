@@ -14,6 +14,7 @@ namespace StoreApp.Services
         private readonly ActivityLogService _logService;
         private readonly UserRepository _userRepo;
         private readonly CustomerRepository _customerRepo;
+        private readonly PaymentRepository _paymentRepo;
 
         private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -22,12 +23,14 @@ namespace StoreApp.Services
             ActivityLogService logService,
             UserRepository userRepo,
             CustomerRepository customerRepo,
+            PaymentRepository paymentRepository,
             IHttpContextAccessor httpContextAccessor)
         {
             _orderRepo = orderRepo;
             _logService = logService;
             _customerRepo = customerRepo;
             _userRepo = userRepo;
+            _paymentRepo=paymentRepository;
             _httpContextAccessor = httpContextAccessor;
         }
 
@@ -134,8 +137,77 @@ namespace StoreApp.Services
             return tempOrder;
         }
 
+        /// <summary>
+        /// Tạo đơn hàng tạm thời cho khách mua online (đã đăng nhập)
+        /// - Customer: lấy từ UserId hiện tại trong token
+        /// - User (nhân viên): mặc định là 0 (hệ thống/online)
+        /// </summary>
+        public async Task<OrderDTO> CreateTemporaryOnlineOrderAsync()
+        {
+            // 1. Lấy UserId từ token (bắt buộc phải có, nếu không thì ném lỗi)
+            int userId=5;
+            try
+            {
+                userId = GetCurrentUserId();
+            }
+            catch
+            {
+                throw new UnauthorizedAccessException("Không thể xác định người dùng hiện tại. Vui lòng đăng nhập lại.");
+            }
 
-                // Lưu đơn hàng (frontend đã gửi đủ dữ liệu)
+            var customer = (await _customerRepo.GetByUserIdAsync(userId))
+               ?? throw new InvalidOperationException($"Không tìm thấy thông tin khách hàng cho userId {userId}");
+
+
+            if (!customer.IsActive)
+                throw new InvalidOperationException("Tài khoản khách hàng đã bị khóa.");
+
+            // 3. Nhân viên mặc định cho đơn online (Id = 0 hoặc bạn có thể tạo một User tên "Hệ thống" hoặc "Online")
+            int staffId = 0;
+            var staff = await _userRepo.GetByIdAsync(staffId);
+            string staffName = staff?.FullName ?? "Hệ thống Online";
+
+            // 4. Tạo mã đơn và Id mới
+            int maxId = await _orderRepo.GetMaxIdAsync();
+            int newId = maxId + 1;
+            string orderNumber = Guid.NewGuid().ToString();
+
+            // 5. Tạo OrderDTO với đầy đủ thông tin khách hàng
+            var onlineOrder = new OrderDTO
+            {
+                Id = newId,
+                OrderNumber = orderNumber,
+                CustomerId = customer.Id,                   
+                UserId = staffId,                            
+                Status = "pending",
+                Subtotal = 0m,
+                Discount = 0m,
+                TotalAmount = 0m,
+                PromotionId = null,
+                Note = null,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+
+                // Thông tin hiển thị khách hàng
+                CustomerName = customer.FullName??"N/A",
+                SoDienThoai = customer.Phone,
+                Email = customer.Email,
+                DiaChiKhachHang = customer.Address,
+
+                // Thông tin nhân viên
+                UserName = staffName,
+
+                PromotionCode = null,
+                PaymentMethod = "cash",          
+                PaymentStatus = "pending",
+                TransactionRef = null
+            };
+
+            return onlineOrder;
+        }
+
+
+        // Lưu đơn hàng (frontend đã gửi đủ dữ liệu)
         public async Task<bool> CreateOrderAsync(OrderDTO dto)
         {
             var order = new Order
@@ -299,6 +371,98 @@ namespace StoreApp.Services
                 TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
             };
         }
+
+        
+        /* Service xử lý đơn hàng đã tích hợp lấy UserId và cập nhật UserId vào order */
+        public async Task<bool> HandleProcessOrderAsync(OrderDTO order)
+        {
+            if (order == null)
+                throw new ArgumentNullException(nameof(order));
+
+            // 1. Lấy người dùng hiện tại
+            int currentUserId = 2;
+            try
+            {
+                currentUserId=GetCurrentUserId();
+            }
+            catch
+            {
+                
+            }
+          
+
+            // 2. Lấy order thật trong DB
+            var existingOrder = await _orderRepo.GetByIdAsync(order.Id);
+            if (existingOrder == null)
+                return false;
+
+            // 3. Ghi lại UserId vào order
+            await _orderRepo.UpdateOrderUserAsync(order.Id, currentUserId);
+
+            // 4. Xử lý theo phương thức thanh toán
+            string method = order.PaymentMethod?.ToLower();
+
+            if (method == "cash")
+            {
+                // Cập nhật trạng thái order
+                await _orderRepo.UpdateOrderStatusAsync(order.Id, "paid");
+
+                // Cập nhật trạng thái payment
+                await _paymentRepo.UpdatePaymentStatusByOrderIdAsync(order.Id, "completed");
+
+                return true;
+            }
+
+            if (method == "other") // MOMO, VNPAY...
+            {
+                await _orderRepo.UpdateOrderStatusAsync(order.Id, "paid");
+                return true;
+            }
+
+            return false;
+        }
+
+
+        // Hủy đơn
+        public async Task<bool> CancelOrderAsync(int orderId)
+        {
+            // 1. Lấy user hiện tại
+            int currentUserId = 2;
+            try
+            {
+                currentUserId=GetCurrentUserId();
+            }
+            catch
+            {
+                
+            }
+
+            // 2. Kiểm tra order tồn tại
+            var order = await _orderRepo.GetByIdAsync(orderId);
+            if (order == null)
+                return false;
+
+            // 3. Ghi lại ai là người hủy đơn
+            await _orderRepo.UpdateOrderUserAsync(orderId, currentUserId);
+
+            // 4. Tiến hành hủy đơn
+            return await _orderRepo.CancelOrderAsync(orderId);
+        }
+
+        // Lấy đơn hàng theo orderId
+        public async Task<OrderDTO?> GetOrderDtoByIdAsync_MA(int orderId)
+        {
+            var order = await _orderRepo.GetOrderDtoByIdAsync_MA(orderId);
+
+            if (order == null)
+                return null;
+
+            return order;
+        }
+
+
+
+
 
 
 

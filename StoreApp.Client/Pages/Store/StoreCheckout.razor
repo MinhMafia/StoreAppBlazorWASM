@@ -1,6 +1,11 @@
 @page "/store/checkout"
 @inject NavigationManager Navigation
+@inject IStoreCartService CartService
+@inject IOrdersClientService _ordersClient
+@inject IJSRuntime JS
 @layout StoreLayout
+@using Microsoft.AspNetCore.WebUtilities
+@using StoreApp.Client.Pages.Auth
 
 <PageTitle>Đặt hàng - FreshMart</PageTitle>
 
@@ -9,209 +14,525 @@
 <div class="max-w-7xl mx-auto px-4 py-10 bg-gray-50 min-h-screen">
     <h2 class="text-3xl lg:text-4xl font-bold text-center text-gray-800 mb-10">Xác nhận & Thanh toán</h2>
 
-    <div class="grid lg:grid-cols-3 gap-8">
+    @if (isLoading == true)
+    {
+        <div class="text-center py-20">
+            <p class="text-xl">Đang tải đơn hàng của bạn...</p>
+        </div>
+    }
+    else
+    {
+        <div class="grid lg:grid-cols-3 gap-8">
 
-        <!-- CỘT TRÁI -->
-        <div class="lg:col-span-2 space-y-8">
+            <!-- CỘT TRÁI -->
+            <div class="lg:col-span-2 space-y-8">
 
-            <!-- 1. Thông tin khách hàng -->
-            <!-- 1. Thông tin khách hàng – PHIÊN BẢN NHỎ GỌN & HIỆN ĐẠI -->
-            <div class="bg-white rounded-3xl shadow-soft p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-5 flex items-center gap-3">
-                    <i class="fas fa-user text-primary"></i> Thông tin nhận hàng
-                </h3>
+                <!-- 1. Thông tin khách hàng -->
+                <!-- 1. Thông tin khách hàng – PHIÊN BẢN NHỎ GỌN & HIỆN ĐẠI -->
+                <div class="bg-white rounded-3xl shadow-soft p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-5 flex items-center gap-3">
+                        <i class="fas fa-user text-primary"></i> Thông tin nhận hàng của đơn ( @currentOrder.OrderNumber )
+                    </h3>
 
-                <div class="grid md:grid-cols-2 gap-4"> <!-- giảm gap-6 → gap-4 -->
-                    <input type="text" id="full_name" placeholder="Họ và tên *"
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base"
-                        required>
+                    <div class="grid md:grid-cols-2 gap-4"> <!-- giảm gap-6 → gap-4 -->
+                        <input type="text" id="full_name" value="@currentOrder.CustomerName"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base"
+                            required>
 
-                    <input type="tel" id="phone" placeholder="Số điện thoại *"
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base"
-                        required>
+                        <input type="tel" id="phone" value="@currentOrder.SoDienThoai"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base"
+                            required>
 
-                    <input type="email" id="email" placeholder="Email (không bắt buộc)"
-                        class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base">
+                        <input type="email" id="email" value="@(currentOrder.Email ?? "khachhang@gmail.com")"
+                            class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base">
 
-                    <textarea id="address" rows="3" placeholder="Địa chỉ giao hàng chi tiết *"
+                        <textarea id="address" rows="3"
+                        value="@(currentOrder.DiaChiKhachHang ?? "273 An Dương Vương, Phường Chợ Quán, TP. HCM")"
                         class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base resize-none"
                         required></textarea>
 
-                    <textarea id="note" rows="2" placeholder="Ghi chú (giao giờ nào, để trước cửa...)"
-                        class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base resize-none"></textarea>
+                        <textarea id="note" rows="2" placeholder="Ghi chú (giao giờ nào, để trước cửa...)"
+                            @bind="currentOrder.Note"
+                            class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base resize-none"></textarea>
+                    </div>
                 </div>
-            </div>
 
-            <!-- 2. SẢN PHẨM – ĐÃ CHỈNH NHẸ, GỌN HƠN RẤT NHIỀU -->
-            <div class="bg-white rounded-3xl shadow-soft overflow-hidden">
-                <div class="p-6 border-b border-gray-100">
-                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-3">
-                        <i class="fas fa-box text-primary"></i> Sản phẩm (26 món)
+
+                <div class="bg-white rounded-3xl shadow-soft overflow-hidden">
+                    <div class="p-6 border-b border-gray-100">
+                        <h3 class="text-xl font-bold text-gray-800 flex items-center gap-3">
+                            <i class="fas fa-box text-primary"></i> DANH SÁCH SẢN PHẨM
+                        </h3>
+                    </div>
+
+
+                    <div class="max-h-96 overflow-y-auto divide-y divide-gray-100">
+                        @if (checkoutItems.Count == 0)
+                        {
+                            <div class="flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition">
+                                Không có sản phẩm nào
+                            </div>
+                        }
+                        else
+                        {
+                           
+                            @foreach (var item in checkoutItems)
+                            {
+                                <div class="flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition">
+                                    <img src="@item.ImageUrl" class="w-16 h-16 object-cover rounded-lg shadow-sm flex-shrink-0">
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="font-medium text-gray-800 text-base line-clamp-2">@item.ProductName</h4>
+                                        <p class="text-sm text-gray-500 mt-0.5">@item.Quantity × @item.Price</p>
+                                    </div>
+                                    <span class="text-base font-semibold text-primaryDark whitespace-nowrap">@item.Total ₫</span>
+                                </div>
+                              
+                            }
+                           
+                            @* currentOrder.TotalAmount = tongTien + 30000; *@
+
+                        }
+
+
+                    </div>
+                </div>
+
+
+                <div class="bg-white rounded-3xl shadow-soft p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-5 flex items-center gap-3">
+                        <i class="fas fa-tag text-primary"></i> Chọn khuyến mãi
                     </h3>
+                    <div class="space-y-3">
+                        @if (promotions.Count == 0)
+                        {
+                            <label
+                                class="flex items-center justify-between p-4 border-2 border-orange-300 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition cursor-pointer">
+                                <div class="flex items-center gap-3">
+                                    KHÔNG CÓ KHUYẾN MÃI NÀO
+                                </div>
+                            </label>
+
+                        }
+                        else
+                        {
+
+                            @foreach (var item in promotions)
+                            {
+                                <label
+                                    @onclick="() => HandleSelect(item)"
+                                    class="flex items-center justify-between p-4 border-2 border-orange-300 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition cursor-pointer">
+                                    <div class="flex items-center gap-3">
+                                        <div>
+                                            <div class="font-semibold text-orange-600">@item.Code</div>
+                                            <div class="text-xs text-gray-600">
+                                                @if (item.Type == "percent")
+                                                {
+                                                    @($"Giảm {item.Value}%")
+                                                }
+                                                else
+                                                {
+                                                    @($"Giảm {item.Value:C0}₫")
+                                                }
+                                                @if (item.MinOrderAmount > 0)
+                                                {
+                                                    @($" • Tối thiểu {item.MinOrderAmount:C0}₫")
+                                                }
+
+                                            </div>
+
+                                            @if (!string.IsNullOrEmpty(item.Description))
+                                            {
+                                                <div class="text-sm text-gray-500 mt-1">@item.Description</div>
+                                            }
+
+                                        </div>
+                                    </div>
+
+                                    <i class="fas fa-gift text-orange-600"></i>
+                                </label>
+                            }
+                        }
+
+                    </div>
                 </div>
 
-                <div class="max-h-96 overflow-y-auto divide-y divide-gray-100">
-                    <!-- Item mẫu – đã thu nhỏ và tinh tế hơn -->
-                    <div class="flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition">
-                        <img src="https://cdn.tgdd.vn/Products/Images/2443/76464/bhx/nuoc-tang-luc-red-bull-thai-lon-250ml.jpg"
-                            class="w-16 h-16 object-cover rounded-lg shadow-sm flex-shrink-0">
-                        <div class="flex-1 min-w-0">
-                            <h4 class="font-medium text-gray-800 text-base line-clamp-2">Nước tăng lực Red Bull Thái
-                                250ml</h4>
-                            <p class="text-sm text-gray-500 mt-0.5">3 × 12.500₫</p>
-                        </div>
-                        <span class="text-base font-semibold text-primaryDark whitespace-nowrap">37.500₫</span>
-                    </div>
 
-                    <div class="flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition">
-                        <img src="https://cdn.tgdd.vn/Products/Images/2565/76469/bhx/mi-hao-hao-tom-chua-cay-75g.jpg"
-                            class="w-16 h-16 object-cover rounded-lg shadow-sm flex-shrink-0">
-                        <div class="flex-1 min-w-0">
-                            <h4 class="font-medium text-gray-800 text-base line-clamp-2">Mì Hảo Hảo tôm chua cay 75g
-                            </h4>
-                            <p class="text-sm text-gray-500 mt-0.5">10 × 4.500₫</p>
-                        </div>
-                        <span class="text-base font-semibold text-primaryDark whitespace-nowrap">45.000₫</span>
-                    </div>
+                <div class="bg-white rounded-3xl shadow-soft p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-5 flex items-center gap-3">
+                        <i class="fas fa-credit-card text-primary"></i> Phương thức thanh toán
+                    </h3>
+                    <div class="space-y-3">
+                        <label
+                            class="flex items-center justify-between p-4 border-2 border-primary rounded-xl bg-primary/5">
+                            <div class="flex items-center gap-3">
+                                <input 
+                                value="cash"
+                              
+                                @onchange="@(() => SetPaymentMethod("cash"))"
+                                type="radio" name="payment" class="w-4 h-4 text-primary" />
+                                <div>
+                                    <div class="font-medium text-base">Thanh toán khi nhận hàng (COD)</div>
+                                    <div class="text-xs text-gray-600">Trả tiền mặt khi nhận hàng</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-money-bill-wave text-primary text-xl"></i>
+                        </label>
 
-                    <div class="flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition">
-                        <img src="https://cdn.tgdd.vn/Products/Images/2386/228429/bhx/sua-tuoi-th-true-milk-it-duong-hop-1l.jpg"
-                            class="w-16 h-16 object-cover rounded-lg shadow-sm flex-shrink-0">
-                        <div class="flex-1 min-w-0">
-                            <h4 class="font-medium text-gray-800 text-base line-clamp-2">Sữa tươi TH True Milk ít đường
-                                1L</h4>
-                            <p class="text-sm text-gray-500 mt-0.5">2 × 34.500₫</p>
-                        </div>
-                        <span class="text-base font-semibold text-primaryDark whitespace-nowrap">69.000₫</span>
+                        <label
+                            class="flex items-center justify-between p-4 border-2 border-pink-400 rounded-xl hover:border-pink-500 hover:bg-pink-50 transition">
+                            <div class="flex items-center gap-3">
+                                <input type="radio" 
+                                value="other" 
+                                checked="@(currentOrder.PaymentMethod == "other")"
+                                @onchange="@(() => SetPaymentMethod("other"))"
+                  
+                                name="payment" class="w-4 h-4 text-pink-600">
+                                <div>
+                                    <div class="font-medium text-pink-600 text-base">Ví Momo</div>
+                                    <div class="text-xs text-gray-600">Nhận thêm ưu đãi từ Momo</div>
+                                </div>
+                            </div>
+                            <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="Momo" class="h-8">
+                        </label>
                     </div>
-
-                    <!-- Các item còn lại bạn copy y hệt khối trên là đẹp -->
                 </div>
+
             </div>
 
-            <!-- 3. KHUYẾN MÃI – NHỎ GỌN, DỄ NHÌN HƠN -->
-            <div class="bg-white rounded-3xl shadow-soft p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-5 flex items-center gap-3">
-                    <i class="fas fa-tag text-primary"></i> Chọn khuyến mãi
-                </h3>
-                <div class="space-y-3">
-                    <label
-                        class="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-primary transition">
-                        <div class="flex items-center gap-3">
-                            <input type="radio" name="promo" class="w-4 h-4 text-primary">
-                            <div>
-                                <div class="font-medium text-base">Không sử dụng mã</div>
-                                <div class="text-xs text-gray-500">Tiết kiệm 0đ</div>
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-3xl shadow-soft p-8 sticky top-28">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-8">Tóm tắt đơn hàng</h3>
+
+                    <div class="space-y-5 text-lg">
+                        <div class="flex justify-between">
+                            <span>Tạm tính</span>
+                            <span id="subtotal" class="font-semibold">@currentOrder.Subtotal.ToString() ₫</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Phí vận chuyển</span>
+                            <span id="shipping" class="font-semibold">30.000 ₫</span>
+                        </div>
+                        <div class="flex justify-between text-primary font-bold text-lg">
+                            <span>Giảm giá</span>
+                            <span id="discount">- @currentOrder.Discount ₫</span>
+                        </div>
+                        <div class="border-t-4 border-dashed border-primaryLight pt-6 mt-6">
+                            <div class="flex justify-between text-3xl font-bold text-primaryDark">
+                                <span>Tổng cộng</span>
+                                <span id="final-total">@currentOrder.TotalAmount.ToString() ₫</span>
                             </div>
                         </div>
-                    </label>
 
-                    <label
-                        class="flex items-center justify-between p-4 border-2 border-primary rounded-xl bg-primary/5 cursor-pointer">
-                        <div class="flex items-center gap-3">
-                            <input type="radio" name="promo" class="w-4 h-4 text-primary" checked>
-                            <div>
-                                <div class="font-semibold text-primary">FREESHIP</div>
-                                <div class="text-xs text-gray-600">Miễn phí vận chuyển cho đơn từ 300.000đ</div>
-                            </div>
+                        <button id="place-order-btn" @onclick="createNewOrder"
+                            class="w-full mt-8 bg-gradient-to-r from-primary to-primaryHover text-white font-bold text-2xl py-6 rounded-2xl shadow-strong hover:shadow-2xl transform hover:scale-105 transition-all duration-500 relative overflow-hidden group">
+                            <span class="relative z-10">ĐẶT HÀNG NGAY</span>
+                            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition"></div>
+                        </button>
+
+                        <a href="/store/products"
+                            class="block text-center text-primary font-semibold py-4 border-2 border-primary rounded-xl hover:bg-primaryLight/20 transition mt-4">
+                            ← Quay lại giỏ hàng
+                        </a>
+
+                        <div class="mt-8 text-center text-sm text-gray-500">
+                            <i class="fas fa-shield-alt text-primary mr-2"></i>
+                            Thanh toán an toàn • Giao nhanh 30 phút • Đổi trả dễ dàng
                         </div>
-                        <i class="fas fa-truck text-primary"></i>
-                    </label>
-
-                    <label
-                        class="flex items-center justify-between p-4 border-2 border-orange-300 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition cursor-pointer">
-                        <div class="flex items-center gap-3">
-                            <input type="radio" name="promo" class="w-4 h-4 text-orange-600">
-                            <div>
-                                <div class="font-semibold text-orange-600">GIAM50K</div>
-                                <div class="text-xs text-gray-600">Giảm ngay 50.000đ cho đơn từ 500.000đ</div>
-                            </div>
-                        </div>
-                        <i class="fas fa-gift text-orange-600"></i>
-                    </label>
-                </div>
-            </div>
-
-            <!-- 4. THANH TOÁN – CŨNG NHỎ GỌN HƠN -->
-            <div class="bg-white rounded-3xl shadow-soft p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-5 flex items-center gap-3">
-                    <i class="fas fa-credit-card text-primary"></i> Phương thức thanh toán
-                </h3>
-                <div class="space-y-3">
-                    <label
-                        class="flex items-center justify-between p-4 border-2 border-primary rounded-xl bg-primary/5">
-                        <div class="flex items-center gap-3">
-                            <input type="radio" name="payment" class="w-4 h-4 text-primary" checked>
-                            <div>
-                                <div class="font-medium text-base">Thanh toán khi nhận hàng (COD)</div>
-                                <div class="text-xs text-gray-600">Trả tiền mặt khi nhận hàng</div>
-                            </div>
-                        </div>
-                        <i class="fas fa-money-bill-wave text-primary text-xl"></i>
-                    </label>
-
-                    <label
-                        class="flex items-center justify-between p-4 border-2 border-pink-400 rounded-xl hover:border-pink-500 hover:bg-pink-50 transition">
-                        <div class="flex items-center gap-3">
-                            <input type="radio" name="payment" class="w-4 h-4 text-pink-600">
-                            <div>
-                                <div class="font-medium text-pink-600 text-base">Ví Momo</div>
-                                <div class="text-xs text-gray-600">Nhận thêm ưu đãi từ Momo</div>
-                            </div>
-                        </div>
-                        <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="Momo" class="h-8">
-                    </label>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- CỘT PHẢI: Tóm tắt thanh toán -->
-        <div class="lg:col-span-1">
-            <div class="bg-white rounded-3xl shadow-soft p-8 sticky top-28">
-                <h3 class="text-2xl font-bold text-gray-800 mb-8">Tóm tắt đơn hàng</h3>
-
-                <div class="space-y-5 text-lg">
-                    <div class="flex justify-between">
-                        <span>Tạm tính</span>
-                        <span id="subtotal" class="font-semibold">0₫</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>Phí vận chuyển</span>
-                        <span id="shipping" class="font-semibold">30.000₫</span>
-                    </div>
-                    <div class="flex justify-between text-primary font-bold text-lg">
-                        <span>Giảm giá</span>
-                        <span id="discount">-0₫</span>
-                    </div>
-                    <div class="border-t-4 border-dashed border-primaryLight pt-6 mt-6">
-                        <div class="flex justify-between text-3xl font-bold text-primaryDark">
-                            <span>Tổng cộng</span>
-                            <span id="final-total">0₫</span>
-                        </div>
-                    </div>
-
-                    <button id="place-order-btn"
-                        @onclick="GoToThankYouPage"
-                        class="w-full mt-8 bg-gradient-to-r from-primary to-primaryHover text-white font-bold text-2xl py-6 rounded-2xl shadow-strong hover:shadow-2xl transform hover:scale-105 transition-all duration-500 relative overflow-hidden group">
-                        <span class="relative z-10">ĐẶT HÀNG NGAY</span>
-                        <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition"></div>
-                    </button>
-
-                    <a href="/store/products"
-                        class="block text-center text-primary font-semibold py-4 border-2 border-primary rounded-xl hover:bg-primaryLight/20 transition mt-4">
-                        ← Quay lại giỏ hàng
-                    </a>
-
-                    <div class="mt-8 text-center text-sm text-gray-500">
-                        <i class="fas fa-shield-alt text-primary mr-2"></i>
-                        Thanh toán an toàn • Giao nhanh 30 phút • Đổi trả dễ dàng
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
+
+
 </div>
 @code {
-    private void GoToThankYouPage() => Navigation.NavigateTo("/store/thankyou");
+    private List<CartItemDTO> checkoutItems = new();
+    private OrderDTO? currentOrder = null;
+    private List<PromotionDTO> promotions = new List<PromotionDTO>();
+    List<OrderItemReponse> listOrderProducts = new();
+
+    private PromotionDTO? promotion { get; set; }
+    private bool isLoading = true;
+    async Task ShowAlert(string message)
+    {
+        await JS.InvokeVoidAsync("alert", message);
+    }
+    private void SetPaymentMethod(string method)
+    {
+        currentOrder.PaymentMethod = method.Trim();
+    }
+
+    // Chọn tính toán CurrentOrder
+    void HandleSelect(PromotionDTO item)
+    {
+        if (currentOrder.Subtotal == 0)
+        {
+            JS.InvokeVoidAsync("alert",
+            $"Hãy chọn sản phẩm để mua trước khi chọn khuyến mãi");
+
+            return;
+
+        }
+
+        if (promotion?.Id == item.Id)
+        {
+            // Nếu chọn lại mã đang được áp dụng -> Hủy chọn
+            ResetPromotionSelection();
+            return;
+        }
+        decimal subtotal = currentOrder.Subtotal;
+        var now = DateTime.Now;
+
+        // Không đủ mức tối thiểu
+        if (item.MinOrderAmount > 0 && subtotal < item.MinOrderAmount)
+        {
+            JS.InvokeVoidAsync("alert",
+            $"Đơn hàng phải đạt tối thiểu {item.MinOrderAmount:N0}₫ để dùng mã này!");
+
+            return;
+        }
+
+        // Chưa đến ngày bắt đầu
+        if (item.StartDate != null && item.StartDate > now)
+        {
+            JS.InvokeVoidAsync("alert", "Mã giảm giá này chưa đến thời gian áp dụng!");
+            ResetPromotionSelection();
+      
+            return;
+        }
+
+        // Đã hết hạn
+        if (item.EndDate != null && item.EndDate < now)
+        {
+            JS.InvokeVoidAsync("alert", "Mã giảm giá này đã hết hạn!");
+            ResetPromotionSelection();
+    
+            return;
+        }
+
+        // Hết lượt sử dụng
+        if (item.UsageLimit != null && item.UsedCount >= item.UsageLimit)
+        {
+            JS.InvokeVoidAsync("alert", "Mã này đã hết lượt sử dụng!");
+            ResetPromotionSelection();
+            StateHasChanged();
+            return;
+        }
+
+        // --- Nếu hợp lệ → AP MÃ ---
+        promotion = item;
+
+        decimal discountAmount = 0;
+
+        if (item.Type == "percent")
+        {
+            discountAmount = Math.Floor((subtotal * item.Value) / 100);
+        }
+        else
+        {
+            discountAmount = item.Value;
+        }
+
+
+        // cập nhật order giống React
+        currentOrder.PromotionId = item.Id;
+        currentOrder.PromotionCode = item.Code;
+        currentOrder.Discount = discountAmount;
+        currentOrder.TotalAmount = subtotal - discountAmount;
+
+      
+    }
+    void ResetPromotionSelection()
+    {
+        promotion = null;
+        currentOrder.Discount = 0;
+        currentOrder.TotalAmount = currentOrder.Subtotal;
+
+    }
+
+    // Tinh toán subtotal và totalamount
+    private void CalculateOrderTotals()
+    {
+        decimal tongTien = checkoutItems.Sum(item => item.Total);
+
+        // Tính phí vận chuyển (Ví dụ: 30000 ₫)
+        decimal shippingFee = 30000;
+        
+        // Cập nhật Subtotal (chỉ tiền hàng)
+        currentOrder.Subtotal = tongTien;
+        @* currentOrder.TotalAmount = tongTien; *@
+
+        // Tính Total Amount ban đầu (tiền hàng + phí ship - giảm giá)
+        currentOrder.TotalAmount = tongTien + shippingFee - currentOrder.Discount;
+    }
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        promotions = await _ordersClient.GetListActivePromotion();
+        currentOrder = await _ordersClient.CreateTemporaryOnlineOrderAsync();
+        // Đọc URL để lấy danh sách ID được chọn từ giỏ hàng
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        
+
+        HashSet<int> selectedProductIds = new();
+
+        if (query.TryGetValue("ids", out var values))
+        {
+            foreach (var value in values)
+            {
+                if (int.TryParse(value, out int id))
+                {
+                    selectedProductIds.Add(id);
+                }
+            }
+        }
+
+        // Nếu không có ID nào → báo lỗi
+        if (selectedProductIds.Count == 0)
+        {
+            await JS.InvokeVoidAsync("alert", "Không có sản phẩm nào được chọn!");
+            Navigation.NavigateTo("/store/cart");
+            return;
+        }
+
+        //Lấy toàn bộ giỏ hàng từ localStorage (qua CartService)
+        var allItemsInCart = await CartService.GetCartItems();
+
+        // Chỉ lấy những sản phẩm có ID nằm trong selectedProductIds
+        checkoutItems = allItemsInCart
+        .Where(item => selectedProductIds.Contains(item.ProductId))
+        .ToList();
+
+        // Nếu có id truyền qua mà không tìm thấy trong giỏ → có thể giỏ bị xóa giữa chừng
+        if (!checkoutItems.Any())
+        {
+            await JS.InvokeVoidAsync("alert", "Giỏ hàng đã thay đổi. Vui lòng quay lại giỏ hàng!");
+            Navigation.NavigateTo("/store/cart");
+            return;
+        }
+         CalculateOrderTotals();
+
+        isLoading = false;
+    }
+
+    // Chuẩn bị dữ liệu để gửi lên db
+    private  List<OrderItemReponse> preparedListOrderItemResponse (List<CartItemDTO> list){
+        List<OrderItemReponse> listOrderItemReponse= new List<OrderItemReponse>();
+        foreach (var item in list){
+            listOrderItemReponse.Add(new OrderItemReponse{
+                id=item.ProductId,
+                orderid=currentOrder.Id,
+                qty=item.Quantity,
+                price=item.Price,
+                total=item.Total
+            });
+        }
+        return listOrderItemReponse;
+    }
+
+    // Chuẩn bị ApplyPromotionRequest
+    public ApplyPromotionRequest preparedPromotion (OrderDTO order){
+        return new ApplyPromotionRequest{
+            PromotionId = order.PromotionId ?? 0,
+            OrderId=order.Id,
+            CustomerId=order.CustomerId
+
+        };
+
+    }
+
+        // Chuẩn bị List ReduceInventoryDto
+    public List<ReduceInventoryDto> preparedListReduceInventoryDto(List<OrderItemReponse> items){
+        List <ReduceInventoryDto> list=new List<ReduceInventoryDto>();
+        foreach (var item in items){
+            list.Add(new ReduceInventoryDto{
+                ProductId=item.id,
+                Quantity=item.qty
+            });
+        }
+        return list;
+
+    }
+
+    
+
+
+    async Task createNewOrder (){
+        // In ra console.log của trình duyệt
+        listOrderProducts=preparedListOrderItemResponse(checkoutItems);
+        JS.InvokeVoidAsync("console.log", "Đơn hàng:", currentOrder);
+        JS.InvokeVoidAsync("console.log", "Danh sách sản phẩm muốn mua:", listOrderProducts);
+
+        bool result = await _ordersClient.SaveFinalOrderAsync(currentOrder);
+        if(result==false){
+            JS.InvokeVoidAsync("console.log", "Lưu order bị lỗi");
+            return ;
+        }
+        bool result2= await _ordersClient.SaveListOrderItem (listOrderProducts);
+        if(result2==false){
+            JS.InvokeVoidAsync("console.log", "Lưu danh sách item lỗi");
+            return ;
+        }
+        List <ReduceInventoryDto> reducelist=preparedListReduceInventoryDto(listOrderProducts);
+        bool result3= await _ordersClient.ReduceMultipleAsync(reducelist);
+        if(result3==false){
+            JS.InvokeVoidAsync("console.log", "Giảm list sản phẩm lỗi");
+            return ;
+        }
+                
+        if(currentOrder.PromotionId!=null){
+            // Apply Promotion
+            ApplyPromotionRequest requesst=preparedPromotion (currentOrder);
+            bool result4=await _ordersClient.ApplyPromotionAsync(requesst);
+            if(result4==false){
+                JS.InvokeVoidAsync("console.log", "Apply khuyến mãi lỗi");
+                return ;
+            }
+        }
+
+        PaymentResult paymentResult;
+        if (currentOrder.PaymentMethod=="cash"){
+            paymentResult= await _ordersClient.PayCashInOnlineOrderAsync(currentOrder.Id, currentOrder.TotalAmount);
+            if(paymentResult.Success==false){
+                JS.InvokeVoidAsync("console.log", "Thanh toán ofline lỗi");
+                return ;
+            }else{
+                ShowAlert("Đã tạo đơn hàng thành công");
+            
+            }
+        }else{
+            paymentResult= await _ordersClient. PayWithMomoWitOnlineOrderAsync(currentOrder.Id, currentOrder.TotalAmount);
+            if(paymentResult.Success==false){
+                 JS.InvokeVoidAsync("console.log", $"Lỗi thanh toán MoMo: {paymentResult.Message}");
+                return ;
+            }else{
+                ShowAlert("Đã tạo đơn hàng thành công");
+             
+              
+            }
+
+        }
+
+    // Lấy danh sách ProductId đã mua thành công từ listOrderProducts
+        var purchasedProductIds = listOrderProducts.Select(x => x.id).ToList();
+        // Chỉ xóa những món đã mua, giữ lại món chưa mua
+        await CartService.RemovePurchasedItemsFromCart(purchasedProductIds);
+        GoToThankyou(currentOrder.Id.ToString()); 
+
+        
+    }
+
+    // Chuyển trang
+    private async Task GoToThankyou(String orderId) 
+    {
+
+        Navigation.NavigateTo($"/store/thankyou?orderId={orderId}");
+        
+
+    }
+   
 }

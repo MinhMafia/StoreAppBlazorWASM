@@ -162,5 +162,158 @@ namespace StoreApp.Repository
 
             return (data, totalItems);
         }
+
+
+        /// <summary>
+        /// Cập nhật trạng thái đơn hàng theo trạng thái mong muốn.
+        /// </summary>
+        public async Task<bool> UpdateOrderStatusVer2Async(int orderId, string newStatus)
+        {
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order == null)
+                return false; // Không tìm thấy đơn
+
+            order.Status = newStatus;
+            order.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <summary>
+        /// Cập nhật user xử lý đơn hàng theo user_id bạn truyền vào.
+        /// </summary>
+        public async Task<bool> UpdateOrderUserAsync(int orderId, int? newUserId)
+        {
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order == null)
+                return false;
+
+            order.UserId = newUserId;
+            order.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <summary>
+        /// Hủy đơn hàng pending với payment pending + method cash.
+        /// Cập nhật trạng thái order, payment và cộng lại tồn kho.
+        /// Áp dụng cho mỗi order chỉ có 1 payment.
+        /// </summary>
+        public async Task<bool> CancelOrderAsync(int orderId)
+        {
+            // Lấy đơn hàng kèm payment và order items
+            var order = await _context.Orders
+                .Include(o => o.Payments) // giả sử Payments chỉ có 1 phần tử
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
+            if (order == null)
+                return false; // Không tìm thấy đơn
+
+            if (order.Status != "pending")
+                return false; // Chỉ hủy đơn pending
+
+            var payment = order.Payments.FirstOrDefault();
+
+            if (payment == null || payment.Status != "pending" )
+                return false; // Payment không thỏa điều kiện
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // Hủy order
+                order.Status = "cancelled";
+                order.UpdatedAt = DateTime.UtcNow;
+                payment.Status = "cancelled";
+            
+
+                // Cập nhật tồn kho
+                foreach (var item in order.OrderItems)
+                {
+                    var inventory = await _context.Inventory
+                        .FirstOrDefaultAsync(i => i.ProductId == item.ProductId);
+
+                    if (inventory != null)
+                    {
+                        inventory.Quantity += item.Quantity;
+                        inventory.UpdatedAt = DateTime.UtcNow;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return true;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Lấy đơn hàng theo orderId
+        /// </summary>
+        /// <param name="orderId"></param>
+        /// <returns></returns>
+        public async Task<OrderDTO?> GetOrderDtoByIdAsync_MA(int orderId)
+        {
+            var query = _context.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.User)
+                .Include(o => o.Promotion)
+                .Include(o => o.Payments) // 1-n nhưng bạn đang dùng FirstOrDefault
+                .AsQueryable();
+
+            var order = await query
+                .Where(o => o.Id == orderId)
+                .Select(o => new OrderDTO
+                {
+                    Id = o.Id,
+                    OrderNumber = o.OrderNumber,
+                    CustomerId = o.CustomerId,
+                    UserId = o.UserId,
+                    Status = o.Status,
+                    Subtotal = o.Subtotal,
+                    Discount = o.Discount,
+                    TotalAmount = o.TotalAmount,
+                    PromotionId = o.PromotionId,
+                    Note = o.Note,
+                    CreatedAt = o.CreatedAt,
+                    UpdatedAt = o.UpdatedAt,
+
+                    CustomerName = o.Customer != null ? o.Customer.FullName : null,
+                    UserName = o.User != null ? o.User.FullName : null,
+                    PromotionCode = o.Promotion != null ? o.Promotion.Code : null,
+
+                    PaymentMethod = o.Payments.FirstOrDefault() != null
+                        ? o.Payments.FirstOrDefault()!.Method
+                        : null,
+
+                    PaymentStatus = o.Payments.FirstOrDefault() != null
+                        ? o.Payments.FirstOrDefault()!.Status
+                        : null,
+
+                    TransactionRef = o.Payments.FirstOrDefault() != null
+                        ? o.Payments.FirstOrDefault()!.TransactionRef
+                        : null,
+                    
+                    DiaChiKhachHang = o.Customer != null ? o.Customer.Address : null,
+                    SoDienThoai = o.Customer != null ? o.Customer.Phone : null,
+                    Email=o.Customer != null ? o.Customer.Email : null
+                    
+                })
+                .FirstOrDefaultAsync();
+
+            return order;
+        }
+
+
+
+
     }
 }

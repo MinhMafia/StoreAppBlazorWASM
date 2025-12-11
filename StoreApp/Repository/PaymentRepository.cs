@@ -72,6 +72,23 @@ namespace StoreApp.Repository
                 .FirstOrDefaultAsync(p => p.OrderId == orderId);
         }
 
+        /// <summary>
+        /// Cập nhật trạng thái payment theo OrderId (mỗi order chỉ có 1 payment)
+        /// </summary>
+        public async Task<bool> UpdatePaymentStatusByOrderIdAsync(int orderId, string newStatus)
+        {
+            var payment = await _context.Payments
+                                        .FirstOrDefaultAsync(p => p.OrderId == orderId);
+
+            if (payment == null)
+                return false; // Không tìm thấy payment
+
+            payment.Status = newStatus;
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
 
 
     }

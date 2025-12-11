@@ -88,13 +88,6 @@
                 }
               </div>
 
-              <!-- Lượt sử dụng -->
-              @if (item.UsageLimit != null)
-              {
-                <div class="text-xs text-gray-500">
-                  Lượt dùng: @item.UsedCount / @item.UsageLimit
-                </div>
-              }
             </div>
 
           </label>
@@ -206,7 +199,6 @@
 
       // --- Nếu hợp lệ → AP MÃ ---
       promotion = item;        
-      JS.InvokeVoidAsync("alert", "Áp dụng mã giảm giá có code:\t",promotion.Code);
 
       decimal discountAmount = 0;
 

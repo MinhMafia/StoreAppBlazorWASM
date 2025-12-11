@@ -12,6 +12,8 @@ public interface IStoreCartService
     Task<List<CartItemDTO>> GetCartItems();
     Task ClearCart();
     Task<int> GetCartItemCount();
+    Task RemovePurchasedItemsFromCart(IEnumerable<int> purchasedProductIds);
+    
     event Action? OnCartChanged;
 }
 
@@ -136,6 +138,27 @@ public class StoreCartService : IStoreCartService
     {
         var cartItems = await LoadCartFromStorage();
         return cartItems.Sum(x => x.Quantity);
+    }
+
+    /// <summary>
+    /// Xóa các sản phẩm ĐÃ MUA THÀNH CÔNG khỏi giỏ hàng (localStorage)
+    /// Chỉ xóa những sản phẩm có trong danh sách đã đặt hàng, giữ lại những món chưa mua
+    /// </summary>
+    /// Rất hữu ích khi người dùng mua 1 phần trong giỏ hàng (ví dụ: chỉ mua 5/10 món)
+    /// </summary>
+    /// <param name="purchasedProductIds">Danh sách ID sản phẩm đã được đặt hàng thành công</param>
+    public async Task RemovePurchasedItemsFromCart(IEnumerable<int> purchasedProductIds)
+    {
+        if (purchasedProductIds == null || !purchasedProductIds.Any())
+            return;
+
+        var cartItems = await LoadCartFromStorage();
+
+        // Xóa tất cả sản phẩm có ProductId nằm trong danh sách đã mua
+        cartItems.RemoveAll(item => purchasedProductIds.Contains(item.ProductId));
+
+        await SaveCartToStorage(cartItems);
+        OnCartChanged?.Invoke(); // Cập nhật lại badge giỏ hàng
     }
 }
 

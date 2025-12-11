@@ -13,5 +13,7 @@ namespace  StoreApp.Shared
 
         // Thêm các thuộc tính khác nếu cần
         public int inventoryQuantity { get; set; }
+
+        public string img { get; set; }= string.Empty;
     }
 }

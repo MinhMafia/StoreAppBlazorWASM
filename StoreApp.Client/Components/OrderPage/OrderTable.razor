@@ -1,3 +1,6 @@
+@using StoreApp.Shared
+@using System.Net.Http.Json
+@inject IJSRuntime JS
 <div class="bg-white rounded-xl shadow-xl overflow-hidden">
 
     @* {/* Header */} *@
@@ -92,22 +95,28 @@
                                         @onclick="() => ViewOrderDetail.InvokeAsync(order)">
                                         Xem
                                     </button>
+
                                     @* Nút Xử lý chỉ cho order online *@
                                     @if (order.Status == "pending" && (
                                         (order.PaymentMethod?.ToLower() == "cash" && order.PaymentStatus == "pending") ||
-                                        (order.PaymentMethod?.ToLower() != "cash" && order.PaymentStatus == "paid")
+                                        (order.PaymentMethod?.ToLower() != "other" && order.PaymentStatus == "completed")
                                         ))
                                     {
-                                        <button class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700">
+                                        <button
+                                        @onclick="() => HandleProcessOrder(order)"  
+                                        class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700">
                                             Xử lý
                                         </button>
                                     }
+
 
                                     @* Nút Hủy chỉ khi order online, cash, pending *@
                                     
                                     @if (order.Status == "pending" && order.PaymentStatus == "pending" && order.PaymentMethod?.ToLower() == "cash")
                                     {
-                                        <button class="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700">
+                                        <button
+                                        @onclick="() => HandleCancelOrder(order.Id)" 
+                                        class="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700">
                                             Hủy
                                         </button>
                                     }
@@ -176,6 +185,38 @@
     
     [Parameter] 
     public EventCallback<OrderDTO> ViewOrderDetail { get; set; }
+
+    [Inject] IOrdersClientService _ordersClient { get; set; } = null!;
+
+    async Task ShowAlert(string message)
+    {
+        await JS.InvokeVoidAsync("alert", message);
+    }
+
+    // Hàm xử lí đơn
+    async Task HandleProcessOrder (OrderDTO item){
+        bool result = await _ordersClient.HandleProcessClick(item);
+        if(result){
+            await ShowAlert("Xử lý đơn thành công");
+            
+        }else{
+            await ShowAlert("Xử lý đơn không thành công");
+        }
+
+    }
+    
+
+    //Hàm hủy đơn
+        async Task HandleCancelOrder (int id){
+        bool result = await _ordersClient.HandleCancelClick(id);
+        if(result){
+            await ShowAlert("Hủy đơn thành công");
+        }else{
+            await ShowAlert("Hủy đơn không thành công");
+        }
+
+    }
+
 
 
     private async Task ChangePage(int page)
@@ -247,5 +288,7 @@
             _ => "bg-gray-100 text-gray-800"
         };
     }
+
+
 
 }

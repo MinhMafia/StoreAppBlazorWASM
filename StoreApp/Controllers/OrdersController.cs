@@ -30,6 +30,20 @@ namespace StoreApp.Controllers
             }
         }
 
+        [HttpPost("createonlineordertemp")]
+        public async Task<ActionResult<OrderDTO>> CreateTemporaryOnlineOrderAsync()
+        {
+            try
+            {
+                var tempOrder = await _orderService.CreateTemporaryOnlineOrderAsync();
+                return Ok(tempOrder);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         // POST: api/Order/create
         [HttpPost("create")]
         public async Task<IActionResult> CreateOrder([FromBody] OrderDTO dto)
@@ -56,6 +70,54 @@ namespace StoreApp.Controllers
             );
 
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Xử lý đơn hàng (cash hoặc MoMo)
+        /// </summary>
+        /// <param name="order">OrderDTO gửi từ frontend</param>
+        [HttpPost("process")]
+        public async Task<IActionResult> ProcessOrder([FromBody] OrderDTO order)
+        {
+            if (order == null || order.Id <= 0)
+                return Ok(false); // trả về false nếu dữ liệu không hợp lệ
+
+            bool success = await _orderService.HandleProcessOrderAsync(order);
+
+            return Ok(success); // true nếu xử lý thành công, false nếu thất bại
+        }
+
+        /// <summary>
+        /// Hủy đơn hàng pending với payment pending + cash
+        /// Trả về true nếu hủy thành công, false nếu không hủy được
+        /// </summary>
+        [HttpPost("{orderId}/cancel")]
+        public async Task<IActionResult> CancelOrder(int orderId)
+        {
+            try
+            {
+                var result = await _orderService.CancelOrderAsync(orderId);
+
+                // Trả về true/false
+                return Ok(result);
+            }
+            catch
+            {
+                // Nếu lỗi hệ thống, vẫn trả false
+                return Ok(false);
+            }
+        }
+
+        // Lấy đơn hàng theo orderID
+        [HttpGet("getOrderByOrderId/{orderId}")]
+        public async Task<IActionResult> GetOrderById(int orderId)
+        {
+            var order = await _orderService.GetOrderDtoByIdAsync_MA(orderId);
+
+            if (order == null)
+                return NotFound(new { message = $"Order with ID {orderId} not found." });
+
+            return Ok(order);
         }
 
 
