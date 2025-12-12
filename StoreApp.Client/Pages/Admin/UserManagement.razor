@@ -278,7 +278,7 @@
 
         try
         {
-            var resp = await Http.GetFromJsonAsync<PaginationResult<UserDTO>>($"api/users/paginated?page={page}&pageSize={Meta.PageSize}");
+            var resp = await Http.GetFromJsonAsync<PaginationResult<UserDTO>>($"api/users/staffs?page={page}&pageSize={Meta.PageSize}");
             if (resp != null)
             {
                 Users = resp.Items ?? new List<UserDTO>();

@@ -26,7 +26,7 @@
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="admin/profile">
-                <span class="bi bi-person-circle" aria-hidden="true"></span> Thông tin cá nhân
+                <span class="bi bi-person-circle-nav-menu" aria-hidden="true"></span> Thông tin cá nhân
             </NavLink>
         </div>
 
@@ -54,15 +54,18 @@
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="admin/users">
-                <span class="bi bi-people-fill" aria-hidden="true"></span> Nhân viên
-            </NavLink>
-        </div>
+        @if (IsAdmin)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin/users">
+                    <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> Nhân viên
+                </NavLink>
+            </div>
+        }
         
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="admin/orders">
-                <span class="bi bi-box-seam" aria-hidden="true"></span> Đơn hàng
+                <span class="bi bi-box-seam-nav-menu" aria-hidden="true"></span> Đơn hàng
             </NavLink>
         </div>
 
@@ -76,6 +79,14 @@
 
 
 @code {
+    private bool IsAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var role = await LocalStorage.GetItemAsStringAsync("userRole");
+        IsAdmin = string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase);
+    }
+
     private async Task HandleLogout()
     {
         await LocalStorage.RemoveItemAsync("authToken");
