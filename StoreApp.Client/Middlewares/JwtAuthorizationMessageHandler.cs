@@ -1,38 +1,58 @@
-using Blazored.LocalStorage;
+﻿using System;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
+using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components;
 
 namespace StoreApp.Client.Middlewares
 {
     public class JwtAuthorizationMessageHandler : DelegatingHandler
     {
         private readonly ILocalStorageService _localStorage;
+        private readonly NavigationManager _nav;
 
-        public JwtAuthorizationMessageHandler(ILocalStorageService localStorage)
+        public JwtAuthorizationMessageHandler(ILocalStorageService localStorage, NavigationManager nav)
         {
             _localStorage = localStorage;
+            _nav = nav;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request, 
+            HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            // 1. Lấy token từ LocalStorage
-            var token = await _localStorage.GetItemAsStringAsync("authToken"); // Thay "authToken" bằng key bạn lưu token
+            // 1. Attach token nếu có
+            var token = await _localStorage.GetItemAsStringAsync("authToken");
+            var hasToken = !string.IsNullOrWhiteSpace(token);
 
-            // 2. Nếu có token, thêm nó vào header Authorization
-            if (!string.IsNullOrEmpty(token))
+            if (hasToken)
             {
-                // Loại bỏ dấu ngoặc kép nếu token được lưu dưới dạng string JSON
-                string cleanToken = token.Trim('"'); 
-                
+                var cleanToken = token.Trim('"');
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", cleanToken);
             }
 
-            // 3. Tiếp tục gửi request đến API
-            return await base.SendAsync(request, cancellationToken);
+            var response = await base.SendAsync(request, cancellationToken);
+
+            // 2. Auto logout khi có token và nhận 401 (hết hạn/sai). Bỏ qua các auth endpoint.
+            var path = request.RequestUri?.AbsolutePath ?? string.Empty;
+            var isAuthEndpoint = path.Contains("/api/auth", StringComparison.OrdinalIgnoreCase);
+
+            if (hasToken && !isAuthEndpoint && response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                await _localStorage.RemoveItemAsync("authToken");
+                await _localStorage.RemoveItemAsync("userName");
+                await _localStorage.RemoveItemAsync("userRole");
+
+                if (!_nav.Uri.Contains("/login", StringComparison.OrdinalIgnoreCase))
+                {
+                    _nav.NavigateTo("/login", forceLoad: true);
+                }
+            }
+
+            return response;
         }
     }
 }
