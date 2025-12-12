@@ -1,6 +1,7 @@
-using StoreApp.Shared;
-using Blazored.LocalStorage;
+using System.Net.Http.Json;
 using System.Text.Json;
+using Blazored.LocalStorage;
+using StoreApp.Shared;
 
 namespace StoreApp.Client.Services;
 
@@ -12,8 +13,10 @@ public interface IStoreCartService
     Task<List<CartItemDTO>> GetCartItems();
     Task ClearCart();
     Task<int> GetCartItemCount();
+    Task SyncToServerAsync();
+    Task PullFromServerAsync();
     Task RemovePurchasedItemsFromCart(IEnumerable<int> purchasedProductIds);
-    
+
     event Action? OnCartChanged;
 }
 
@@ -29,6 +32,19 @@ public class StoreCartService : IStoreCartService
     {
         _localStorage = localStorage;
         _httpClient = httpClient;
+    }
+
+    private async Task<bool> HasTokenAsync()
+    {
+        try
+        {
+            var token = await _localStorage.GetItemAsStringAsync("authToken");
+            return !string.IsNullOrWhiteSpace(token);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private async Task<List<CartItemDTO>> LoadCartFromStorage()
@@ -56,7 +72,6 @@ public class StoreCartService : IStoreCartService
         }
         catch
         {
-            // Ignore storage errors
         }
     }
 
@@ -68,7 +83,6 @@ public class StoreCartService : IStoreCartService
         if (existingItem != null)
         {
             var newQuantity = existingItem.Quantity + quantity;
-            // Kiểm tra số lượng tồn kho nếu có
             if (existingItem.AvailableQuantity.HasValue && newQuantity > existingItem.AvailableQuantity.Value)
             {
                 newQuantity = existingItem.AvailableQuantity.Value;
@@ -112,7 +126,6 @@ public class StoreCartService : IStoreCartService
         var item = cartItems.FirstOrDefault(x => x.ProductId == productId);
         if (item != null)
         {
-            // Kiểm tra số lượng tồn kho nếu có
             if (item.AvailableQuantity.HasValue && quantity > item.AvailableQuantity.Value)
             {
                 quantity = item.AvailableQuantity.Value;
@@ -140,39 +153,41 @@ public class StoreCartService : IStoreCartService
         return cartItems.Sum(x => x.Quantity);
     }
 
-    /// <summary>
-    /// Xóa các sản phẩm ĐÃ MUA THÀNH CÔNG khỏi giỏ hàng (localStorage)
-    /// Chỉ xóa những sản phẩm có trong danh sách đã đặt hàng, giữ lại những món chưa mua
-    /// </summary>
-    /// Rất hữu ích khi người dùng mua 1 phần trong giỏ hàng (ví dụ: chỉ mua 5/10 món)
-    /// </summary>
-    /// <param name="purchasedProductIds">Danh sách ID sản phẩm đã được đặt hàng thành công</param>
     public async Task RemovePurchasedItemsFromCart(IEnumerable<int> purchasedProductIds)
     {
         if (purchasedProductIds == null || !purchasedProductIds.Any())
             return;
 
         var cartItems = await LoadCartFromStorage();
-
-        // Xóa tất cả sản phẩm có ProductId nằm trong danh sách đã mua
         cartItems.RemoveAll(item => purchasedProductIds.Contains(item.ProductId));
-
         await SaveCartToStorage(cartItems);
-        OnCartChanged?.Invoke(); // Cập nhật lại badge giỏ hàng
+        OnCartChanged?.Invoke();
+    }
+
+    public async Task SyncToServerAsync()
+    {
+        if (!await HasTokenAsync()) return;
+        try
+        {
+            var items = await LoadCartFromStorage();
+            await _httpClient.PostAsJsonAsync("api/cart/sync", items);
+        }
+        catch
+        {
+        }
+    }
+
+    public async Task PullFromServerAsync()
+    {
+        if (!await HasTokenAsync()) return;
+        try
+        {
+            var items = await _httpClient.GetFromJsonAsync<List<CartItemDTO>>("api/cart") ?? new List<CartItemDTO>();
+            await SaveCartToStorage(items);
+            OnCartChanged?.Invoke();
+        }
+        catch
+        {
+        }
     }
 }
-
-// DTO cho Cart Item (sử dụng ProductDTO và thêm Quantity)
-public class CartItemDTO
-{
-    public int ProductId { get; set; }
-    public string ProductName { get; set; } = "";
-    public string ImageUrl { get; set; } = "";
-    public decimal Price { get; set; }
-    public int Quantity { get; set; }
-    public int? AvailableQuantity { get; set; } // Số lượng tồn kho
-    public decimal Total => Price * Quantity;
-    public bool IsOutOfStock => AvailableQuantity.HasValue && AvailableQuantity.Value <= 0;
-    public bool CanIncreaseQuantity => !AvailableQuantity.HasValue || Quantity < AvailableQuantity.Value;
-}
-

@@ -23,6 +23,7 @@ namespace StoreApp.Controllers
         // GET api/products/paginated - ENDPOINT CHÍNH
 
         [HttpGet("paginated")]
+        [AllowAnonymous]
         public async Task<ActionResult<PaginationResult<ProductDTO>>> GetPaginatedProducts(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 12,
@@ -46,6 +47,7 @@ namespace StoreApp.Controllers
 
         // GET api/products/{id}
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<ProductDTO>> GetProduct(int id)
         {
             try
@@ -215,6 +217,7 @@ namespace StoreApp.Controllers
 // ĐỪNG XÓA LÀM ƠN = lẤY DANH SÁCH SẢN PHẨM CÒN HÀNG TRONG CỬA HÀNG
 
         [HttpGet("available")]
+        [AllowAnonymous]
         public async Task<ActionResult<PaginationResult<ProductDTO>>> GetAvailableProducts(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20
@@ -248,6 +251,7 @@ namespace StoreApp.Controllers
         // TÌM KIẾM
         // GET api/products/search?keyword=...
         [HttpGet("search")]
+        [AllowAnonymous]
         public async Task<ActionResult<PaginationResult<ProductDTO>>> SearchProducts(
             [FromQuery] string keyword,
             [FromQuery] int page = 1,

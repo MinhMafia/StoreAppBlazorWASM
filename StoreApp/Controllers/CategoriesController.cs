@@ -20,6 +20,7 @@ namespace StoreApp.Controllers
 
         // GET api/categories?page=1&pageSize=10&keyword=...&status=active
         [HttpGet("")]
+        [AllowAnonymous]
         public async Task<ActionResult> GetFilteredAndPaginatedCategories(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
@@ -32,6 +33,7 @@ namespace StoreApp.Controllers
 
         // GET api/categories/{id}
         [HttpGet("{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult> GetCategoryById(int id)
         {
             var result = await _service.GetCategoryByIdAsync(id);
@@ -88,6 +90,7 @@ namespace StoreApp.Controllers
 
         // GET api/categories/paginated (endpoint cũ - giữ lại cho backward compatibility)
         [HttpGet("paginated")]
+        [AllowAnonymous]
         public async Task<ActionResult<PaginationResult<CategoryDTO>>> GetPaginated(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 12,
@@ -102,6 +105,7 @@ namespace StoreApp.Controllers
 
         // GET api/categories/all (đổi routing để tránh conflict)
         [HttpGet("all")]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<CategoryDTO>>> GetAll()
         {
             var list = await _service.GetAllAsync();

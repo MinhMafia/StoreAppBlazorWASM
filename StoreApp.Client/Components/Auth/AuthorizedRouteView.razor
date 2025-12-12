@@ -6,7 +6,7 @@
 
 @if (isChecked)
 {
-    @if (isAuthorized)
+    if (isAuthorized)
     {
         <RouteView RouteData="@RouteData" DefaultLayout="@DefaultLayout" />
     }
@@ -44,20 +44,19 @@ else
     private async Task CheckAuthorizationAsync()
     {
         var path = Nav.ToBaseRelativePath(Nav.Uri).ToLower();
-        
+
         // Các trang công khai không cần auth
-        var publicPages = new[] { "login", "admin/login", "register" };
-        
+        var publicPages = new[] { "login", "admin/login", "register", "store", "store/products" };
+
         if (publicPages.Any(p => path.StartsWith(p)))
         {
-            // Nếu đã đăng nhập, redirect về trang phù hợp
             try
             {
                 var token = await LocalStorage.GetItemAsStringAsync("authToken");
                 if (!string.IsNullOrEmpty(token))
                 {
                     var role = await LocalStorage.GetItemAsStringAsync("userRole");
-                    
+
                     if (path.StartsWith("admin/login"))
                     {
                         if (role == "admin" || role == "staff")
@@ -82,7 +81,7 @@ else
                 }
             }
             catch { }
-            
+
             isAuthorized = true;
             isChecked = true;
             StateHasChanged();
@@ -93,65 +92,56 @@ else
         try
         {
             var token = await LocalStorage.GetItemAsStringAsync("authToken");
-            
-            if (string.IsNullOrEmpty(token))
-            {
-                Console.WriteLine($"❌ Not authenticated - Path: {path}");
-                if (path.StartsWith("admin"))
-                {
-                    Nav.NavigateTo("/admin/login", forceLoad: true);
-                }
-                else
-                {
-                    Nav.NavigateTo("/login", forceLoad: true);
-                }
-                return;
-            }
-
             var role = await LocalStorage.GetItemAsStringAsync("userRole");
-            
-            // Kiểm tra quyền truy cập
+
             if (path.StartsWith("admin"))
             {
-                if (role != "admin" && role != "staff")
+                if (string.IsNullOrEmpty(token) || (role != "admin" && role != "staff"))
                 {
-                    Console.WriteLine($"❌ Access denied to admin area - Role: {role}");
-                    Nav.NavigateTo("/store", forceLoad: true);
+                    Nav.NavigateTo("/admin/login", forceLoad: true);
                     return;
                 }
             }
             else if (path.StartsWith("store"))
             {
-                if (role != "customer")
+                var isPublicStore = path == "store" || path.StartsWith("store/products");
+                if (isPublicStore && string.IsNullOrEmpty(token))
                 {
-                    Console.WriteLine($"❌ Access denied to store - Role: {role}");
-                    Nav.NavigateTo("/admin/home", forceLoad: true);
+                    isAuthorized = true;
+                    isChecked = true;
+                    StateHasChanged();
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(token) || role != "customer")
+                {
+                    Nav.NavigateTo("/login", forceLoad: true);
                     return;
                 }
             }
             else if (string.IsNullOrEmpty(path) || path == "/")
             {
+                if (string.IsNullOrEmpty(token))
+                {
+                    Nav.NavigateTo("/store", forceLoad: true);
+                    return;
+                }
+
                 if (role == "admin" || role == "staff")
                 {
                     Nav.NavigateTo("/admin/home", forceLoad: true);
                 }
-                else if (role == "customer")
-                {
-                    Nav.NavigateTo("/store", forceLoad: true);
-                }
                 else
                 {
-                    Nav.NavigateTo("/login", forceLoad: true);
+                    Nav.NavigateTo("/store", forceLoad: true);
                 }
                 return;
             }
 
             isAuthorized = true;
-            Console.WriteLine($"✅ Access granted - Path: {path}, Role: {role}");
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"❌ Auth check failed: {ex.Message}");
             Nav.NavigateTo("/login", forceLoad: true);
             return;
         }

@@ -21,10 +21,10 @@
             
             if (string.IsNullOrEmpty(token))
             {
-                // Chưa đăng nhập -> redirect login
-                Nav.NavigateTo("/login", forceLoad: true);
+                Nav.NavigateTo("/store", forceLoad: true);
                 return;
             }
+
 
             var role = await LocalStorage.GetItemAsStringAsync("userRole");
             
@@ -43,12 +43,12 @@
                 await LocalStorage.RemoveItemAsync("authToken");
                 await LocalStorage.RemoveItemAsync("userName");
                 await LocalStorage.RemoveItemAsync("userRole");
-                Nav.NavigateTo("/login", forceLoad: true);
+                Nav.NavigateTo("/store", forceLoad: true);
             }
         }
         catch
         {
-            Nav.NavigateTo("/login", forceLoad: true);
+            Nav.NavigateTo("/store", forceLoad: true);
         }
     }
 }

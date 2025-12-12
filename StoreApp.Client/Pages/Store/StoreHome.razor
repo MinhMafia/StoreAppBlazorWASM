@@ -4,6 +4,7 @@
 @inject IProductClientService ProductService
 @inject ICategoryClientService CategoryService
 @inject NavigationManager Navigation
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
 <PageTitle>Cửa Hàng Tiện Lợi</PageTitle>
 
@@ -18,6 +19,19 @@
 </div>
 
 <div class="store-home">
+    @if (!isLoggedIn)
+    {
+        <div class="store-hero-guest">
+            <div class="hero-text">
+                <h1>Khám phá sản phẩm mà không cần đăng nhập</h1>
+                <p>Xem catalog, khuyến mãi và giỏ hàng nhanh chóng. Đăng nhập để đặt hàng và theo dõi đơn.</p>
+            </div>
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="/login">Đăng nhập</a>
+                <a class="btn btn-outline-light" href="/register">Đăng ký</a>
+            </div>
+        </div>
+    }
     <div class="container">
         <div class="store-content">
             <!-- Sidebar Left -->
@@ -227,9 +241,20 @@
     private decimal? maxPrice;
     private string sortOrder = "default";
     private bool isLoading = false;
+    private bool isLoggedIn;
 
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            var token = await LocalStorage.GetItemAsStringAsync("authToken");
+            isLoggedIn = !string.IsNullOrWhiteSpace(token);
+        }
+        catch
+        {
+            isLoggedIn = false;
+        }
+
         await Task.WhenAll(
             LoadProducts(),
             LoadRecommendedProducts(),

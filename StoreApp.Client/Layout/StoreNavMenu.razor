@@ -1,4 +1,4 @@
-@using Blazored.LocalStorage
+﻿@using Blazored.LocalStorage
 @using StoreApp.Client.Services
 @inject ILocalStorageService LocalStorage
 @inject IStoreCartService CartService
@@ -71,12 +71,12 @@
                 <NavLink href="/store/cart" class="cart-link">
                     <div class="cart-icon-wrapper">
                         <i class="bi bi-cart3"></i>
-                        @if (cartItemCount > 0)
+                        @if (cartItemCount > 0 && IsLoggedIn)
                         {
                             <span class="cart-badge">@cartItemCount</span>
                         }
                     </div>
-                    <span class="cart-amount">@cartTotalAmount.ToString("N0")₫</span>
+                    <span class="cart-amount">@(IsLoggedIn ? $"{cartTotalAmount:N0}₫" : "Giỏ hàng")</span>
                 </NavLink>
             </div>
         </div>
@@ -102,17 +102,29 @@
                 <NavLink href="/store/cart" class="nav-link">
                     GIỎ HÀNG
                 </NavLink>
-                <NavLink href="/store/orders" class="nav-link">
-                    ĐƠN HÀNG CỦA TÔI
-                </NavLink>
-                <NavLink href="/store/profile" class="nav-link">
-                    HỒ SƠ
-                </NavLink>
-                <div class="nav-item px-3">
-                    <button class="btn btn-danger w-100" @onclick="HandleLogout">
-                        <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
-                    </button>
-                </div>
+                @if (IsLoggedIn)
+                {
+                    <NavLink href="/store/orders" class="nav-link">
+                        ĐƠN HÀNG CỦA TÔI
+                    </NavLink>
+                    <NavLink href="/store/profile" class="nav-link">
+                        HỒ SƠ
+                    </NavLink>
+                    <div class="nav-item px-3">
+                        <button class="btn btn-danger w-100" @onclick="HandleLogout">
+                            <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <NavLink href="/login" class="nav-link">
+                        ĐĂNG NHẬP
+                    </NavLink>
+                    <NavLink href="/register" class="nav-link">
+                        ĐĂNG KÝ
+                    </NavLink>
+                }
             </div>
         </div>
     </div>
@@ -121,10 +133,12 @@
 @code {
     private int cartItemCount = 0;
     private decimal cartTotalAmount = 0;
+    private bool IsLoggedIn;
 
     protected override async Task OnInitializedAsync()
     {
         CartService.OnCartChanged += OnCartChanged;
+        await CheckLoginAsync();
         await LoadCartInfo();
     }
 
@@ -134,10 +148,35 @@
         StateHasChanged();
     }
 
+    private async Task CheckLoginAsync()
+    {
+        try
+        {
+            var token = await LocalStorage.GetItemAsStringAsync("authToken");
+            IsLoggedIn = !string.IsNullOrWhiteSpace(token);
+
+            if (IsLoggedIn)
+            {
+                await CartService.PullFromServerAsync();
+            }
+        }
+        catch
+        {
+            IsLoggedIn = false;
+        }
+    }
+
     private async Task LoadCartInfo()
     {
         try
         {
+            if (!IsLoggedIn)
+            {
+                cartItemCount = 0;
+                cartTotalAmount = 0;
+                return;
+            }
+
             cartItemCount = await CartService.GetCartItemCount();
             var cartItems = await CartService.GetCartItems();
             cartTotalAmount = cartItems.Sum(x => x.Total);
@@ -151,6 +190,8 @@
 
     private async Task HandleLogout()
     {
+        await CartService.SyncToServerAsync();
+        await CartService.ClearCart();
         await LocalStorage.RemoveItemAsync("authToken");
         await LocalStorage.RemoveItemAsync("userName");
         await LocalStorage.RemoveItemAsync("userRole");

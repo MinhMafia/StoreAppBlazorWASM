@@ -23,6 +23,7 @@ namespace StoreApp.Data
         public DbSet<Promotion> Promotions { get; set; }
         public DbSet<AiConversation> AiConversations { get; set; }
         public DbSet<AiMessage> AiMessages { get; set; }
+        public DbSet<CartItem> CartItems { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -212,7 +213,11 @@ namespace StoreApp.Data
                 .WithOne(l => l.User)
                 .HasForeignKey(l => l.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<CartItem>()
+                .HasIndex(c => new { c.UserId, c.ProductId })
+                .IsUnique()
+                .HasDatabaseName("ux_cartitems_user_product");
         }
     }
 }
-
