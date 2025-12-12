@@ -2,14 +2,9 @@
  
  namespace StoreApp.Client.Services
  {
-     /// <summary>
-     /// Interface cho Customer AI Chat Service
-     /// </summary>
-     public interface ICustomerAiChatService
+         public interface ICustomerAiChatService
      {
-         /// <summary>
-         /// Stream chat message với SSE
-         /// </summary>
+       
          Task StreamMessageAsync(
              string message,
              int? conversationId,
@@ -21,19 +16,12 @@
              CancellationToken cancellationToken = default
          );
  
-         /// <summary>
-         /// Lấy danh sách conversations
-         /// </summary>
+        
          Task<List<AiConversationSummaryDTO>> GetConversationsAsync();
  
-         /// <summary>
-         /// Lấy chi tiết conversation
-         /// </summary>
+        
          Task<AiConversationDTO?> GetConversationAsync(int id);
  
-         /// <summary>
-         /// Xóa conversation
-         /// </summary>
          Task<bool> DeleteConversationAsync(int id);
      }
  }

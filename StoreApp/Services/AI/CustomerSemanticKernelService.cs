@@ -150,7 +150,7 @@ namespace StoreApp.Services.AI
 
         public async IAsyncEnumerable<string> ChatStreamAsync(
             string userMessage,
-            int userId,
+            int? userId,
             int? authenticatedCustomerId,
             int? conversationId = null,
             List<ClientMessageDTO>? clientHistory = null,
@@ -164,40 +164,48 @@ namespace StoreApp.Services.AI
             }
 
             int? convId = conversationId;
-            string? prepareError = null;
-
-            try
+            
+            // CHỈ lưu DB khi đã đăng nhập (có userId thật)
+            bool isAuthenticated = userId.HasValue && userId.Value > 0;
+            
+            if (isAuthenticated)
             {
-                if (!convId.HasValue)
+                try
                 {
-                    var title = GenerateConversationTitle(userMessage);
-                    var conversation = await _aiRepository.CreateConversationAsync(userId, title);
-                    convId = conversation.Id;
+                    if (!convId.HasValue)
+                    {
+                        var title = GenerateConversationTitle(userMessage);
+                        var conversation = await _aiRepository.CreateConversationAsync(userId.Value, title);
+                        convId = conversation.Id;
+                    }
+                    await _aiRepository.AddMessageAsync(convId.Value, "user", userMessage);
                 }
-                await _aiRepository.AddMessageAsync(convId.Value, "user", userMessage);
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error preparing customer conversation");
+                    // Không block chat nếu lưu DB lỗi, tiếp tục chat bình thường
+                }
+                
+                yield return $"convId:{convId}|";
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error preparing customer conversation");
-                prepareError = GetUserFriendlyError(ex);
-            }
-
-            if (prepareError != null)
-            {
-                yield return $"❌ Lỗi: {prepareError}";
-                yield break;
-            }
-
-            yield return $"convId:{convId}|";
 
             var (kernel, chatCompletion) = CreateKernelWithPlugins(authenticatedCustomerId);
             var fullResponse = new StringBuilder();
-            var systemPrompt = GetCustomerSystemPrompt(authenticatedCustomerId.HasValue);
+            
+            // Lấy tên khách hàng nếu đã đăng nhập
+            string? customerName = null;
+            if (authenticatedCustomerId.HasValue)
+            {
+                customerName = await GetCustomerNameAsync(authenticatedCustomerId.Value);
+            }
+            
+            var systemPrompt = GetCustomerSystemPrompt(authenticatedCustomerId.HasValue, customerName);
             var chatHistory = BuildManagedChatHistory(systemPrompt, clientHistory, userMessage);
 
             var settings = new OpenAIPromptExecutionSettings
             {
-                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(autoInvoke: false)
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(autoInvoke: false),
+                MaxTokens = AiConstants.MaxOutputTokens
             };
 
             const int maxIterations = 10;
@@ -209,8 +217,10 @@ namespace StoreApp.Services.AI
                 AuthorRole? authorRole = null;
                 var fccBuilder = new FunctionCallContentBuilder();
 
-                await foreach (var chunk in chatCompletion.GetStreamingChatMessageContentsAsync(
-                    chatHistory, settings, kernel, cancellationToken))
+                var streamingResponse = chatCompletion.GetStreamingChatMessageContentsAsync(
+                    chatHistory, settings, kernel, cancellationToken);
+                
+                await foreach (var chunk in streamingResponse)
                 {
                     if (!string.IsNullOrEmpty(chunk.Content))
                     {
@@ -255,7 +265,26 @@ namespace StoreApp.Services.AI
                     }
                     else if (result != null)
                     {
-                        var resultStr = result.Result?.ToString() ?? "";
+                        var resultValue = result.Result;
+                        string resultStr;
+                        
+                        if (resultValue == null)
+                        {
+                            resultStr = "";
+                        }
+                        else if (resultValue is string strVal)
+                        {
+                            resultStr = strVal;
+                        }
+                        else
+                        {
+                            resultStr = JsonSerializer.Serialize(resultValue, new JsonSerializerOptions 
+                            { 
+                                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                                WriteIndented = false 
+                            });
+                        }
+                        
                         if (_tokenizer.CountTokens(resultStr) > AiConstants.MaxToolResultTokens)
                         {
                             var truncated = TruncateToolResult(resultStr);
@@ -263,7 +292,7 @@ namespace StoreApp.Services.AI
                         }
                         else
                         {
-                            chatHistory.Add(result.ToChatMessage());
+                            chatHistory.Add(new FunctionResultContent(fc, resultStr).ToChatMessage());
                         }
                     }
                 }
@@ -271,7 +300,7 @@ namespace StoreApp.Services.AI
                 yield return "[TOOL_COMPLETE]";
             }
 
-            if (fullResponse.Length > 0 && convId.HasValue)
+            if (isAuthenticated && fullResponse.Length > 0 && convId.HasValue)
             {
                 try
                 {
@@ -283,12 +312,12 @@ namespace StoreApp.Services.AI
 
         public IAsyncEnumerable<string> ChatStreamAsync(
             string userMessage,
-            int userId,
             int? conversationId = null,
             List<ClientMessageDTO>? clientHistory = null,
             CancellationToken cancellationToken = default)
         {
-            return ChatStreamAsync(userMessage, userId, null, conversationId, clientHistory, cancellationToken);
+            // Khách chưa đăng nhập - không có userId, không lưu DB
+            return ChatStreamAsync(userMessage, null, null, conversationId, clientHistory, cancellationToken);
         }
 
         #endregion
@@ -365,12 +394,43 @@ namespace StoreApp.Services.AI
             return "Đã xảy ra lỗi, vui lòng thử lại";
         }
 
-        private static string GetCustomerSystemPrompt(bool isAuthenticated)
+        private async Task<string?> GetCustomerNameAsync(int customerId)
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var customerService = scope.ServiceProvider.GetRequiredService<CustomerService>();
+                var result = await customerService.GetCustomerByIdAsync(customerId);
+                
+                if (result.Success && result.Data != null)
+                {
+                    return result.Data.FullName;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not get customer name for ID {CustomerId}", customerId);
+            }
+            return null;
+        }
+
+        private static string GetCustomerSystemPrompt(bool isAuthenticated, string? customerName = null)
         {
             var today = DateTime.UtcNow.ToString("dd/MM/yyyy");
-            var authStatus = isAuthenticated 
-                ? "✅ Khách hàng ĐÃ ĐĂNG NHẬP - có thể xem đơn hàng của họ"
-                : "❌ Khách hàng CHƯA ĐĂNG NHẬP - không thể xem đơn hàng";
+            
+            string authStatus;
+            if (isAuthenticated && !string.IsNullOrEmpty(customerName))
+            {
+                authStatus = $"✅ Khách hàng: **{customerName}** (đã đăng nhập) - có thể xem đơn hàng";
+            }
+            else if (isAuthenticated)
+            {
+                authStatus = "✅ Khách hàng ĐÃ ĐĂNG NHẬP - có thể xem đơn hàng của họ";
+            }
+            else
+            {
+                authStatus = "❌ Khách hàng CHƯA ĐĂNG NHẬP - không thể xem đơn hàng";
+            }
             
             return $"""
                 Bạn là trợ lý mua sắm AI của cửa hàng. Bạn giúp khách hàng tìm kiếm và mua sản phẩm.
@@ -379,7 +439,8 @@ namespace StoreApp.Services.AI
                 - Ngày hiện tại: {today}
                 - Đơn vị tiền: VND (format: 1.500.000đ)
                 - Ngôn ngữ: Tiếng Việt
-                - Trạng thái đăng nhập: {authStatus}
+                - {authStatus}
+                {(isAuthenticated && !string.IsNullOrEmpty(customerName) ? $"- Khi chào hỏi hoặc trả lời, hãy gọi khách là \"{customerName}\" để tạo sự thân thiện" : "")}
 
                 ## QUAN TRỌNG: KHI NÀO GỌI TOOL
                 
@@ -399,7 +460,10 @@ namespace StoreApp.Services.AI
                 ## NHIỆM VỤ (chỉ dùng khi được hỏi)
                 1. Tìm kiếm và tư vấn sản phẩm → SearchProducts, GetProductDetail
                 2. Tra cứu đơn hàng của khách → GetMyOrders, GetOrderDetail (CHỈ khi đã đăng nhập)
-                3. Kiểm tra mã khuyến mãi → CheckPromotion
+                3. Khuyến mãi:
+                   - "Có khuyến mãi gì?", "chương trình giảm giá" → GetActivePromotions
+                   - "Khuyến mãi về laptop/điện thoại" → SearchPromotions
+                   - "Mã ABC có dùng được không?" → CheckPromotion
                 4. Xem danh mục → GetCategories
 
                 ## QUY TẮC XỬ LÝ ĐƠN HÀNG
@@ -414,9 +478,22 @@ namespace StoreApp.Services.AI
                 - Luôn thân thiện, lịch sự
                 - Ưu tiên sản phẩm còn hàng
 
-                ## ĐỊNH DẠNG TRẢ LỜI
-                - KHÔNG dùng bảng markdown (table) vì khung chat nhỏ
-                - Dùng danh sách với emoji: 🛒 **Tên SP** - Giá (còn X)
+                ## ĐỊNH DẠNG TRẢ LỜI (BẮT BUỘC)
+                ⚠️ TUYỆT ĐỐI KHÔNG dùng bảng markdown (|---|---|) vì khung chat nhỏ, bảng sẽ bị vỡ
+                ⚠️ Khi liệt kê sản phẩm, PHẢI dùng format sau:
+                🛒 **Tên SP** - Giá (còn X hàng)
+                
+                Ví dụ đúng:
+                🛒 **Trà Xanh 0 độ** - 12.000đ (còn 77)
+                🛒 **Coca Cola lon** - 10.000đ (còn 150)
+                
+                ⚠️ Khi liệt kê khuyến mãi, PHẢI dùng format sau:
+                🎁 **MÃ CODE** - Mô tả (HSD: dd/MM)
+                
+                Ví dụ đúng:
+                🎁 **SALE10** - Giảm 10% đơn từ 200K (HSD: 31/12)
+                🎁 **FREESHIP** - Miễn phí vận chuyển (HSD: 15/01)
+                
                 - Giữ câu trả lời ngắn gọn, dễ đọc trên mobile
 
                 ## GIỚI HẠN

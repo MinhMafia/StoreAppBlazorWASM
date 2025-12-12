@@ -58,8 +58,7 @@ namespace StoreApp.Controllers
             Response.Headers.Append("X-Accel-Buffering", "no");
 
             var authenticatedCustomerId = await GetAuthenticatedCustomerIdAsync();
-            var userId = GetAuthenticatedUserId();
-            var sessionUserId = userId ?? GetGuestUserId();
+            var userId = GetAuthenticatedUserId();  // null nếu chưa đăng nhập
 
             if (request == null || string.IsNullOrWhiteSpace(request.Message))
             {
@@ -82,13 +81,13 @@ namespace StoreApp.Controllers
             try
             {
                 _logger.LogInformation("Customer {CustomerId} (userId: {UserId}, authenticated: {IsAuth}) starting chat", 
-                    authenticatedCustomerId, sessionUserId, authenticatedCustomerId.HasValue);
+                    authenticatedCustomerId, userId, userId.HasValue);
 
                 var cancellationToken = HttpContext.RequestAborted;
 
                 await foreach (var streamChunk in _aiService.ChatStreamAsync(
                     request.Message,
-                    sessionUserId,
+                    userId,  // null nếu chưa đăng nhập → không lưu DB
                     authenticatedCustomerId,
                     request.ConversationId,
                     request.History).WithCancellation(cancellationToken))
@@ -131,11 +130,16 @@ namespace StoreApp.Controllers
         public async Task<ActionResult<List<AiConversationDTO>>> GetConversations()
         {
             var userId = GetAuthenticatedUserId();
-            var sessionUserId = userId ?? GetGuestUserId();
+            
+            // Chỉ cho phép xem lịch sử khi đã đăng nhập
+            if (!userId.HasValue)
+            {
+                return Ok(new List<AiConversationDTO>());  // Trả về rỗng thay vì lỗi
+            }
 
             try
             {
-                var conversations = await _aiService.GetConversationsAsync(sessionUserId);
+                var conversations = await _aiService.GetConversationsAsync(userId.Value);
                 return Ok(conversations);
             }
             catch (Exception ex)
@@ -152,11 +156,16 @@ namespace StoreApp.Controllers
                 return BadRequest(new { error = "ID không hợp lệ" });
 
             var userId = GetAuthenticatedUserId();
-            var sessionUserId = userId ?? GetGuestUserId();
+            
+            // Chỉ cho phép xem khi đã đăng nhập
+            if (!userId.HasValue)
+            {
+                return NotFound(new { error = "Không tìm thấy" });
+            }
 
             try
             {
-                var conversation = await _aiService.GetConversationAsync(id, sessionUserId);
+                var conversation = await _aiService.GetConversationAsync(id, userId.Value);
                 if (conversation == null)
                     return NotFound(new { error = "Không tìm thấy" });
 
@@ -176,11 +185,16 @@ namespace StoreApp.Controllers
                 return BadRequest(new { error = "ID không hợp lệ" });
 
             var userId = GetAuthenticatedUserId();
-            var sessionUserId = userId ?? GetGuestUserId();
+            
+            // Chỉ cho phép xóa khi đã đăng nhập
+            if (!userId.HasValue)
+            {
+                return NotFound(new { error = "Không tìm thấy" });
+            }
 
             try
             {
-                await _aiService.DeleteConversationAsync(id, sessionUserId);
+                await _aiService.DeleteConversationAsync(id, userId.Value);
                 return Ok(new { success = true });
             }
             catch (Exception ex)
@@ -191,13 +205,6 @@ namespace StoreApp.Controllers
         }
 
         #region Private Helpers
-
-        private int GetGuestUserId()
-        {
-            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            var hash = ip.GetHashCode();
-            return Math.Abs(hash % 1000000) + 1000000;
-        }
 
         private async Task SendStreamData(object data)
         {

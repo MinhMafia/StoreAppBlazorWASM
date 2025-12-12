@@ -7,9 +7,7 @@ using StoreApp.Shared;
 
 namespace StoreApp.Client.Services
 {
-    /// <summary>
-    /// Service xử lý AI Chat API - 100% C# không JS
-    /// </summary>
+   
     public class AiChatService : IAiChatService
     {
         private readonly HttpClient _httpClient;
@@ -35,10 +33,6 @@ namespace StoreApp.Client.Services
             }
         }
 
-        /// <summary>
-        /// Gửi stream request qua HttpClient (C# approach)
-        /// FIX: Xử lý SSE buffer đúng cách như React, batch UI updates
-        /// </summary>
         public async Task StreamMessageAsync(
             string message,
             int? conversationId,
@@ -73,12 +67,9 @@ namespace StoreApp.Client.Services
                     Content = content
                 };
 
-                // Thêm Authorization header
                 httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                // QUAN TRONG: Bat streaming cho Blazor WASM!
-                // Mac dinh Blazor WASM buffer TOAN BO response truoc khi tra ve
-                // Phai bat option nay de stream thuc su
+               
                 httpRequest.SetBrowserResponseStreamingEnabled(true);
 
                 // Send request va doc stream - ResponseHeadersRead de bat dau doc ngay khi co headers
@@ -95,45 +86,45 @@ namespace StoreApp.Client.Services
                     return;
                 }
 
-                // FIX: Đọc stream với buffer như React - xử lý SSE format đúng cách
+                
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 
-                // Dùng buffer để handle SSE events tách bằng \n\n
+                
                 var buffer = new StringBuilder();
                 var readBuffer = new byte[4096];
                 var decoder = Encoding.UTF8;
                 
-                // Batch UI updates - accumulate chunks before updating
+                
                 var contentBuffer = new StringBuilder();
                 var lastUpdateTime = DateTime.UtcNow;
-                const int UPDATE_INTERVAL_MS = 50; // Update UI mỗi 50ms thay vì mỗi chunk
+                const int UPDATE_INTERVAL_MS = 50; 
 
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     var bytesRead = await stream.ReadAsync(readBuffer, 0, readBuffer.Length, cancellationToken);
                     if (bytesRead == 0) break; // End of stream
 
-                    // Decode và thêm vào buffer
+                    
                     buffer.Append(decoder.GetString(readBuffer, 0, bytesRead));
 
-                    // Split bằng \n\n (SSE delimiter) - GIỐNG REACT
+                   
                     var bufferStr = buffer.ToString();
                     var events = bufferStr.Split(new[] { "\n\n" }, StringSplitOptions.None);
                     
-                    // Giữ lại phần cuối (có thể chưa hoàn chỉnh)
+                   
                     buffer.Clear();
                     if (events.Length > 0)
                     {
-                        buffer.Append(events[^1]); // Phần cuối chưa hoàn chỉnh
+                        buffer.Append(events[^1]); 
                     }
 
-                    // Xử lý các events hoàn chỉnh
+                   
                     for (int i = 0; i < events.Length - 1; i++)
                     {
                         var eventData = events[i].Trim();
                         if (string.IsNullOrEmpty(eventData)) continue;
 
-                        // Handle multi-line SSE (nếu có)
+                        
                         foreach (var line in eventData.Split('\n'))
                         {
                             if (!line.StartsWith("data: ")) continue;
@@ -217,9 +208,7 @@ namespace StoreApp.Client.Services
             }
         }
 
-        /// <summary>
-        /// Lấy danh sách conversations
-        /// </summary>
+       
         public async Task<List<AiConversationSummaryDTO>> GetConversationsAsync()
         {
             try
@@ -245,10 +234,7 @@ namespace StoreApp.Client.Services
             }
         }
 
-        /// <summary>
-        /// Lấy chi tiết conversation
-        /// </summary>
-        public async Task<AiConversationDTO?> GetConversationAsync(int id)
+                public async Task<AiConversationDTO?> GetConversationAsync(int id)
         {
             try
             {
@@ -272,9 +258,6 @@ namespace StoreApp.Client.Services
             }
         }
 
-        /// <summary>
-        /// Xóa conversation
-        /// </summary>
         public async Task<bool> DeleteConversationAsync(int id)
         {
             try

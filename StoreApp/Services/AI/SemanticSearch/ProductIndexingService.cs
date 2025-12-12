@@ -71,7 +71,6 @@ namespace StoreApp.Services.AI.SemanticSearch
                 var payload = BuildProductPayload(product);
 
                 await _vectorStoreService.UpsertAsync(CollectionName, product.Id, vector, payload, ct);
-                _logger.LogInformation("Indexed product {ProductId}: {ProductName}", product.Id, product.ProductName);
             }
             catch (Exception ex)
             {
@@ -85,7 +84,6 @@ namespace StoreApp.Services.AI.SemanticSearch
             try
             {
                 await _vectorStoreService.DeleteAsync(CollectionName, productId, ct);
-                _logger.LogInformation("Deleted product vector: {ProductId}", productId);
             }
             catch (Exception ex)
             {
@@ -103,24 +101,16 @@ namespace StoreApp.Services.AI.SemanticSearch
 
             try
             {
-                _logger.LogInformation("[Reindex] Step 1: Ensuring collection exists...");
                 await _vectorStoreService.EnsureCollectionAsync(CollectionName, ct);
-                _logger.LogInformation("[Reindex] Step 1: Collection ensured OK");
-
                 var totalProducts = await _productRepository.GetTotalCountAsync();
-                _logger.LogInformation("[Reindex] Step 2: Starting reindex of {Total} products", totalProducts);
 
                 while (!ct.IsCancellationRequested)
                 {
-                    _logger.LogInformation("[Reindex] Step 3: Getting products batch skip={Skip}", skip);
                     var products = await _productRepository.GetAllForIndexingAsync(skip, batchSize);
                     if (!products.Any()) break;
-                    _logger.LogInformation("[Reindex] Step 3: Got {Count} products", products.Count);
 
-                    _logger.LogInformation("[Reindex] Step 4: Getting embeddings...");
                     var texts = products.Select(BuildProductText).ToList();
                     var vectors = await _embeddingService.GetEmbeddingsAsync(texts, ct);
-                    _logger.LogInformation("[Reindex] Step 4: Got {Count} embeddings", vectors.Length);
 
                     var items = products.Zip(vectors, (p, v) => (
                         id: p.Id,
@@ -128,14 +118,10 @@ namespace StoreApp.Services.AI.SemanticSearch
                         payload: BuildProductPayload(p)
                     )).ToList();
 
-                    _logger.LogInformation("[Reindex] Step 5: Upserting to Qdrant...");
                     await _vectorStoreService.UpsertBatchAsync(CollectionName, items, ct);
-                    _logger.LogInformation("[Reindex] Step 5: Upsert OK");
 
                     totalIndexed += products.Count;
                     skip += batchSize;
-
-                    _logger.LogInformation("[Reindex] Indexed {Current}/{Total} products", totalIndexed, totalProducts);
                 }
 
                 result.Success = true;

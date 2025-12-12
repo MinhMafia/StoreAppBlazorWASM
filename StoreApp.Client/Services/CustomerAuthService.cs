@@ -11,6 +11,7 @@ namespace StoreApp.Client.Services
         Task<int?> GetCustomerIdAsync();
         Task<CustomerResponseDTO?> GetCurrentCustomerAsync();
         Task ClearCustomerAsync();
+        Task<bool> IsAuthenticatedAsync();
     }
 
     public class CustomerAuthService : ICustomerAuthService
@@ -18,11 +19,25 @@ namespace StoreApp.Client.Services
         private readonly ILocalStorageService _localStorage;
         private readonly HttpClient _httpClient;
         private const string CUSTOMER_ID_KEY = "customerId";
+        private const string AUTH_TOKEN_KEY = "authToken";
 
         public CustomerAuthService(ILocalStorageService localStorage, HttpClient httpClient)
         {
             _localStorage = localStorage;
             _httpClient = httpClient;
+        }
+
+        public async Task<bool> IsAuthenticatedAsync()
+        {
+            try
+            {
+                var token = await _localStorage.GetItemAsStringAsync(AUTH_TOKEN_KEY);
+                return !string.IsNullOrEmpty(token?.Trim('"'));
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public async Task SetCustomerIdAsync(int customerId)
