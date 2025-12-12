@@ -16,6 +16,9 @@ namespace  StoreApp.Shared
         public DateTime UpdatedAt { get; set; }
 
         // Thông tin mở rộng (hiển thị)
+        public string? DiaChiKhachHang { get; set; }
+        public string? SoDienThoai { get; set; }
+        public string? Email { get; set; }
         public string? CustomerName { get; set; }
         public string? UserName { get; set; }
         public string? PromotionCode { get; set; }

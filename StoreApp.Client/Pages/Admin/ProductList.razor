@@ -8,323 +8,560 @@
 @inject NavigationManager Navigation
 @inject IProductClientService ProductService
 
-
 <PageTitle>Quản lý sản phẩm</PageTitle>
 
 <!-- Notification Toast -->
 @if (notification != null)
 {
-    <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
-        <div class="toast show align-items-center text-white @GetNotificationClass()" role="alert">
-            <div class="d-flex">
-                <div class="toast-body">
-                    @notification.Message
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="() => notification = null"></button>
-            </div>
-        </div>
+    <div class="fixed top-4 right-4 z-[9999] animate-slide-in">
+        <div class="flex items-center gap-3 @GetNotificationTailwindClass() text-white px-4 py-3 rounded-lg shadow-lg min-w-[300px]">
+            <div class="flex-1">@notification.Message</div>
+            <button @onclick="() => notification = null" class="hover:bg-white/20 rounded p-1 transition">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>  
     </div>
 }
 
-<div class="container-fluid mt-4">
-    <div class="row">
-        @* --- CỘT TRÁI: CHỨC NĂNG & BỘ LỌC --- *@
-        <div class="col-md-3 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-gear-fill"></i> Chức năng</h5>
+<div class="container-fluid px-4 py-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+            <i class="bi bi-box-seam text-primary"></i>
+            Quản lý sản phẩm
+        </h1>
+        <div class="flex gap-3">
+            <button @onclick="OpenImportModal" 
+                    class="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition shadow-sm">
+                <i class="bi bi-upload"></i>
+                <span>Import Excel</span>
+            </button>
+            <button @onclick="() => OpenModal(ModalMode.Create)" 
+                    class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primaryHover text-white rounded-lg transition shadow-sm">
+                <i class="bi bi-plus-circle"></i>
+                <span>Thêm sản phẩm</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bộ lọc - Redesigned -->
+    <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-100 mb-6 overflow-hidden">
+        <!-- Filter Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6">
+                <button @onclick="ToggleFilterExpand"
+                        class="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-all duration-300">
+                    <i class="bi @(filterExpanded ? "bi-chevron-up" : "bi-chevron-down") text-white"></i>
+                </button>
+        </div>
+
+        <!-- Filter Body -->
+        <div class="@(filterExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0") transition-all duration-500 ease-in-out overflow-hidden">
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-5">
+                    
+                    <!-- Tìm kiếm -->
+                    <div class="lg:col-span-2 xl:col-span-2">
+                        <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <div class="w-6 h-6 bg-blue-100 rounded-md flex items-center justify-center">
+                                <i class="bi bi-search text-blue-600 text-xs"></i>
+                            </div>
+                            Tìm kiếm
+                        </label>
+                        <div class="relative group">
+                            <input type="text"
+                                class="w-full h-12 pl-12 pr-4 text-sm bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 placeholder:text-gray-400"
+                                placeholder="Nhập tên sản phẩm cần tìm..."
+                                @bind="searchTerm"
+                                @bind:event="oninput"
+                                @onkeyup="HandleSearch" />
+                            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danh mục -->
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <div class="w-6 h-6 bg-purple-100 rounded-md flex items-center justify-center">
+                                <i class="bi bi-grid text-purple-600 text-xs"></i>
+                            </div>
+                            Danh mục
+                        </label>
+                        <div class="relative">
+                            <select class="w-full h-12 pl-4 pr-10 text-sm bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-300 appearance-none cursor-pointer"
+                                    @bind="selectedCategory">
+                                <option value="">Tất cả danh mục</option>
+                                @if (categories != null)
+                                {
+                                    @foreach (var cat in categories.Where(c => c.IsActive))
+                                    {
+                                        <option value="@cat.Id">@cat.Name</option>
+                                    }
+                                }
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                <i class="bi bi-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nhà cung cấp -->
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <div class="w-6 h-6 bg-orange-100 rounded-md flex items-center justify-center">
+                                <i class="bi bi-building text-orange-600 text-xs"></i>
+                            </div>
+                            Nhà cung cấp
+                        </label>
+                        <div class="relative">
+                            <select class="w-full h-12 pl-4 pr-10 text-sm bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-300 appearance-none cursor-pointer"
+                                    @bind="selectedSupplier">
+                                <option value="">Tất cả NCC</option>
+                                @if (suppliers != null)
+                                {
+                                    @foreach (var sup in suppliers.Where(s => s.IsActive))
+                                    {
+                                        <option value="@sup.Id">@sup.Name</option>
+                                    }
+                                }
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                <i class="bi bi-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Khoảng giá -->
+                    <div class="lg:col-span-2 xl:col-span-2">
+                        <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <div class="w-6 h-6 bg-green-100 rounded-md flex items-center justify-center">
+                                <i class="bi bi-cash text-green-600 text-xs"></i>
+                            </div>
+                            Khoảng giá (VNĐ)
+                        </label>
+                        <div class="flex items-center gap-3">
+                            <div class="relative flex-1 group">
+                                <input type="number" min="0" step="1000"
+                                    class="w-full h-12 pl-4 pr-4 text-sm bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300 placeholder:text-gray-400"
+                                    placeholder="Giá thấp nhất"
+                                    @bind="minPrice"
+                                    @oninput="@(e => minPrice = ParsePositiveDecimal(e.Value?.ToString()))" />
+                            </div>
+                            <div class="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
+                                <i class="bi bi-arrow-right text-gray-500 text-sm"></i>
+                            </div>
+                            <div class="relative flex-1 group">
+                                <input type="number" min="0" step="1000"
+                                    class="w-full h-12 pl-4 pr-4 text-sm bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300 placeholder:text-gray-400"
+                                    placeholder="Giá cao nhất"
+                                    @bind="maxPrice"
+                                    @oninput="@(e => maxPrice = ParsePositiveDecimal(e.Value?.ToString()))" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trạng thái -->
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <div class="w-6 h-6 bg-teal-100 rounded-md flex items-center justify-center">
+                                <i class="bi bi-toggle-on text-teal-600 text-xs"></i>
+                            </div>
+                            Trạng thái
+                        </label>
+                        <div class="relative">
+                            <select class="w-full h-12 pl-4 pr-10 text-sm bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 transition-all duration-300 appearance-none cursor-pointer"
+                                    @bind="status">
+                                <option value="">Tất cả</option>
+                                <option value="1">✓ Hoạt động</option>
+                                <option value="0">✗ Ngừng</option>
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                <i class="bi bi-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sắp xếp -->
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <div class="w-6 h-6 bg-indigo-100 rounded-md flex items-center justify-center">
+                                <i class="bi bi-sort-down text-indigo-600 text-xs"></i>
+                            </div>
+                            Sắp xếp
+                        </label>
+                        <div class="relative">
+                            <select class="w-full h-12 pl-4 pr-10 text-sm bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-300 appearance-none cursor-pointer"
+                                    @bind="sortBy">
+                                <option value="">Mặc định</option>
+                                <option value="name_asc">↑ Tên A-Z</option>
+                                <option value="name_desc">↓ Tên Z-A</option>
+                                <option value="price_asc">↑ Giá tăng dần</option>
+                                <option value="price_desc">↓ Giá giảm dần</option>
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                <i class="bi bi-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-                <div class="card-body">
-                    <button class="btn btn-success w-100 mb-2" @onclick="() => OpenModal(ModalMode.Create)">
-                        <i class="bi bi-plus-circle"></i> Thêm sản phẩm mới
-                    </button>
-                    
-                    <button class="btn btn-info w-100 mb-3" @onclick="OpenImportModal">
-                        <i class="bi bi-upload"></i> Import Excel
-                    </button>
 
-                    <hr />
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Tìm kiếm</label>
-                        <input type="text" class="form-control" placeholder="Tên sản phẩm..." 
-                               @bind="searchTerm" @bind:event="oninput" @onkeyup="HandleSearch" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Danh mục</label>
-                        <select class="form-select" @bind="selectedCategory">
-                            <option value="">Tất cả danh mục</option>
-                            @if (categories != null)
+                <!-- Active Filters Tags -->
+                @* @if (HasActiveFilters())
+                {
+                    <div class="mt-5 pt-5 border-t border-gray-200">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-sm text-gray-500 font-medium">Đang lọc:</span>
+                            @if (!string.IsNullOrEmpty(searchTerm))
                             {
-                                @foreach (var cat in categories)
-                                {
-                                    <option value="@cat.Id">@cat.Name</option>
-                                }
+                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                                    <i class="bi bi-search text-xs"></i>
+                                    "@searchTerm"
+                                    <button @onclick="() => { searchTerm = string.Empty; }" class="ml-1 hover:text-blue-900">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </span>
                             }
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Nhà cung cấp</label>
-                        <select class="form-select" @bind="selectedSupplier">
-                            <option value="">Tất cả nhà cung cấp</option>
-                            @if (suppliers != null)
+                            @if (!string.IsNullOrEmpty(selectedCategory))
                             {
-                                @foreach (var sup in suppliers)
-                                {
-                                    <option value="@sup.Id">@sup.Name</option>
-                                }
+                                var catName = categories?.FirstOrDefault(c => c.Id.ToString() == selectedCategory)?.Name ?? "Danh mục";
+                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
+                                    <i class="bi bi-grid text-xs"></i>
+                                    @catName
+                                    <button @onclick="() => { selectedCategory = string.Empty; }" class="ml-1 hover:text-purple-900">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </span>
                             }
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Khoảng giá</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Min</span>
-                            <input type="number" class="form-control" @bind="minPrice" />
+                            @if (!string.IsNullOrEmpty(selectedSupplier))
+                            {
+                                var supName = suppliers?.FirstOrDefault(s => s.Id.ToString() == selectedSupplier)?.Name ?? "NCC";
+                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">
+                                    <i class="bi bi-building text-xs"></i>
+                                    @supName
+                                    <button @onclick="() => { selectedSupplier = string.Empty; }" class="ml-1 hover:text-orange-900">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </span>
+                            }
+                            @if (minPrice.HasValue || maxPrice.HasValue)
+                            {
+                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                                    <i class="bi bi-cash text-xs"></i>
+                                    @(minPrice?.ToString("N0") ?? "0") - @(maxPrice?.ToString("N0") ?? "∞") ₫
+                                    <button @onclick="() => { minPrice = null; maxPrice = null; }" class="ml-1 hover:text-green-900">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </span>
+                            }
+                            @if (!string.IsNullOrEmpty(status))
+                            {
+                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm">
+                                    <i class="bi bi-toggle-on text-xs"></i>
+                                    @(status == "1" ? "Hoạt động" : "Ngừng")
+                                    <button @onclick="() => { status = string.Empty; }" class="ml-1 hover:text-teal-900">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </span>
+                            }
                         </div>
-                        <div class="input-group">
-                            <span class="input-group-text">Max</span>
-                            <input type="number" class="form-control" @bind="maxPrice" />
-                        </div>
                     </div>
+                } *@
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Trạng thái</label>
-                        <select class="form-select" @bind="status">
-                            <option value="">Tất cả</option>
-                            <option value="active">Đang hoạt động</option>
-                            <option value="inactive">Ngừng hoạt động</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Sắp xếp theo</label>
-                        <select class="form-select" @bind="sortBy">
-                            <option value="id">ID</option>
-                            <option value="name">Tên sản phẩm</option>
-                            <option value="price_asc">Giá tăng dần</option>
-                            <option value="price_desc">Giá giảm dần</option>
-                            <option value="created_at">Ngày tạo</option>
-                        </select>
-                    </div>
-
-                    <button class="btn btn-primary w-100" @onclick="ApplyFilters">
-                        <i class="bi bi-funnel"></i> Áp dụng bộ lọc
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-gray-200">
+                    <button @onclick="ResetFilters"
+                            class="group h-12 px-6 text-sm font-semibold text-gray-600 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 focus:ring-4 focus:ring-gray-200 transition-all duration-300 flex items-center gap-2">
+                        <i class="bi bi-arrow-counterclockwise group-hover:rotate-[-360deg] transition-transform duration-500"></i>
+                        <span>Đặt lại bộ lọc</span>
                     </button>
-                    
-                    <button class="btn btn-outline-secondary w-100 mt-2" @onclick="ResetFilters">
-                        <i class="bi bi-arrow-clockwise"></i> Xóa lọc
+                    <button @onclick="ApplyFilters"
+                            class="group h-12 px-8 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 border-0 rounded-xl hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:shadow-blue-500/25 focus:ring-4 focus:ring-blue-500/50 transition-all duration-300 flex items-center gap-2">
+                        <i class="bi bi-funnel-fill"></i>
+                        <span>Áp dụng bộ lọc</span>
+                        <i class="bi bi-arrow-right group-hover:translate-x-1 transition-transform"></i>
                     </button>
                 </div>
             </div>
         </div>
+    </div>
 
-        @* --- CỘT PHẢI: BẢNG DỮ LIỆU --- *@
-        <div class="col-md-9">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 text-primary fw-bold">Danh sách sản phẩm</h5>
-                    <span class="badge bg-info text-dark">Tổng: @totalItems sản phẩm</span>
+    <!-- Bảng sản phẩm -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <!-- Header -->
+        <div class="flex justify-between items-center px-6 py-4 border-b border-gray-100">
+            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="bi bi-list-ul text-primary"></i>
+                Danh sách sản phẩm
+            </h2>
+            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                Tổng: @totalItems sản phẩm
+            </span>
+        </div>
+
+        <!-- Content -->
+        <div class="p-0">
+            @if (loading)
+            {
+                <div class="flex flex-col items-center justify-center py-20">
+                    <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p class="mt-4 text-gray-500">Đang tải dữ liệu...</p>
                 </div>
-                <div class="card-body p-0">
-                    @if (loading)
-                    {
-                        <div class="p-4 text-center">
-                            <div class="spinner-border text-primary" role="status"></div>
-                            <p class="mt-2">Đang tải dữ liệu...</p>
-                        </div>
-                    }
-                    else if (error != null)
-                    {
-                        <div class="p-4 text-center text-danger">
-                            <i class="bi bi-exclamation-triangle display-4"></i>
-                            <p class="mt-2">@error</p>
-                            <button class="btn btn-primary" @onclick="LoadProducts">Thử lại</button>
-                        </div>
-                    }
-                    else if (products == null || products.Count == 0)
-                    {
-                        <div class="p-4 text-center text-muted">
-                            <i class="bi bi-box-seam display-4"></i>
-                            <p class="mt-2">Không tìm thấy sản phẩm nào.</p>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="table-responsive">
-                            <table class="table table-hover table-striped align-middle mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th style="width: 50px;">#</th>
-                                        <th style="width: 80px;">Ảnh</th>
-                                        <th>Tên sản phẩm</th>
-                                        <th>SKU</th>
-                                        <th>Danh mục</th>
-                                        <th>Nhà cung cấp</th>
-                                        <th class="text-end">Giá bán</th>
-                                        <th class="text-center">Tồn kho</th>
-                                        <th class="text-center">Trạng thái</th>
-                                        <th class="text-center" style="width: 180px;">Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var p in products)
-                                    {
-                                        <tr>
-                                            <td>@p.Id</td>
-                                            <td>
-                                                <img src="@GetImageUrl(p.ImageUrl)" 
-                                                     class="img-thumbnail" 
-                                                     style="width: 50px; height: 50px; object-fit: cover;" 
-                                                     alt="@p.ProductName" />
-                                            </td>
-                                            <td class="fw-bold">@p.ProductName</td>
-                                            <td><small class="text-muted">@p.Sku</small></td>
-                                            <td><small>@(p.Category?.Name ?? "—")</small></td>
-                                            <td><small>@(p.Supplier?.Name ?? "—")</small></td>
-                                            <td class="text-end text-danger fw-bold">
-                                                @p.Price.ToString("N0") đ
-                                            </td>
-                                            <td class="text-center">
-                                                @{
-                                                    var qty = p.Inventory?.Quantity ?? 0;
-                                                    var qtyClass = qty > 10 ? "text-success" : qty > 0 ? "text-warning" : "text-danger";
-                                                }
-                                                <span class="@qtyClass fw-bold">@qty</span>
-                                            </td>
-                                            <td class="text-center">
-                                                @if (p.IsActive)
-                                                {
-                                                    <span class="badge bg-success">Hiện</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-secondary">Ẩn</span>
-                                                }
-                                            </td>
-                                            <td class="text-center">
-                                                <button class="btn btn-sm btn-info me-1" @onclick="() => OpenModal(ModalMode.View, p)" title="Chi tiết">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenModal(ModalMode.Edit, p)" title="Sửa">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteProduct(p.Id, p.IsActive)" title="@(p.IsActive ? "Xóa" : "Khôi phục")">
-                                                    <i class="bi @(p.IsActive ? "bi-trash" : "bi-arrow-clockwise")"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
+            }
+            else if (error != null)
+            {
+                <div class="flex flex-col items-center justify-center py-20">
+                    <i class="bi bi-exclamation-triangle text-red-500 text-6xl"></i>
+                    <h4 class="mt-4 text-xl text-red-600 font-semibold">@error</h4>
+                    <button @onclick="LoadProducts" 
+                            class="mt-4 px-6 py-2 bg-primary hover:bg-primaryHover text-white rounded-lg transition">
+                        <i class="bi bi-arrow-clockwise mr-2"></i> Thử lại
+                    </button>
                 </div>
-                
-                <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
-                    <div>
-                        <select class="form-select form-select-sm" style="width: 100px;" @bind="pageSize" @bind:after="OnPageSizeChanged">
-                            <option value="5">5 / trang</option>
-                            <option value="10">10 / trang</option>
-                            <option value="20">20 / trang</option>
-                            <option value="50">50 / trang</option>
-                        </select>
-                    </div>
-                    
-                    <nav>
-                        <ul class="pagination mb-0">
-                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                                <button class="page-link" @onclick="() => ChangePage(currentPage - 1)">
-                                    <i class="bi bi-chevron-left"></i>
-                                </button>
-                            </li>
-                            
-                            @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+            }
+            else if (products == null || products.Count == 0)
+            {
+                <div class="flex flex-col items-center justify-center py-20">
+                    <i class="bi bi-inbox text-gray-400 text-6xl"></i>
+                    <h4 class="mt-4 text-xl text-gray-600 font-semibold">Không tìm thấy sản phẩm nào</h4>
+                    <p class="text-gray-500 mt-2">Thử thay đổi bộ lọc hoặc thêm sản phẩm mới</p>
+                    <button @onclick="() => OpenModal(ModalMode.Create)" 
+                            class="mt-4 flex items-center gap-2 px-6 py-2 bg-primary hover:bg-primaryHover text-white rounded-lg transition">
+                        <i class="bi bi-plus-circle"></i> Thêm sản phẩm đầu tiên
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase w-20">#ID</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase w-24">Hình ảnh</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Tên sản phẩm</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-36">Danh mục</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-44">Nhà cung cấp</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase w-32">Giá bán</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase w-24">Tồn kho</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase w-28">Trạng thái</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase w-36">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @foreach (var product in products)
                             {
-                                var pageNum = i;
-                                <li class="page-item @(currentPage == pageNum ? "active" : "")">
-                                    <button class="page-link" @onclick="() => ChangePage(pageNum)">@pageNum</button>
-                                </li>
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-4 py-3 text-center font-bold text-primary">@product.Id</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <img src="@GetImageUrl(product.ImageUrl)" 
+                                             alt="@product.ProductName" 
+                                             class="w-14 h-14 rounded-lg object-cover mx-auto border border-gray-200" />
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="font-semibold text-gray-800">@product.ProductName</div>
+                                        @if (!string.IsNullOrEmpty(product.Description))
+                                        {
+                                            <div class="text-sm text-gray-500 mt-1">
+                                                @(product.Description.Length > 50 
+                                                    ? product.Description.Substring(0, 50) + "..." 
+                                                    : product.Description)
+                                            </div>
+                                        }
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        @if (product.Category != null)
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                @product.Category.Name
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-gray-400">N/A</span>
+                                        }
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        @if (product.Supplier != null)
+                                        {
+                                            <div class="flex items-center gap-2">
+                                                <i class="bi bi-building text-primary"></i>
+                                                <span class="text-sm text-gray-700">@product.Supplier.Name</span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-gray-400">N/A</span>
+                                        }
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-bold text-success">
+                                        @product.Price.ToString("N0") ₫
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        @if (product.Inventory != null)
+                                        {
+                                            var qty = product.Inventory.Quantity;
+                                            var badgeClass = qty > 50 ? "bg-success text-white" : qty > 10 ? "bg-warning text-gray-800" : "bg-danger text-white";
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold @badgeClass">
+                                                @qty.ToString("N0")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-400 text-white">0</span>
+                                        }
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        @if (product.IsActive)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success text-white">
+                                                <i class="bi bi-check-circle"></i> Hoạt động
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger text-white">
+                                                <i class="bi bi-x-circle"></i> Ngừng
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="flex items-center justify-center gap-1">
+                                            <button @onclick="() => OpenModal(ModalMode.View, product)"
+                                                    title="Xem chi tiết"
+                                                    class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <button @onclick="() => OpenModal(ModalMode.Edit, product)"
+                                                    title="Chỉnh sửa"
+                                                    class="p-2 text-primary hover:bg-green-50 rounded-lg transition">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button @onclick="() => DeleteProduct(product.Id, product.IsActive)"
+                                                    title="@(product.IsActive ? "Xóa" : "Khôi phục")"
+                                                    class="p-2 @(product.IsActive ? "text-red-600 hover:bg-red-50" : "text-success hover:bg-green-50") rounded-lg transition">
+                                                <i class="bi @(product.IsActive ? "bi-trash" : "bi-arrow-clockwise")"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
                             }
-                            
-                            <li class="page-item @(currentPage >= totalPages ? "disabled" : "")">
-                                <button class="page-link" @onclick="() => ChangePage(currentPage + 1)">
-                                    <i class="bi bi-chevron-right"></i>
-                                </button>
-                            </li>
-                        </ul>
-                    </nav>
-                    
-                    <div class="text-muted small">
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination Footer -->
+        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50">
+            <div class="flex items-center justify-between">
+                <!-- Page Size -->
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-600">Hiển thị:</span>
+                    <select @bind="pageSize" @bind:after="OnPageSizeChanged"
+                            class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <span class="text-sm text-gray-600">/ trang</span>
+                </div>
+
+                <!-- Pagination -->
+                <div class="flex items-center gap-1">
+                    <button @onclick="() => ChangePage(1)" 
+                            disabled="@(currentPage == 1)"
+                            class="px-3 py-1.5 text-sm rounded-lg transition @(currentPage == 1 ? "text-gray-400 cursor-not-allowed" : "text-gray-700 hover:bg-white")">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </button>
+                    <button @onclick="() => ChangePage(currentPage - 1)" 
+                            disabled="@(currentPage == 1)"
+                            class="px-3 py-1.5 text-sm rounded-lg transition @(currentPage == 1 ? "text-gray-400 cursor-not-allowed" : "text-gray-700 hover:bg-white")">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+
+                    @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                    {
+                        var p = i;
+                        <button @onclick="() => ChangePage(p)"
+                                class="px-3 py-1.5 text-sm rounded-lg transition @(p == currentPage ? "bg-primary text-white font-semibold" : "text-gray-700 hover:bg-white")">
+                            @p
+                        </button>
+                    }
+
+                    <button @onclick="() => ChangePage(currentPage + 1)" 
+                            disabled="@(currentPage == totalPages)"
+                            class="px-3 py-1.5 text-sm rounded-lg transition @(currentPage == totalPages ? "text-gray-400 cursor-not-allowed" : "text-gray-700 hover:bg-white")">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                    <button @onclick="() => ChangePage(totalPages)" 
+                            disabled="@(currentPage == totalPages)"
+                            class="px-3 py-1.5 text-sm rounded-lg transition @(currentPage == totalPages ? "text-gray-400 cursor-not-allowed" : "text-gray-700 hover:bg-white")">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </button>
+                </div>
+
+                <!-- Page Info -->
+                <div class="flex items-center gap-2">
+                    <span class="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm font-medium">
                         Trang @currentPage / @totalPages
-                    </div>
+                    </span>
+                    <span class="text-sm text-gray-600">(@totalItems sản phẩm)</span>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-    @* Product Modals *@
-    @if (modalState.IsOpen)
+@* Product Modals *@
+@if (modalState.IsOpen)
+{
+    @if (modalState.Mode == ModalMode.View)
     {
-        @if (modalState.Mode == ModalMode.View)
-        {
-            <ProductDetail 
-                Product="@modalState.Product"
-                OnCancel="@CloseModal"
-                OnDelete="@((tuple) => DeleteProduct(tuple.Item1, tuple.Item2))"
-                OnEdit="@((p) => OpenModal(ModalMode.Edit, p))" />
-        }
-        else if (modalState.Mode == ModalMode.Create)
-        {
-            <ProductAdd 
-                Categories="@categories"
-                Suppliers="@suppliers"
-                Saving="@saving"
-                OnSave="@((p) => HandleSave(p, ModalMode.Create))"
-                OnCancel="@CloseModal" />
-        }
-        else if (modalState.Mode == ModalMode.Edit)
-        {
-            <ProductEdit 
-                Product="@modalState.Product"
-                Categories="@categories"
-                Suppliers="@suppliers"
-                Saving="@saving"
-                OnSave="@((p) => HandleSave(p, ModalMode.Edit))"
-                OnCancel="@CloseModal"
-                OnDelete="@((tuple) => DeleteProduct(tuple.Item1, tuple.Item2))" />
-        }
+        <ProductDetail 
+            Product="@modalState.Product"
+            OnCancel="@CloseModal"
+            OnDelete="@((tuple) => DeleteProduct(tuple.Item1, tuple.Item2))"
+            OnEdit="@((p) => OpenModal(ModalMode.Edit, p))" />
     }
+    else if (modalState.Mode == ModalMode.Create)
+    {
+        <ProductAdd 
+            Categories="@categories"
+            Suppliers="@suppliers"
+            Units="@units"
+            Saving="@saving"
+            OnSave="@((p) => HandleSave(p, ModalMode.Create))"
+            OnCancel="@CloseModal" />
+    }
+    else if (modalState.Mode == ModalMode.Edit)
+    {
+        <ProductEdit 
+            Product="@modalState.Product"
+            Categories="@categories"
+            Suppliers="@suppliers"
+            Units="@units"
+            Saving="@saving"
+            OnSave="@((p) => HandleSave(p, ModalMode.Edit))"
+            OnCancel="@CloseModal"
+            OnDelete="@((tuple) => DeleteProduct(tuple.Item1, tuple.Item2))" />
+    }
+}
 
 @* Import Modal *@
 @if (importModalOpen)
 {
-    <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title"><i class="bi bi-upload"></i> Import sản phẩm từ Excel</h5>
-                    <button type="button" class="btn-close btn-close-white" @onclick="() => importModalOpen = false"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Chức năng import Excel sẽ được phát triển sau.</p>
-                    <div class="alert alert-warning">
-                        <i class="bi bi-info-circle"></i> Định dạng file: .xlsx, .xls
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="() => importModalOpen = false">Đóng</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <ImportModal 
+        IsOpen="importModalOpen"
+        OnClose="() => importModalOpen = false"
+        OnSuccess="HandleImportSuccess" />
 }
 
 @code {
+    // ... existing code block remains exactly the same ...
     // Enums
     private enum ModalMode { View, Create, Edit }
     
@@ -332,6 +569,7 @@
     private List<ProductDTO>? products;
     private List<CategoryDTO>? categories = new();
     private List<SupplierDTO>? suppliers = new();
+    private List<UnitDTO>? units = new();
     private int totalItems;
     private int totalPages = 1;
 
@@ -343,7 +581,7 @@
     private string selectedSupplier = "";
     private decimal? minPrice;
     private decimal? maxPrice;
-    private string sortBy = "id";
+    private string sortBy = "";
     private string status = "";
 
     // UI state
@@ -351,6 +589,7 @@
     private string? error = null;
     private bool saving = false;
     private bool importModalOpen = false;
+    private bool filterExpanded = true;
     
     // Modal state
     private (bool IsOpen, ModalMode Mode, ProductDTO? Product) modalState = (false, ModalMode.View, null);
@@ -368,7 +607,8 @@
         await Task.WhenAll(
             LoadProducts(),
             LoadCategories(),
-            LoadSuppliers()
+            LoadSuppliers(),
+            LoadUnits()
         );
     }
 
@@ -376,10 +616,14 @@
     {
         try
         {
-            var result = await Http.GetFromJsonAsync<List<CategoryDTO>>("api/categories");
+            var result = await Http.GetFromJsonAsync<List<CategoryDTO>>("api/categories/all");
             categories = result ?? new();
         }
-        catch { categories = new(); }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading categories: {ex.Message}");
+            categories = new();
+        }
     }
 
     private async Task LoadSuppliers()
@@ -389,7 +633,25 @@
             var result = await Http.GetFromJsonAsync<List<SupplierDTO>>("api/suppliers");
             suppliers = result ?? new();
         }
-        catch { suppliers = new(); }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading suppliers: {ex.Message}");
+            suppliers = new();
+        }
+    }
+
+    private async Task LoadUnits()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<UnitDTO>>("api/units");
+            units = result ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading units: {ex.Message}");
+            units = new();
+        }
     }
 
     private async Task LoadProducts()
@@ -399,19 +661,35 @@
         
         try
         {
-            var result = await ProductService.GetProducts(currentPage, pageSize, searchTerm, minPrice, maxPrice);
+            int? catId = string.IsNullOrEmpty(selectedCategory) ? null : int.Parse(selectedCategory);
+            int? supId = string.IsNullOrEmpty(selectedSupplier) ? null : int.Parse(selectedSupplier);
+            int? statusValue = string.IsNullOrEmpty(status) ? null : int.Parse(status);
+            
+            var result = await ProductService.GetProducts(
+                currentPage, 
+                pageSize, 
+                string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                minPrice, 
+                maxPrice, 
+                string.IsNullOrWhiteSpace(sortBy) ? null : sortBy,
+                catId,
+                supId,
+                statusValue
+            );
 
             if (result != null)
             {
                 products = result.Items.ToList();
                 totalItems = result.TotalItems;
-                totalPages = result.TotalPages;
+                totalPages = Math.Max(1, result.TotalPages);
             }
         }
         catch (Exception ex)
         {
             error = $"Lỗi tải dữ liệu: {ex.Message}";
             products = new();
+            totalItems = 0;
+            totalPages = 1;
         }
         finally
         {
@@ -441,7 +719,7 @@
         selectedSupplier = "";
         minPrice = null;
         maxPrice = null;
-        sortBy = "id";
+        sortBy = "";
         status = "";
         currentPage = 1;
         await LoadProducts();
@@ -470,9 +748,43 @@
         modalState = (false, ModalMode.View, null);
     }
 
+    private decimal? ParsePositiveDecimal(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        
+        if (decimal.TryParse(value, out var result))
+        {
+            return result < 0 ? 0 : result;
+        }
+        return null;
+    }
+
+    private void ToggleFilterExpand()
+    {
+        filterExpanded = !filterExpanded;
+    }
+
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrEmpty(searchTerm) ||
+               !string.IsNullOrEmpty(selectedCategory) ||
+               !string.IsNullOrEmpty(selectedSupplier) ||
+               minPrice.HasValue ||
+               maxPrice.HasValue ||
+               !string.IsNullOrEmpty(status) ||
+               !string.IsNullOrEmpty(sortBy);
+    }
+
     private void OpenImportModal()
     {
         importModalOpen = true;
+    }
+
+    private async Task HandleImportSuccess()
+    {
+        importModalOpen = false;
+        ShowNotification("Import sản phẩm thành công!", NotificationType.Success);
+        await LoadProducts();
     }
 
     private async Task HandleSave(ProductDTO product, ModalMode mode)
@@ -521,7 +833,7 @@
 
     private async Task DeleteProduct(int id, bool isActive)
     {
-        var action = isActive ? "xóa (vô hiệu hóa)" : "khôi phục";
+        var action = isActive ? "vô hiệu hóa" : "khôi phục";
         bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Bạn có chắc chắn muốn {action} sản phẩm này không?");
         
         if (confirmed)
@@ -530,12 +842,13 @@
 
             if (isSuccess)
             {
-                ShowNotification($"{(isActive ? "Xóa" : "Khôi phục")} sản phẩm thành công!", NotificationType.Success);
+                ShowNotification($"{(isActive ? "Vô hiệu hóa" : "Khôi phục")} sản phẩm thành công!", NotificationType.Success);
+                CloseModal();
                 await LoadProducts();
             }
             else
             {
-                ShowNotification($"{(isActive ? "Xóa" : "Khôi phục")} sản phẩm thất bại!", NotificationType.Error);
+                ShowNotification($"{(isActive ? "Vô hiệu hóa" : "Khôi phục")} sản phẩm thất bại!", NotificationType.Error);
             }
         }
     }
@@ -548,7 +861,7 @@
         if (imageUrl.StartsWith("http"))
             return imageUrl;
             
-        return $"/assets/images/products/{imageUrl}";
+        return imageUrl;
     }
 
     // Notification helper
@@ -563,7 +876,6 @@
     {
         notification = new NotificationModel { Message = message, Type = type };
         
-        // Auto hide after 3 seconds
         _ = Task.Run(async () =>
         {
             await Task.Delay(3000);
@@ -575,15 +887,15 @@
         });
     }
 
-    private string GetNotificationClass()
+    private string GetNotificationTailwindClass()
     {
         return notification?.Type switch
         {
             NotificationType.Success => "bg-success",
             NotificationType.Error => "bg-danger",
             NotificationType.Warning => "bg-warning",
-            NotificationType.Info => "bg-info",
-            _ => "bg-secondary"
+            NotificationType.Info => "bg-blue-500",
+            _ => "bg-gray-500"
         };
     }
 }

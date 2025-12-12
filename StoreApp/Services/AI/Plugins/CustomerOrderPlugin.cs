@@ -34,17 +34,15 @@ namespace StoreApp.Services.AI.Plugins
                 };
             }
 
-            // Giới hạn số lượng kết quả
+            
             limit = Math.Clamp(limit, 1, 20);
             page = Math.Max(page, 1);
 
             using var scope = _serviceProvider.CreateScope();
             var orderService = scope.ServiceProvider.GetRequiredService<OrderService>();
 
-            // BẢO MẬT: CHỈ query với customerId của người đăng nhập
-            // KHÔNG cho phép truyền customerId từ bên ngoài
             var result = await orderService.GetOrdersByCustomerIdAsync(
-                customerId: _authenticatedCustomerId.Value,  // Hardcode customer ID - KHÔNG từ parameter
+                customerId: _authenticatedCustomerId.Value,  // Hardcode 
                 page: page,
                 pageSize: limit,
                 status: status

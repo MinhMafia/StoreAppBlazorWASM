@@ -262,8 +262,11 @@
         if (OnEditOrderItemMode == "edit")
             return; // Không cho thêm khi đang edit
 
-        if(selectedProduct == null) 
+        if(selectedProduct == null) {
+            _ = ShowAlert($"Vui lòng chọn sản phẩm");
             return;
+        }
+            
 
         // Kiểm tra xem sản phẩm đã có trong danh sách chưa
         var existing = ListOrderProducts.FirstOrDefault(x => x.id == selectedProduct.Id);
@@ -296,7 +299,7 @@
             });
         }
 
-        // 🔥 Cập nhật tiền đơn hàng
+        // Cập nhật tiền đơn hàng
         UpdateOrderSummary();
 
 

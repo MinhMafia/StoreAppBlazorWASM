@@ -17,8 +17,13 @@ using StoreApp.Middlewares;
 using StoreApp.Components;
 using StoreApp.Client.Services;
 using Blazored.LocalStorage;
+using OfficeOpenXml;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// EPPlus license (non-commercial use) - EPPlus 8+
+// Set license once at application startup
+ExcelPackage.License.SetNonCommercialPersonal("StoreApp");
 
 // ==========================================
 // 1. CONFIG SERVICES (CẤU HÌNH DỊCH VỤ)
@@ -65,6 +70,7 @@ builder.Services.AddScoped<InventoryRepository>();
 builder.Services.AddScoped<PaymentRepository>();
 builder.Services.AddScoped<CategoryRepository>();
 builder.Services.AddScoped<SupplierRepository>();
+builder.Services.AddScoped<UnitRepository>();
 builder.Services.AddScoped<AiRepository>();
 builder.Services.AddScoped<ReportsRepository>();
 
@@ -80,7 +86,18 @@ builder.Services.AddScoped<StoreApp.Services.StatisticsService>();
 builder.Services.AddScoped<OrderItemService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<PaymentService>();
-builder.Services.AddScoped<ImportService>();
+builder.Services.AddScoped<ImportService>(sp =>
+{
+    return new ImportService(
+        sp.GetRequiredService<ProductRepository>(),
+        sp.GetRequiredService<CustomerRepository>(),
+        sp.GetRequiredService<InventoryRepository>(),
+        sp.GetRequiredService<AppDbContext>(),
+        sp.GetRequiredService<CategoryRepository>(),
+        sp.GetRequiredService<SupplierRepository>(),
+        sp.GetRequiredService<UnitRepository>()
+    );
+});
 builder.Services.AddScoped<SupplierService>();
 builder.Services.AddScoped<ReportsService>();
 builder.Services.AddScoped<JwtService>();

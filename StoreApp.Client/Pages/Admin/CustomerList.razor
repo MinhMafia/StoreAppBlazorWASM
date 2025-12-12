@@ -3,6 +3,7 @@
 @using StoreApp.Shared
 @inject ICustomerClientService CustomerService
 @inject IJSRuntime JS
+@inject HttpClient Http
 
 <div class="container py-4">
 
@@ -10,6 +11,9 @@
     <div class="mb-4 d-flex align-items-center justify-content-between">
         <h1 class="mb-0 h3 fw-bold text-dark">Quản Lý Khách Hàng</h1>
         <div class="d-flex gap-2">
+            <button type="button" class="btn btn-info" @onclick="OpenImportModal">
+                <i class="bi bi-upload"></i> Import Excel
+            </button>
             <button type="button" class="btn btn-primary" @onclick="openAddModal">
                 + Thêm Khách Hàng
             </button>
@@ -262,6 +266,15 @@
     <CustomerDetailModal IsOpen="@showDetailModal" OnClose="closeDetailModal" CustomerId="@selectedCustomerId" />
     <CustomerEditModal IsOpen="@showEditModal" OnClose="closeEditModal" CustomerId="@selectedCustomerId" OnSave="HandleCustomerUpdated" />
     <CustomerAddModal IsOpen="@showAddModal" OnClose="closeAddModal" OnSave="HandleCustomerAdded" />
+    
+    @* Import Modal *@
+    @if (importModalOpen)
+    {
+        <CustomerImportModal 
+            IsOpen="importModalOpen"
+            OnClose="() => importModalOpen = false"
+            OnSuccess="HandleImportSuccess" />
+    }
 
 </div>
 
@@ -270,6 +283,7 @@
     private bool showAddModal = false;
     private bool showDetailModal = false;
     private bool showEditModal = false;
+    private bool importModalOpen = false;
     private int? selectedCustomerId = null;
 
     // Data
@@ -442,5 +456,17 @@
     {
         showEditModal = false;
         selectedCustomerId = null;
+    }
+
+    private void OpenImportModal()
+    {
+        importModalOpen = true;
+    }
+
+    private async Task HandleImportSuccess()
+    {
+        importModalOpen = false;
+        await ReloadData();
+        await JS.InvokeVoidAsync("alert", "Import khách hàng thành công!");
     }
 }

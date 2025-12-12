@@ -1,20 +1,19 @@
 @using Markdig
 @using StoreApp.Shared
 
-@* Component hiển thị một message bubble trong chat - Y nguyên React *@
-
 @{
     var displayContent = Message.Content ?? "";
 
     // Xóa marker [TOOL_COMPLETE]
     displayContent = displayContent.Replace("[TOOL_COMPLETE]", "");
 
-    // CHỈ xóa dòng truy vấn khi STREAMING XONG
+    // CHỈ xóa dòng loading khi STREAMING XONG
     if (!Message.IsStreaming)
     {
+        // Xóa dòng "⏳ Đang tìm kiếm..." hoặc "⏳ Đang truy vấn..."
         displayContent = System.Text.RegularExpressions.Regex.Replace(
             displayContent,
-            @"⏳[^⏳]*?Đang truy vấn[^\n]*\n*",
+            @"\n*⏳[^\n]*\n*",
             "",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase
         );
@@ -73,10 +72,7 @@
                 <div class="whitespace-pre-wrap break-words">@Message.Content</div>
             }
 
-            @if (Message.Data != null)
-            {
-                <DataTable Data="@Message.Data" FunctionCalled="@Message.FunctionCalled" />
-            }
+
         }
     </div>
 </div>

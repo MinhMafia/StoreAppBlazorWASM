@@ -106,7 +106,8 @@ namespace StoreApp.Services
             };
             await _paymentRepo.AddPaymentAsync(payment);
 
-           
+            // Log activity
+        
 
             return new MomoPaymentResponseDTO
             {
@@ -155,6 +156,48 @@ namespace StoreApp.Services
                     payment.Status = "completed";
                     await _paymentRepo.UpdatePaymentAsync(payment);
                     await _orderRepo.UpdateOrderStatusAsync(payment.OrderId, "completed");
+                    
+                }
+            }
+
+            return true;
+        }
+        public async Task<bool> HandleMomoCallbackOnlineAsync(MomoIpnCallbackDTO callback)
+        {
+            string accessKey = _config["Momo:AccessKey"];
+            string secretKey = _config["Momo:SecretKey"];
+
+            // Signature kiểm tra callback
+            string rawSignature =
+                $"accessKey={accessKey}" +
+                $"&amount={callback.Amount}" +
+                $"&extraData={callback.ExtraData}" +
+                $"&message={callback.Message}" +
+                $"&orderId={callback.OrderId}" +
+                $"&orderInfo={callback.OrderInfo}" +
+                $"&orderType={callback.OrderType}" +
+                $"&partnerCode={callback.PartnerCode}" +
+                $"&payType={callback.PayType}" +
+                $"&requestId={callback.RequestId}" +
+                $"&responseTime={callback.ResponseTime}" +
+                $"&resultCode={callback.ResultCode}" +
+                $"&transId={callback.TransId}";
+
+            string expected = SignSHA256(rawSignature, secretKey);
+            if (callback.Signature != expected)
+            {
+                
+                return false;
+            }
+
+            if (callback.ResultCode == 0)
+            {
+                // Cập nhật payment + order
+                var payment = await _paymentRepo.GetByOrderIdAsync(int.Parse(callback.OrderId.Replace("order_", "")));
+                if (payment != null)
+                {
+                    payment.Status = "completed";
+                    await _paymentRepo.UpdatePaymentAsync(payment);
                     
                 }
             }

@@ -206,6 +206,7 @@ namespace StoreApp.Services
                 Price = p.Price,
                 Cost = p.Cost,
                 UnitId = p.UnitId,
+                Unit = p.Unit?.Name, // Populate Unit name from navigation property for display
                 Description = p.Description,
                 ImageUrl = p.ImageUrl,
                 IsActive = p.IsActive,

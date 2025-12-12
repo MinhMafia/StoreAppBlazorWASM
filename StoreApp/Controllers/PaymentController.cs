@@ -35,7 +35,19 @@ namespace StoreApp.Controllers
             bool valid = await _paymentService.HandleMomoCallbackAsync(callback);
             if (!valid)
             {
-                await _logService.LogAsync(2, "INVALID_SIGNATURE", "Payment", callback.OrderId ?? "", "Sai chữ ký MoMo", "system");
+               
+                return BadRequest(new { message = "Invalid signature" });
+            }
+
+            return Ok(new { message = "Callback handled successfully" });
+        }
+        [HttpPost("momo/ipnonline")]
+        public async Task<IActionResult> MomoCallbackOnline([FromBody] MomoIpnCallbackDTO callback)
+        {
+            bool valid = await _paymentService.HandleMomoCallbackOnlineAsync(callback);
+            if (!valid)
+            {
+               
                 return BadRequest(new { message = "Invalid signature" });
             }
 

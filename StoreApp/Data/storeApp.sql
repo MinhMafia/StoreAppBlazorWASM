@@ -26,6 +26,7 @@ DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS promotions;
+DROP TABLE IF EXISTS units;
 
 -- Parent tables first
 CREATE TABLE categories (

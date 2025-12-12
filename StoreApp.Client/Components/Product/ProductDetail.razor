@@ -1,190 +1,256 @@
+@* Components/Product/ProductDetail.razor *@
 @using StoreApp.Shared
-@inject NavigationManager Navigation
 
-@if (Product == null)
-{
-    <div class="text-center p-4">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2">Đang tải dữ liệu...</p>
-    </div>
-}
-else
-{
-    <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title">
-                        <i class="bi bi-eye"></i> Chi tiết sản phẩm
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" @onclick="OnCancel"></button>
+<!-- Modal Overlay -->
+<div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto" @onclick="HandleBackdropClick">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-8" @onclick:stopPropagation>
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center">
+                    <i class="bi bi-eye text-white text-xl"></i>
                 </div>
-                
-                <div class="modal-body">
-                    <div class="row">
-                        <!-- Image preview -->
-                        <div class="col-md-4 mb-3">
-                            <div class="text-center">
-                                <img src="@GetDisplayImage()" class="img-fluid rounded border" style="max-height: 400px; object-fit: cover;" alt="@Product.ProductName" />
-                            </div>
-                            @if (Product.Inventory != null)
-                            {
-                                <div class="mt-3 p-3 bg-light rounded">
-                                    <h6 class="fw-bold mb-2"><i class="bi bi-box-seam"></i> Tồn kho</h6>
-                                    <div class="d-flex justify-content-between">
-                                        <span>Số lượng:</span>
-                                        <span class="fw-bold @GetQuantityClass()">
-                                            @Product.Inventory.Quantity @Product.Unit
-                                        </span>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Chi tiết sản phẩm</h2>
+                    <p class="text-sm text-gray-600">Xem thông tin đầy đủ</p>
+                </div>
+            </div>
+            <button @onclick="OnCancel" 
+                    class="w-8 h-8 rounded-lg hover:bg-gray-100 transition flex items-center justify-center">
+                <i class="bi bi-x-lg text-gray-500"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="px-6 py-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+            
+            @if (Product == null)
+            {
+                <div class="flex items-center justify-center py-20">
+                    <div class="text-gray-400 text-center">
+                        <i class="bi bi-inbox text-5xl mb-3"></i>
+                        <p>Không có dữ liệu</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-cols-12 gap-6">
+                    
+                    <!-- Left: Image -->
+                    <div class="col-span-12 lg:col-span-5">
+                        <div class="sticky top-0">
+                            <!-- Main Image -->
+                            <div class="aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50 mb-4">
+                                @if (string.IsNullOrEmpty(Product.ImageUrl))
+                                {
+                                    <div class="w-full h-full flex items-center justify-center">
+                                        <div class="text-center text-gray-400">
+                                            <i class="bi bi-image text-6xl mb-3"></i>
+                                            <p class="text-lg font-medium">Chưa có hình ảnh</p>
+                                        </div>
                                     </div>
-                                    @if (Product.Inventory.LastCheckedAt.HasValue)
-                                    {
-                                        <small class="text-muted">
-                                            Kiểm kê lần cuối: @Product.Inventory.LastCheckedAt.Value.ToString("dd/MM/yyyy HH:mm")
-                                        </small>
-                                    }
-                                </div>
-                            }
-                        </div>
-                        
-                        <!-- Product information -->
-                        <div class="col-md-8">
-                            <div class="mb-4">
-                                <h3 class="fw-bold text-primary">@Product.ProductName</h3>
-                                <div class="d-flex gap-2 align-items-center">
-                                    <span class="badge @(Product.IsActive ? "bg-success" : "bg-secondary")">
-                                        @(Product.IsActive ? "Đang hoạt động" : "Ngừng hoạt động")
+                                }
+                                else
+                                {
+                                    <img src="@Product.ImageUrl" alt="@Product.ProductName" class="w-full h-full object-cover" />
+                                }
+                            </div>
+
+                            <!-- Status Badges -->
+                            <div class="flex flex-wrap gap-2">
+                                <span class="@(Product.IsActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800") px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2">
+                                    <i class="bi bi-circle-fill text-xs"></i>
+                                    @(Product.IsActive ? "Đang hoạt động" : "Ngừng kinh doanh")
+                                </span>
+
+                                @if (Product.Inventory != null && Product.Inventory.Quantity <= 10 && Product.Inventory.Quantity > 0)
+                                {
+                                    <span class="bg-orange-100 text-orange-800 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                        Sắp hết hàng
                                     </span>
-                                    @if (!string.IsNullOrEmpty(Product.Sku))
-                                    {
-                                        <small class="text-muted">SKU: @Product.Sku</small>
-                                    }
-                                </div>
-                            </div>
-
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="p-3 bg-light rounded">
-                                        <label class="text-muted small mb-1">ID sản phẩm</label>
-                                        <div class="fw-bold">#@Product.Id</div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <div class="p-3 bg-light rounded">
-                                        <label class="text-muted small mb-1">Danh mục</label>
-                                        <div class="fw-bold">@(Product.Category?.Name ?? "—")</div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <div class="p-3 bg-light rounded">
-                                        <label class="text-muted small mb-1">Nhà cung cấp</label>
-                                        <div class="fw-bold">@(Product.Supplier?.Name ?? "—")</div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <div class="p-3 bg-light rounded">
-                                        <label class="text-muted small mb-1">Đơn vị</label>
-                                        <div class="fw-bold">@(Product.Unit ?? "—")</div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <div class="p-3 bg-success bg-opacity-10 rounded border border-success">
-                                        <label class="text-muted small mb-1">Giá bán</label>
-                                        <div class="fw-bold fs-5 text-danger">@Product.Price.ToString("N0") đ</div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <div class="p-3 bg-light rounded">
-                                        <label class="text-muted small mb-1">Giá vốn</label>
-                                        <div class="fw-bold">@(Product.Cost?.ToString("N0") ?? "—") đ</div>
-                                    </div>
-                                </div>
-
-                                @if (!string.IsNullOrEmpty(Product.Description))
-                                {
-                                    <div class="col-12">
-                                        <div class="p-3 bg-light rounded">
-                                            <label class="text-muted small mb-1"><i class="bi bi-card-text"></i> Mô tả</label>
-                                            <div>@Product.Description</div>
-                                        </div>
-                                    </div>
                                 }
-
-                                @if (Product.CreatedAt.HasValue || Product.UpdatedAt.HasValue)
+                                else if (Product.Inventory == null || Product.Inventory.Quantity <= 0)
                                 {
-                                    <div class="col-12">
-                                        <div class="p-3 bg-light rounded">
-                                            <div class="row">
-                                                @if (Product.CreatedAt.HasValue)
-                                                {
-                                                    <div class="col-md-6">
-                                                        <label class="text-muted small mb-1">Ngày tạo</label>
-                                                        <div class="small">@Product.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm:ss")</div>
-                                                    </div>
-                                                }
-                                                @if (Product.UpdatedAt.HasValue)
-                                                {
-                                                    <div class="col-md-6">
-                                                        <label class="text-muted small mb-1">Cập nhật lần cuối</label>
-                                                        <div class="small">@Product.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm:ss")</div>
-                                                    </div>
-                                                }
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-
-                                @if (Product.AverageRating > 0 || Product.ReviewCount > 0)
-                                {
-                                    <div class="col-12">
-                                        <div class="p-3 bg-warning bg-opacity-10 rounded border border-warning">
-                                            <label class="text-muted small mb-1"><i class="bi bi-star-fill text-warning"></i> Đánh giá</label>
-                                            <div class="d-flex gap-3">
-                                                <div>
-                                                    <span class="fw-bold fs-5 text-warning">@Product.AverageRating.ToString("F1")</span>
-                                                    <span class="text-muted">/5.0</span>
-                                                </div>
-                                                <div class="text-muted">
-                                                    (@Product.ReviewCount đánh giá)
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <span class="bg-red-100 text-red-800 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2">
+                                        <i class="bi bi-x-circle-fill"></i>
+                                        Hết hàng
+                                    </span>
                                 }
                             </div>
                         </div>
                     </div>
+
+                    <!-- Right: Info -->
+                    <div class="col-span-12 lg:col-span-7 space-y-6">
+                        
+                        <!-- Tên & SKU -->
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">@Product.ProductName</h1>
+                            <div class="flex items-center gap-3 text-gray-600">
+                                <span class="text-sm">SKU:</span>
+                                <code class="px-3 py-1 bg-gray-100 rounded font-mono text-sm">@Product.Sku</code>
+                            </div>
+                        </div>
+
+                        <!-- Giá -->
+                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <div class="text-sm text-gray-600 mb-1">Giá bán</div>
+                                    <div class="text-3xl font-bold text-blue-600">
+                                        @Product.Price.ToString("N0") ₫
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-600 mb-1">Giá nhập</div>
+                                    <div class="text-2xl font-semibold text-gray-700">
+                                        @(Product.Cost?.ToString("N0") ?? "0") ₫
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 pt-3 border-t border-blue-200">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Lợi nhuận</span>
+                                    <span class="text-lg font-bold text-green-600">
+                                        @{
+                                            var profit = Product.Price - (Product.Cost ?? 0);
+                                            var profitPercent = Product.Cost > 0 ? (profit / Product.Cost.Value * 100) : 0;
+                                        }
+                                        @profit.ToString("N0") ₫
+                                        <span class="text-sm text-gray-500">
+                                            (@profitPercent.ToString("F1")%)
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Thông tin chi tiết -->
+                        <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                            <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="bi bi-info-circle text-indigo-500"></i>
+                                Thông tin chi tiết
+                            </h3>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <i class="bi bi-tag text-purple-600"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs text-gray-600 mb-1">Danh mục</div>
+                                        <div class="font-semibold text-gray-800 truncate">@(Product.Category?.Name ?? "Chưa phân loại")</div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start gap-3">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <i class="bi bi-building text-blue-600"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs text-gray-600 mb-1">Nhà cung cấp</div>
+                                        <div class="font-semibold text-gray-800 truncate">@(Product.Supplier?.Name ?? "Chưa có")</div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start gap-3">
+                                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <i class="bi bi-box text-green-600"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs text-gray-600 mb-1">Tồn kho</div>
+                                        <div class="font-semibold text-gray-800">@(Product.Inventory?.Quantity ?? 0) @(Product.Unit ?? "đơn vị")</div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start gap-3">
+                                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <i class="bi bi-calculator text-yellow-600"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs text-gray-600 mb-1">Đơn vị tính</div>
+                                        <div class="font-semibold text-gray-800">@(Product.Unit ?? "N/A")</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mô tả -->
+                        @if (!string.IsNullOrEmpty(Product.Description))
+                        {
+                            <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                                <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                    <i class="bi bi-text-paragraph text-indigo-500"></i>
+                                    Mô tả sản phẩm
+                                </h3>
+                                <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">@Product.Description</p>
+                            </div>
+                        }
+
+                        <!-- Timeline -->
+                        <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                            <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="bi bi-clock-history text-indigo-500"></i>
+                                Lịch sử
+                            </h3>
+                            
+                            <div class="space-y-3">
+                                @if (Product.CreatedAt.HasValue)
+                                {
+                                    <div class="flex items-center gap-3 text-sm">
+                                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                        <span class="text-gray-600">Tạo lúc:</span>
+                                        <span class="font-semibold text-gray-800">@Product.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                }
+                                @if (Product.UpdatedAt.HasValue)
+                                {
+                                    <div class="flex items-center gap-3 text-sm">
+                                        <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                        <span class="text-gray-600">Cập nhật:</span>
+                                        <span class="font-semibold text-gray-800">@Product.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                    </div>
+
                 </div>
-                
-                <div class="modal-footer">
-                    @if (OnDelete.HasDelegate)
-                    {
-                        <button class="btn btn-outline-danger" @onclick="() => OnDelete.InvokeAsync((Product.Id, Product.IsActive))">
-                            <i class="bi @(Product.IsActive ? "bi-trash" : "bi-arrow-clockwise")"></i> 
-                            @(Product.IsActive ? "Xóa" : "Khôi phục")
-                        </button>
-                    }
-                    
-                    @if (OnEdit.HasDelegate)
-                    {
-                        <button class="btn btn-primary" @onclick="() => OnEdit.InvokeAsync(Product)">
-                            <i class="bi bi-pencil-square"></i> Chỉnh sửa
-                        </button>
-                    }
-                    
-                    <button class="btn btn-secondary" @onclick="OnCancel">
-                        <i class="bi bi-x-lg"></i> Đóng
-                    </button>
-                </div>
+            }
+
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <button type="button"
+                    @onclick="() => HandleDelete(Product.Id, Product.IsActive)"
+                    class="px-5 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold flex items-center gap-2">
+                <i class="bi bi-trash"></i>
+                @(Product?.IsActive == true ? "Vô hiệu hóa" : "Khôi phục")
+            </button>
+
+            <div class="flex items-center gap-3">
+                <button type="button" 
+                        @onclick="OnCancel"
+                        class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold">
+                    <i class="bi bi-x-circle mr-2"></i>
+                    Đóng
+                </button>
+                <button type="button" 
+                        @onclick="() => HandleEdit(Product)"
+                        class="px-5 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition font-semibold flex items-center gap-2">
+                    <i class="bi bi-pencil"></i>
+                    Chỉnh sửa
+                </button>
             </div>
         </div>
+
     </div>
-}
+</div>
 
 @code {
     [Parameter] public ProductDTO? Product { get; set; }
@@ -192,21 +258,21 @@ else
     [Parameter] public EventCallback<(int, bool)> OnDelete { get; set; }
     [Parameter] public EventCallback<ProductDTO> OnEdit { get; set; }
 
-    private string GetDisplayImage()
+    private void HandleBackdropClick()
     {
-        if (!string.IsNullOrEmpty(Product?.ImageUrl))
-        {
-            if (Product.ImageUrl.StartsWith("http"))
-                return Product.ImageUrl;
-            return $"/assets/images/products/{Product.ImageUrl}";
-        }
-        
-        return "/assets/images/products/default.jpg";
+        OnCancel.InvokeAsync();
     }
 
-    private string GetQuantityClass()
+    private async Task HandleDelete(int id, bool isActive)
     {
-        var qty = Product?.Inventory?.Quantity ?? 0;
-        return qty > 10 ? "text-success" : qty > 0 ? "text-warning" : "text-danger";
+        await OnDelete.InvokeAsync((id, isActive));
+    }
+
+    private async Task HandleEdit(ProductDTO? product)
+    {
+        if (product != null)
+        {
+            await OnEdit.InvokeAsync(product);
+        }
     }
 }

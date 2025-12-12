@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StoreApp.Services;
 using StoreApp.Shared;
@@ -6,6 +7,7 @@ namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class StatisticsController : ControllerBase
     {
         private readonly StatisticsService _statisticsService;

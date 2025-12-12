@@ -7,10 +7,6 @@
  
  namespace StoreApp.Client.Services
  {
-     /// <summary>
-     /// Service xử lý Customer AI Chat API
-     /// Kết nối đến endpoint /api/customer-ai
-     /// </summary>
      public class CustomerAiChatService : ICustomerAiChatService
      {
          private readonly HttpClient _httpClient;
@@ -143,7 +139,7 @@
                                          return;
                                      }
  
-                                     if (chunk.ConversationId.HasValue)
+                                    if (chunk.ConversationId.HasValue)
                                      {
                                          await onConversationId(chunk.ConversationId.Value);
                                      }
@@ -151,14 +147,14 @@
                                      if (!string.IsNullOrEmpty(chunk.Content))
                                      {
                                          contentBuffer.Append(chunk.Content);
- 
+
                                          var now = DateTime.UtcNow;
                                          var shouldFlush =
                                              (now - lastUpdateTime).TotalMilliseconds >= UPDATE_INTERVAL_MS ||
                                              chunk.Content.Contains("[TOOL_COMPLETE]") ||
                                              chunk.Content.Contains("⏳") ||
                                              chunk.Content.EndsWith("\n");
- 
+
                                          if (shouldFlush && contentBuffer.Length > 0)
                                          {
                                              await onChunk(contentBuffer.ToString());

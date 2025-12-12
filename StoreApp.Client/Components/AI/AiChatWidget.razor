@@ -6,7 +6,6 @@
 @inject ILocalStorageService LocalStorage
 @implements IDisposable
 
-@* Floating Widget - Y nguyên React, 100% Blazor không JS *@
 
 @if (isOpen)
 {
@@ -235,21 +234,27 @@
                 if (data != null && data.Messages.Count > 0)
                 {
                     conversationId = savedId.Value;
-messages = data.Messages.Select((m, index) => new ChatMessageDTO
+                    messages = data.Messages.Select((m, index) => new ChatMessageDTO
                     {
                         Id = m.Id.ToString(),
                         Role = m.Role,
-                        Content = m.Content,
-                        FunctionCalled = m.FunctionCalled,
-                        Data = m.Data
+                        Content = m.Content
                     }).ToList();
                     return;
+                }
+                else
+                {
+                    // Conversation không tồn tại hoặc rỗng trong DB -> xóa khỏi LocalStorage
+                    Console.WriteLine($"Conversation {savedId.Value} not found or empty, clearing storage");
+                    await LocalStorage.RemoveItemAsync(STORAGE_KEY);
+                    conversationId = null;
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Could not load saved conversation: {ex.Message}");
                 await LocalStorage.RemoveItemAsync(STORAGE_KEY);
+                conversationId = null;
             }
         }
         messages.Add(WelcomeMessage);
@@ -290,13 +295,11 @@ messages = data.Messages.Select((m, index) => new ChatMessageDTO
             {
                 conversationId = id;
                 await LocalStorage.SetItemAsync(STORAGE_KEY, conversationId.Value);
-messages = data.Messages.Select((m, index) => new ChatMessageDTO
+                messages = data.Messages.Select((m, index) => new ChatMessageDTO
                 {
                     Id = m.Id.ToString(),
                     Role = m.Role,
-                    Content = m.Content,
-                    FunctionCalled = m.FunctionCalled,
-                    Data = m.Data
+                    Content = m.Content
                 }).ToList();
                 showHistory = false;
             }

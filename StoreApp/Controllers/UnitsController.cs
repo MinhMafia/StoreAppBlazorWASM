@@ -8,7 +8,7 @@ namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    // [Authorize]
     public class UnitsController : ControllerBase
     {
         private readonly UnitRepository _unitRepo;

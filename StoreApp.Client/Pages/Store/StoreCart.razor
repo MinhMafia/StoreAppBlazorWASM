@@ -7,6 +7,7 @@
 @inject IProductClientService ProductService
 @layout StoreLayout
 @implements IDisposable
+@inject IJSRuntime JS
 
 <PageTitle>Giỏ hàng - Cửa Hàng Tiện Lợi</PageTitle>
 <style>
@@ -244,9 +245,22 @@
         Navigation.NavigateTo("/api/store/products");
     }
 
-    private void GoToCheckout()
+    //Chuyển trang qua trang mua hàng = TUI ĐÃ SỬA Ở ĐÂY
+    private async Task GoToCheckout() 
     {
-        Navigation.NavigateTo("/api/store/checkout");
+        @* Navigation.NavigateTo("/api/store/checkout"); => CODE CŨ *@
+        if (selectedItems.Count == 0)
+        {
+            // Có thể hiện thông báo: "Vui lòng chọn ít nhất 1 sản phẩm"
+            await JS.InvokeVoidAsync("alert", "Vui lòng chọn ít nhất 1 sản phẩm");
+            return;
+        }
+
+        var query = string.Join("&", selectedItems.Select(id => $"ids={id}"));
+        Console.WriteLine("Đang chọn các ID: " + string.Join(", ", selectedItems));
+        Navigation.NavigateTo($"/store/checkout?{query}");
+        
+
     }
 
     private async Task IncreaseQuantity(int productId)

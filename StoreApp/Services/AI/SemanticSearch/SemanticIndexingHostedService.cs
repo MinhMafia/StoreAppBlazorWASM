@@ -25,8 +25,6 @@ namespace StoreApp.Services.AI.SemanticSearch
         {
             await Task.Delay(3000, ct);
 
-            _logger.LogInformation("=== Starting semantic indexing check ===");
-
             try
             {
                 using var scope = _serviceProvider.CreateScope();
@@ -36,26 +34,13 @@ namespace StoreApp.Services.AI.SemanticSearch
                 
                 if (count == 0)
                 {
-                    _logger.LogInformation("[Products] Collection '{Collection}' is empty. Starting indexing...", 
-                        AiConstants.ProductCollectionName);
-                    
                     var indexingService = scope.ServiceProvider.GetRequiredService<IProductIndexingService>();
-                    var result = await indexingService.ReindexAllProductsAsync(ct);
-                    
-                    _logger.LogInformation("[Products] Indexing completed: {Indexed} indexed, Success: {Success}", 
-                        result.TotalIndexed, result.Success);
+                    await indexingService.ReindexAllProductsAsync(ct);
                 }
-                else
-                {
-                    _logger.LogInformation("[Products] Collection '{Collection}' already has {Count} items. Skipping.", 
-                        AiConstants.ProductCollectionName, count);
-                }
-
-                _logger.LogInformation("=== Semantic indexing check completed ===");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed during semantic indexing: {Message}", ex.Message);
+                _logger.LogError(ex, "Failed during semantic indexing");
             }
         }
 

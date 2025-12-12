@@ -108,6 +108,7 @@
         totalPages="@totalPages"
         ViewOrderDetail="ViewOrderDetail"
         onPageChange="@(page => OnPageChanged(page))"
+        OnReload="ReloadOrders"
          />
 
 
@@ -246,16 +247,17 @@ thúc, tìm kiếm )
         currentPage = page;
         await LoadOrdersAdvanced();
     }
+    private async Task ReloadOrders()
+    {
+        await LoadOrdersAdvanced(); 
+    }
+
 
     // Hiển thị danh sách đơn hàng khi trang được tải
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
-        {
-            await LoadOrdersAdvanced();
-            StateHasChanged();
-
-        }
+        // Tải dữ liệu lần đầu ngay khi component được khởi tạo
+        await LoadOrdersAdvanced();
     }
 
     // Xử tạo đơn hàng mới
@@ -273,7 +275,7 @@ thúc, tìm kiếm )
     void HandleOrderChanged(OrderDTO updatedOrder)
     {
         currentOrder = updatedOrder;
-        StateHasChanged(); // đảm bảo re-render
+       
     }
 
     // Tạo đơn hàng mới 
@@ -285,6 +287,10 @@ thúc, tìm kiếm )
         }
         // In ra console.log của trình duyệt
         JS.InvokeVoidAsync("console.log", "Đơn hàng:", currentOrder);
+        
+        if(currentOrder.PaymentMethod=="cash"){
+            currentOrder.Status="completed";
+        }
       
 
         bool result = await _ordersClient.SaveFinalOrderAsync(currentOrder);
@@ -297,13 +303,11 @@ thúc, tìm kiếm )
         JS.InvokeVoidAsync("console.log", "Danh sách sản phẩm muốn mua:", listOrderProducts);
         bool result2= await _ordersClient.SaveListOrderItem (listOrderProducts);
         if(result2==false){
-
             return ;
         }
         List <ReduceInventoryDto> reducelist=preparedListReduceInventoryDto(listOrderProducts);
         bool result3= await _ordersClient.ReduceMultipleAsync(reducelist);
         if(result3==false){
-
             return ;
         }
 
@@ -312,7 +316,6 @@ thúc, tìm kiếm )
             ApplyPromotionRequest requesst=preparedPromotion (currentOrder);
             bool result4=await _ordersClient.ApplyPromotionAsync(requesst);
             if(result4==false){
-
                 return ;
             }
         }
@@ -348,12 +351,7 @@ thúc, tìm kiếm )
 
     }
 
-    // Chuẩn bị listOrderProducts
-    public void preparedlistOrderProducts(int orderid){
-        foreach(var item in listOrderProducts){
-            item.orderid =orderid;
-        }
-    }
+
 
     // Chuẩn bị ApplyPromotionRequest
     public ApplyPromotionRequest preparedPromotion (OrderDTO order){
