@@ -4,6 +4,7 @@ using StoreApp.Data;
 using StoreApp.Models;
 using StoreApp.Shared;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace StoreApp.Controllers
 {
@@ -25,19 +26,19 @@ namespace StoreApp.Controllers
             var userId = ResolveUserId();
             if (userId == null) return Unauthorized();
 
-            var items = _context.CartItems
-                .Where(c => c.UserId == userId.Value)
-                .Select(c => new CartItemDTO
-                {
-                    ProductId = c.ProductId,
-                    ProductName = c.ProductName,
-                    ImageUrl = c.ImageUrl ?? string.Empty,
-                    Price = c.Price,
-                    Quantity = c.Quantity
-                })
-                .ToList();
+            var cart = _context.UserCarts.FirstOrDefault(c => c.UserId == userId.Value);
+            if (cart == null || string.IsNullOrWhiteSpace(cart.CartJson))
+                return Ok(new List<CartItemDTO>());
 
-            return Ok(items);
+            try
+            {
+                var items = JsonSerializer.Deserialize<List<CartItemDTO>>(cart.CartJson) ?? new List<CartItemDTO>();
+                return Ok(items);
+            }
+            catch
+            {
+                return Ok(new List<CartItemDTO>());
+            }
         }
 
         [HttpPost("sync")]
@@ -46,25 +47,24 @@ namespace StoreApp.Controllers
             var userId = ResolveUserId();
             if (userId == null) return Unauthorized();
 
-            var cartItems = items ?? new List<CartItemDTO>();
+            var cart = _context.UserCarts.FirstOrDefault(c => c.UserId == userId.Value);
+            var payload = JsonSerializer.Serialize(items ?? new List<CartItemDTO>());
 
-            // replace all items for user
-            var existing = _context.CartItems.Where(c => c.UserId == userId.Value);
-            _context.CartItems.RemoveRange(existing);
-
-            if (cartItems.Any())
+            if (cart == null)
             {
-                var entities = cartItems.Select(i => new CartItem
+                cart = new UserCart
                 {
                     UserId = userId.Value,
-                    ProductId = i.ProductId,
-                    ProductName = i.ProductName ?? string.Empty,
-                    ImageUrl = i.ImageUrl,
-                    Price = i.Price,
-                    Quantity = i.Quantity,
+                    CartJson = payload,
                     UpdatedAt = DateTime.UtcNow
-                });
-                _context.CartItems.AddRange(entities);
+                };
+                _context.UserCarts.Add(cart);
+            }
+            else
+            {
+                cart.CartJson = payload;
+                cart.UpdatedAt = DateTime.UtcNow;
+                _context.UserCarts.Update(cart);
             }
 
             await _context.SaveChangesAsync();
