@@ -7,7 +7,7 @@ namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = "admin")]
     public class StatisticsController : ControllerBase
     {
         private readonly StatisticsService _statisticsService;

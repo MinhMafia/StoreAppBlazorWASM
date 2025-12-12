@@ -1,11 +1,13 @@
 using StoreApp.Shared;
 using StoreApp.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "admin")]
     public class ActivityLogController : ControllerBase
     {
         private readonly ActivityLogService _activityLogService;

@@ -1,12 +1,14 @@
 using StoreApp.Shared;
 using StoreApp.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using StoreApp.Models;
 
 namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "admin,staff")]
     public class OrdersController : ControllerBase
     {
         private readonly OrderService _orderService;

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using StoreApp.Services;
 using StoreApp.Shared;
 using StoreApp.Repository;
@@ -9,6 +10,7 @@ namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "admin,staff")]
     public class ImportController : ControllerBase
     {
         private readonly ImportService _importService;
@@ -443,4 +445,3 @@ namespace StoreApp.Controllers
         }
     }
 }
-

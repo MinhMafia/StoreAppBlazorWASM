@@ -2,11 +2,14 @@ using System.ComponentModel.DataAnnotations;
 using StoreApp.Shared;
 using StoreApp.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/me")]
+    [Authorize]
     public class MeController : ControllerBase
     {
         private readonly UserService _userService;
@@ -99,6 +102,14 @@ namespace StoreApp.Controllers
 
         private int? ResolveUserId()
         {
+            // ƒ??u tiA?n lA?y id trong claim
+            var idClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrWhiteSpace(idClaim) && int.TryParse(idClaim, out var claimUserId))
+            {
+                return claimUserId;
+            }
+
+            // fallback header (nA?u front A?t header cA?u hA??i cA? lA?y)
             if (Request.Headers.TryGetValue("X-User-Id", out var header) &&
                 int.TryParse(header, out var userId))
             {

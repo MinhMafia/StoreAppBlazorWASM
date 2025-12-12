@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using StoreApp.Models;
 using StoreApp.Services;
 using StoreApp.Shared;
@@ -8,6 +9,7 @@ namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "admin,staff")]
     public class ProductsController : ControllerBase
     {
         private readonly ProductService _productService;

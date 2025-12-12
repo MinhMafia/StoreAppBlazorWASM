@@ -1,11 +1,13 @@
 using StoreApp.Services;
 using StoreApp.Shared;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "admin,staff")]
     public class InventoryController : ControllerBase
     {
         private readonly InventoryService _inventoryService;

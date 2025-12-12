@@ -9,7 +9,7 @@ namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = "admin,staff")]
     public class PromotionsController : ControllerBase
     {
         private readonly PromotionService _promotionService;
