@@ -9,7 +9,7 @@ namespace StoreApp.Models
     [Table("orders")]
     [Index(nameof(OrderNumber), IsUnique = true, Name = "ux_orders_order_number")]
     [Index(nameof(CustomerId), Name = "idx_orders_customer")]
-    [Index(nameof(UserId), Name = "idx_orders_user")]
+    [Index(nameof(StaffId), Name = "idx_orders_staff")]
     [Index(nameof(Status), Name = "idx_orders_status")]
     public class Order
     {
@@ -25,8 +25,8 @@ namespace StoreApp.Models
         [Column("customer_id")]
         public int? CustomerId { get; set; }
 
-        [Column("user_id")]
-        public int? UserId { get; set; }
+        [Column("staff_id")]
+        public int? StaffId { get; set; }
 
         // Use string to match DB ENUM; alternatively use enum + conversion
         [Column("status")]
@@ -58,8 +58,8 @@ namespace StoreApp.Models
         [ForeignKey(nameof(CustomerId))]
         public virtual Customer? Customer { get; set; }
 
-        [ForeignKey(nameof(UserId))]
-        public virtual User? User { get; set; }
+        [ForeignKey(nameof(StaffId))]
+        public virtual User? Staff { get; set; }
 
         [ForeignKey(nameof(PromotionId))]
         public virtual Promotion? Promotion { get; set; }

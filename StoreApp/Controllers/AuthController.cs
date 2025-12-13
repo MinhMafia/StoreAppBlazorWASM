@@ -106,23 +106,7 @@ namespace StoreApp.Controllers
                     return BadRequest(ModelState);
                 }
 
-                Console.WriteLine($"📝 Starting registration for: {req.Username} ({req.Email})");
-
-                // Kiểm tra username đã tồn tại
-                var usernameExists = await _db.Users.AnyAsync(u => u.Username == req.Username);
-                if (usernameExists)
-                {
-                    Console.WriteLine($"❌ Username already exists: {req.Username}");
-                    return Conflict(new { message = "Tên đăng nhập đã được sử dụng" });
-                }
-
-                // Kiểm tra email đã tồn tại trong Users table
-                var userEmailExists = await _db.Users.AnyAsync(u => u.Email == req.Email);
-                if (userEmailExists)
-                {
-                    Console.WriteLine($"❌ Email already exists in Users: {req.Email}");
-                    return Conflict(new { message = "Email đã được sử dụng" });
-                }
+                Console.WriteLine($"📝 Starting registration for: {req.Email}");
 
                 // Kiểm tra email đã tồn tại trong Customers table
                 var customerEmailExists = await _db.Customers.AnyAsync(c => c.Email == req.Email);
@@ -133,73 +117,39 @@ namespace StoreApp.Controllers
                 }
 
                 // Kiểm tra phone đã tồn tại
-                var phoneExists = await _db.Customers.AnyAsync(c => c.Phone == req.Phone);
-                if (phoneExists)
+                if (!string.IsNullOrEmpty(req.Phone))
                 {
-                    Console.WriteLine($"❌ Phone already exists: {req.Phone}");
-                    return Conflict(new { message = "Số điện thoại đã được sử dụng" });
+                    var phoneExists = await _db.Customers.AnyAsync(c => c.Phone == req.Phone);
+                    if (phoneExists)
+                    {
+                        Console.WriteLine($"❌ Phone already exists: {req.Phone}");
+                        return Conflict(new { message = "Số điện thoại đã được sử dụng" });
+                    }
                 }
 
-                // Bắt đầu transaction
-                using var transaction = await _db.Database.BeginTransactionAsync();
-
-                try
+                // Tạo Customer trực tiếp - KHÔNG TẠO USER
+                var customer = new Customer
                 {
-                    // Tạo User với username riêng
-                    var user = new User
-                    {
-                        Username = req.Username, // Dùng username riêng
-                        Email = req.Email,
-                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
-                        FullName = req.FullName,
-                        Role = "customer",
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow
-                    };
+                    Email = req.Email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
+                    FullName = req.FullName,
+                    Phone = req.Phone,
+                    Address = req.Address,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
 
-                    _db.Users.Add(user);
-                    await _db.SaveChangesAsync();
+                _db.Customers.Add(customer);
+                await _db.SaveChangesAsync();
 
-                    Console.WriteLine($"✅ User created - ID: {user.Id}, Username: {user.Username}");
+                Console.WriteLine($"✅ Customer registered - Email: {req.Email}, Customer ID: {customer.Id}");
 
-                    // Tạo Customer và liên kết với User
-                    var customer = new Customer
-                    {
-                        UserId = user.Id,
-                        FullName = req.FullName,
-                        Phone = req.Phone,
-                        Email = req.Email,
-                        Address = req.Address,
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-
-                    _db.Customers.Add(customer);
-                    await _db.SaveChangesAsync();
-
-                    Console.WriteLine($"✅ Customer created - ID: {customer.Id}");
-
-                    // Commit transaction
-                    await transaction.CommitAsync();
-
-                    Console.WriteLine($"✅ Transaction committed successfully");
-                    Console.WriteLine($"✅ Customer registered - Username: {req.Username}, Email: {req.Email}, Customer ID: {customer.Id}, User ID: {user.Id}");
-
-                    return Created("", new
-                    {
-                        message = "Đăng ký thành công",
-                        customerId = customer.Id,
-                        userId = user.Id
-                    });
-                }
-                catch (Exception ex)
+                return Created("", new
                 {
-                    await transaction.RollbackAsync();
-                    Console.WriteLine($"❌ Transaction rolled back. Error: {ex.Message}");
-                    Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
-                    throw;
-                }
+                    message = "Đăng ký thành công",
+                    customerId = customer.Id
+                });
             }
             catch (DbUpdateException dbEx)
             {
@@ -213,6 +163,59 @@ namespace StoreApp.Controllers
                 Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
                 return StatusCode(500, new { message = "Có lỗi xảy ra khi đăng ký. Vui lòng thử lại." });
             }
+        }
+
+        // LOGIN CHO CUSTOMER - TÁCH RIÊNG
+        [HttpPost("login-customer")]
+        public async Task<IActionResult> LoginCustomer([FromBody] LoginRequest req)
+        {
+            Console.WriteLine($"🔍 Customer login attempt - Email: '{req.Username}'");
+
+            if (string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Password))
+            {
+                return BadRequest(new { message = "Email và mật khẩu là bắt buộc" });
+            }
+
+            // Tìm customer theo email
+            var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Email == req.Username);
+
+            if (customer == null)
+            {
+                Console.WriteLine($"❌ Customer not found: {req.Username}");
+                return Unauthorized(new { message = "Email hoặc mật khẩu không đúng" });
+            }
+
+            // Kiểm tra có password không (khách vãng lai không có)
+            if (string.IsNullOrEmpty(customer.PasswordHash))
+            {
+                Console.WriteLine($"❌ Customer has no password (guest): {req.Username}");
+                return Unauthorized(new { message = "Tài khoản chưa được đăng ký" });
+            }
+
+            if (!customer.IsActive)
+            {
+                Console.WriteLine("❌ Customer is inactive");
+                return Unauthorized(new { message = "Tài khoản đã bị khóa" });
+            }
+
+            bool passwordValid = BCrypt.Net.BCrypt.Verify(req.Password, customer.PasswordHash);
+            if (!passwordValid)
+            {
+                Console.WriteLine("❌ Password incorrect");
+                return Unauthorized(new { message = "Email hoặc mật khẩu không đúng" });
+            }
+
+            var (token, expiresIn) = _jwt.GenerateCustomerToken(customer);
+            Console.WriteLine($"✅ Customer token generated - ID: {customer.Id}");
+
+            return Ok(new AuthResponse
+            {
+                Token = token,
+                TokenType = "Bearer",
+                ExpiresIn = expiresIn,
+                UserName = customer.FullName,
+                Role = "customer"
+            });
         }
 
         [HttpPost("reset-admin-password")]

@@ -55,8 +55,7 @@ namespace StoreApp.Models
         public bool IsLocked { get; set; } = false;
 
         // Navigation
-        public virtual Customer? Customer { get; set; }
-        public virtual ICollection<Order>? Orders { get; set; }         // orders created by this user
+        public virtual ICollection<Order>? Orders { get; set; }         // orders handled by this staff
         public virtual ICollection<InventoryAdjustment>? InventoryAdjustments { get; set; }
         public virtual ICollection<ActivityLog>? ActivityLogs { get; set; }
     }

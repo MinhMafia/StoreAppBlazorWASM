@@ -47,13 +47,6 @@ namespace StoreApp.Repository
                 .FirstOrDefaultAsync(c => c.Email == email);
         }
 
-        // Lấy khách hàng theo UserId
-        public async Task<Customer?> GetByUserIdAsync(int userId)
-        {
-            return await _context.Customers
-                .FirstOrDefaultAsync(c => c.UserId == userId);
-        }
-
         // Thêm khách hàng mới
         public async Task<Customer> AddAsync(Customer customer)
         {

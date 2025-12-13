@@ -24,27 +24,15 @@ namespace StoreApp.Controllers
             _logger = logger;
         }
 
-        private int? GetAuthenticatedUserId()
+        /// <summary>
+        /// Lấy customerId từ JWT token của customer đã đăng nhập
+        /// Customer JWT có claim "customerId" (được tạo từ GenerateCustomerToken)
+        /// </summary>
+        private int? GetAuthenticatedCustomerId()
         {
-            // Lấy uid từ JWT token (user.Id trong bảng users)
-            var uidClaim = User.FindFirst("uid");
-            if (uidClaim != null && int.TryParse(uidClaim.Value, out int uid))
-                return uid;
-
-            return null;
-        }
-
-        private async Task<int?> GetAuthenticatedCustomerIdAsync()
-        {
-            var userId = GetAuthenticatedUserId();
-            if (!userId.HasValue) return null;
-
-            // Lookup customer.id từ user.id
-            var result = await _customerService.GetCustomerByUserIdAsync(userId.Value);
-            if (result.Success && result.Data != null)
-            {
-                return result.Data.Id;
-            }
+            var customerIdClaim = User.FindFirst("customerId");
+            if (customerIdClaim != null && int.TryParse(customerIdClaim.Value, out int customerId))
+                return customerId;
 
             return null;
         }
@@ -57,8 +45,7 @@ namespace StoreApp.Controllers
             Response.Headers.Append("Connection", "keep-alive");
             Response.Headers.Append("X-Accel-Buffering", "no");
 
-            var authenticatedCustomerId = await GetAuthenticatedCustomerIdAsync();
-            var userId = GetAuthenticatedUserId();  // null nếu chưa đăng nhập
+            var customerId = GetAuthenticatedCustomerId();
 
             if (request == null || string.IsNullOrWhiteSpace(request.Message))
             {
@@ -80,15 +67,15 @@ namespace StoreApp.Controllers
 
             try
             {
-                _logger.LogInformation("Customer {CustomerId} (userId: {UserId}, authenticated: {IsAuth}) starting chat", 
-                    authenticatedCustomerId, userId, userId.HasValue);
+                _logger.LogInformation("Customer {CustomerId} (authenticated: {IsAuth}) starting chat", 
+                    customerId, customerId.HasValue);
 
                 var cancellationToken = HttpContext.RequestAborted;
 
                 await foreach (var streamChunk in _aiService.ChatStreamAsync(
                     request.Message,
-                    userId,  // null nếu chưa đăng nhập → không lưu DB
-                    authenticatedCustomerId,
+                    customerId,  // null nếu chưa đăng nhập → không lưu DB
+                    customerId,
                     request.ConversationId,
                     request.History).WithCancellation(cancellationToken))
                 {
@@ -129,17 +116,17 @@ namespace StoreApp.Controllers
         [HttpGet("conversations")]
         public async Task<ActionResult<List<AiConversationDTO>>> GetConversations()
         {
-            var userId = GetAuthenticatedUserId();
+            var customerId = GetAuthenticatedCustomerId();
             
             // Chỉ cho phép xem lịch sử khi đã đăng nhập
-            if (!userId.HasValue)
+            if (!customerId.HasValue)
             {
                 return Ok(new List<AiConversationDTO>());  // Trả về rỗng thay vì lỗi
             }
 
             try
             {
-                var conversations = await _aiService.GetConversationsAsync(userId.Value);
+                var conversations = await _aiService.GetConversationsAsync(customerId.Value);
                 return Ok(conversations);
             }
             catch (Exception ex)
@@ -155,17 +142,17 @@ namespace StoreApp.Controllers
             if (id <= 0)
                 return BadRequest(new { error = "ID không hợp lệ" });
 
-            var userId = GetAuthenticatedUserId();
+            var customerId = GetAuthenticatedCustomerId();
             
             // Chỉ cho phép xem khi đã đăng nhập
-            if (!userId.HasValue)
+            if (!customerId.HasValue)
             {
                 return NotFound(new { error = "Không tìm thấy" });
             }
 
             try
             {
-                var conversation = await _aiService.GetConversationAsync(id, userId.Value);
+                var conversation = await _aiService.GetConversationAsync(id, customerId.Value);
                 if (conversation == null)
                     return NotFound(new { error = "Không tìm thấy" });
 
@@ -184,17 +171,17 @@ namespace StoreApp.Controllers
             if (id <= 0)
                 return BadRequest(new { error = "ID không hợp lệ" });
 
-            var userId = GetAuthenticatedUserId();
+            var customerId = GetAuthenticatedCustomerId();
             
             // Chỉ cho phép xóa khi đã đăng nhập
-            if (!userId.HasValue)
+            if (!customerId.HasValue)
             {
                 return NotFound(new { error = "Không tìm thấy" });
             }
 
             try
             {
-                await _aiService.DeleteConversationAsync(id, userId.Value);
+                await _aiService.DeleteConversationAsync(id, customerId.Value);
                 return Ok(new { success = true });
             }
             catch (Exception ex)

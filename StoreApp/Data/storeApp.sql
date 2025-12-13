@@ -58,7 +58,7 @@ CREATE TABLE users (
   email VARCHAR(255) UNIQUE,
   password_hash VARCHAR(512) NOT NULL,
   full_name VARCHAR(255),
-  role ENUM('admin','staff','customer') NOT NULL DEFAULT 'staff',
+  role ENUM('admin','staff') NOT NULL DEFAULT 'staff',
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   locked TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -68,18 +68,17 @@ CREATE TABLE users (
 
 CREATE TABLE customers (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NULL,
+  email VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(512) NULL,
   full_name VARCHAR(255) NOT NULL,
   phone VARCHAR(50),
-  email VARCHAR(255),
   address TEXT,
   note TEXT,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY ux_customers_phone (phone),
-  UNIQUE KEY ux_customers_email (email),
-  CONSTRAINT fk_customers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
-  INDEX idx_customers_user (user_id)  
+  UNIQUE KEY ux_customers_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE promotions (
@@ -166,7 +165,7 @@ CREATE TABLE `orders` (
   id INT AUTO_INCREMENT PRIMARY KEY,
   order_number VARCHAR(100) NOT NULL UNIQUE,
   customer_id INT DEFAULT NULL,
-  user_id INT DEFAULT NULL, -- staff who created the order
+  staff_id INT DEFAULT NULL, -- nhân viên xử lý đơn (NULL = đơn online)
   status ENUM('pending','paid','cancelled','completed') NOT NULL DEFAULT 'pending',
   subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
   discount DECIMAL(12,2) NOT NULL DEFAULT 0,
@@ -176,10 +175,10 @@ CREATE TABLE `orders` (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT fk_orders_staff FOREIGN KEY (staff_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT fk_orders_promo FOREIGN KEY (promotion_id) REFERENCES promotions(id) ON DELETE SET NULL ON UPDATE CASCADE,
   INDEX idx_orders_customer (customer_id),
-  INDEX idx_orders_user (user_id),
+  INDEX idx_orders_staff (staff_id),
   INDEX idx_orders_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -253,38 +252,36 @@ INSERT INTO users (username, email, password_hash, full_name, role, is_active, l
 VALUES
   ('admin', 'admin@example.com', '$2a$11$B5Pre4vLwlsfDIMg/gXXjuH/CyqianiPXHXSXikWE5R0djN/9Tf7.', 'Quản trị viên', 'admin', 1, 0, NOW()),
   ('staff01', 'staff01@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Nguyễn Văn A', 'staff', 1, 0, NOW()),
-  ('staff02', 'staff02@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Lê Thị B', 'staff', 1, 0, NOW()),
-  -- ('advisor01', 'advisor01@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Nguyễn Thị Tư Vấn', 'advisor', 1, 0, NOW()),
-  ('customer01', 'customer01@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Trịnh Văn A', 'customer', 1, 0, NOW()),
-  ('customer02', 'customer02@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Đỗ Mai B', 'customer', 1, 0, NOW());
+  ('staff02', 'staff02@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Lê Thị B', 'staff', 1, 0, NOW());
 
 -- password của admin là admin123
 -- password của staff là 123456
 
 
--- ===== CUSTOMERS (full_name, phone, email, address) =====
-INSERT INTO customers (user_id, full_name, phone, email, address, created_at)
+-- ===== CUSTOMERS (email, password_hash, full_name, phone, address) =====
+-- password của customer là 123456
+INSERT INTO customers (email, password_hash, full_name, phone, address, is_active, created_at)
 VALUES
-(4, 'Khách hàng 1', '0909000001', 'customer01@example.com', 'Địa chỉ 1', NOW()),
-(5, 'Khách hàng 2', '0909000002', 'customer02@example.com', 'Địa chỉ 2', NOW()),
-(NULL, 'Khách hàng 3', '0909000003', 'kh3@mail.com', 'Địa chỉ 3', NOW()),
-(NULL, 'Khách hàng 4', '0909000004', 'kh4@mail.com', 'Địa chỉ 4', NOW()),
-(NULL, 'Khách hàng 5', '0909000005', 'kh5@mail.com', 'Địa chỉ 5', NOW()),
-(NULL, 'Khách hàng 6', '0909000006', 'kh6@mail.com', 'Địa chỉ 6', NOW()),
-(NULL, 'Khách hàng 7', '0909000007', 'kh7@mail.com', 'Địa chỉ 7', NOW()),
-(NULL, 'Khách hàng 8', '0909000008', 'kh8@mail.com', 'Địa chỉ 8', NOW()),
-(NULL, 'Khách hàng 9', '0909000009', 'kh9@mail.com', 'Địa chỉ 9', NOW()),
-(NULL, 'Khách hàng 10', '0909000010', 'kh10@mail.com', 'Địa chỉ 10', NOW()),
-(NULL, 'Khách hàng 11', '0909000011', 'kh11@mail.com', 'Địa chỉ 11', NOW()),
-(NULL, 'Khách hàng 12', '0909000012', 'kh12@mail.com', 'Địa chỉ 12', NOW()),
-(NULL, 'Khách hàng 13', '0909000013', 'kh13@mail.com', 'Địa chỉ 13', NOW()),
-(NULL, 'Khách hàng 14', '0909000014', 'kh14@mail.com', 'Địa chỉ 14', NOW()),
-(NULL, 'Khách hàng 15', '0909000015', 'kh15@mail.com', 'Địa chỉ 15', NOW()),
-(NULL, 'Khách hàng 16', '0909000016', 'kh16@mail.com', 'Địa chỉ 16', NOW()),
-(NULL, 'Khách hàng 17', '0909000017', 'kh17@mail.com', 'Địa chỉ 17', NOW()),
-(NULL, 'Khách hàng 18', '0909000018', 'kh18@mail.com', 'Địa chỉ 18', NOW()),
-(NULL, 'Khách hàng 19', '0909000019', 'kh19@mail.com', 'Địa chỉ 19', NOW()),
-(NULL, 'Khách hàng 20', '0909000020', 'kh20@mail.com', 'Địa chỉ 20', NOW());
+('customer01@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Khách hàng 1', '0909000001', 'Địa chỉ 1', 1, NOW()),
+('customer02@example.com', '$2a$11$NChyYqe5MniZi.l08LVuP.SkfLMRMtyK6guvRRyq/PdaGdjYoTaO2', 'Khách hàng 2', '0909000002', 'Địa chỉ 2', 1, NOW()),
+('kh3@mail.com', NULL, 'Khách hàng 3', '0909000003', 'Địa chỉ 3', 1, NOW()),
+('kh4@mail.com', NULL, 'Khách hàng 4', '0909000004', 'Địa chỉ 4', 1, NOW()),
+('kh5@mail.com', NULL, 'Khách hàng 5', '0909000005', 'Địa chỉ 5', 1, NOW()),
+('kh6@mail.com', NULL, 'Khách hàng 6', '0909000006', 'Địa chỉ 6', 1, NOW()),
+('kh7@mail.com', NULL, 'Khách hàng 7', '0909000007', 'Địa chỉ 7', 1, NOW()),
+('kh8@mail.com', NULL, 'Khách hàng 8', '0909000008', 'Địa chỉ 8', 1, NOW()),
+('kh9@mail.com', NULL, 'Khách hàng 9', '0909000009', 'Địa chỉ 9', 1, NOW()),
+('kh10@mail.com', NULL, 'Khách hàng 10', '0909000010', 'Địa chỉ 10', 1, NOW()),
+('kh11@mail.com', NULL, 'Khách hàng 11', '0909000011', 'Địa chỉ 11', 1, NOW()),
+('kh12@mail.com', NULL, 'Khách hàng 12', '0909000012', 'Địa chỉ 12', 1, NOW()),
+('kh13@mail.com', NULL, 'Khách hàng 13', '0909000013', 'Địa chỉ 13', 1, NOW()),
+('kh14@mail.com', NULL, 'Khách hàng 14', '0909000014', 'Địa chỉ 14', 1, NOW()),
+('kh15@mail.com', NULL, 'Khách hàng 15', '0909000015', 'Địa chỉ 15', 1, NOW()),
+('kh16@mail.com', NULL, 'Khách hàng 16', '0909000016', 'Địa chỉ 16', 1, NOW()),
+('kh17@mail.com', NULL, 'Khách hàng 17', '0909000017', 'Địa chỉ 17', 1, NOW()),
+('kh18@mail.com', NULL, 'Khách hàng 18', '0909000018', 'Địa chỉ 18', 1, NOW()),
+('kh19@mail.com', NULL, 'Khách hàng 19', '0909000019', 'Địa chỉ 19', 1, NOW()),
+('kh20@mail.com', NULL, 'Khách hàng 20', '0909000020', 'Địa chỉ 20', 1, NOW());
 
 -- ===== CATEGORIES (name) =====
 INSERT INTO categories (name, created_at)
@@ -447,7 +444,7 @@ VALUES
 ('VIP100K', 'fixed', 100000.00, '2025-01-01', '2025-12-31', 1000000.00, 200, 0, 1, NOW());
 
 -- ===== ORDERS với giá mới hợp lý =====
-INSERT INTO orders (order_number, customer_id, user_id, status, subtotal, discount, total_amount, promotion_id, created_at)
+INSERT INTO orders (order_number, customer_id, staff_id, status, subtotal, discount, total_amount, promotion_id, created_at)
 VALUES
 (UUID(), 5, 3, 'paid', 285000, 28500, 256500, 1, NOW()), -- Order 1: 10% discount
 (UUID(), 17, 3, 'paid', 420000, 0, 420000, NULL, NOW()), -- Order 2: No discount
@@ -598,9 +595,6 @@ ADD COLUMN description VARCHAR(1000) NULL;
 ALTER TABLE promotions
 ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0 AFTER updated_at,
 ADD COLUMN deleted_at DATETIME NULL AFTER is_deleted;
-
-ALTER TABLE customers
-ADD COLUMN is_active boolean NOT NULL DEFAULT TRUE;
 
 -- Cập nhật giá trị max_discount cho các promotion
 UPDATE promotions SET max_discount = 50000.00 WHERE code = 'SALE10';

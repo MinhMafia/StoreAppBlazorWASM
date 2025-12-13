@@ -336,8 +336,8 @@ namespace StoreApp.Repository
         public async Task<List<SalesByStaffDTO>> GetSalesByStaffAsync(DateTime? fromDate, DateTime? toDate)
         {
             var query = _context.Orders
-                .Include(o => o.User)
-                .Where(o => o.Status == "completed" && o.UserId.HasValue)
+                .Include(o => o.Staff)
+                .Where(o => o.Status == "completed" && o.StaffId.HasValue)
                 .AsQueryable();
 
             if (fromDate.HasValue)
@@ -353,12 +353,12 @@ namespace StoreApp.Repository
             }
 
             var results = await query
-                .GroupBy(o => o.UserId!.Value)
+                .GroupBy(o => o.StaffId!.Value)
                 .Select(g => new SalesByStaffDTO
                 {
                     UserId = g.Key,
-                    UserName = g.First().User!.Username,
-                    FullName = g.First().User.FullName,
+                    UserName = g.First().Staff!.Username,
+                    FullName = g.First().Staff.FullName,
                     OrderCount = g.Count(),
                     TotalRevenue = g.Sum(o => o.TotalAmount),
                     AverageOrderValue = g.Count() > 0 ? g.Average(o => o.TotalAmount) : 0

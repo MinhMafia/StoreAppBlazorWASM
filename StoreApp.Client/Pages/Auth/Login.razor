@@ -33,13 +33,13 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">
-                        <i class="bi bi-person-fill me-2"></i>Tên đăng nhập hoặc Email
+                        <i class="bi bi-envelope-fill me-2"></i>Email
                     </label>
                     <InputText @bind-Value="loginRequest.Username" 
                                class="form-control form-control-lg" 
-                               placeholder="Nhập tên đăng nhập hoặc email"
+                               placeholder="Nhập email"
                                disabled="@isLoading"
-                               autocomplete="username" />
+                               autocomplete="email" />
                     <ValidationMessage For="@(() => loginRequest.Username)" class="text-danger small" />
                 </div>
 
@@ -141,9 +141,10 @@
             isLoading = true;
             errorMessage = string.Empty;
 
-            Console.WriteLine($"🔐 Customer login attempt - Username: {loginRequest.Username}");
+            Console.WriteLine($"🔐 Customer login attempt - Email: {loginRequest.Username}");
 
-            var response = await Http.PostAsJsonAsync("api/auth/login", loginRequest);
+            // Gọi API login-customer thay vì login
+            var response = await Http.PostAsJsonAsync("api/auth/login-customer", loginRequest);
 
             if (response.IsSuccessStatusCode)
             {
@@ -152,14 +153,6 @@
                 if (authResponse != null)
                 {
                     Console.WriteLine($"✅ Login successful - Role: {authResponse.Role}");
-
-                    // Kiểm tra role - chỉ cho phép customer
-                    if (authResponse.Role == "admin" || authResponse.Role == "staff")
-                    {
-                        errorMessage = "Vui lòng sử dụng trang đăng nhập quản trị tại /admin/login";
-                        Console.WriteLine($"❌ Wrong login page for role: {authResponse.Role}");
-                        return;
-                    }
 
                     // Lưu token và thông tin user vào LocalStorage
                     await LocalStorage.SetItemAsStringAsync("authToken", authResponse.Token);
@@ -175,7 +168,7 @@
             else
             {
                 var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                errorMessage = error?.Message ?? "Tên đăng nhập hoặc mật khẩu không đúng";
+                errorMessage = error?.Message ?? "Email hoặc mật khẩu không đúng";
                 Console.WriteLine($"❌ Login failed: {errorMessage}");
             }
         }
