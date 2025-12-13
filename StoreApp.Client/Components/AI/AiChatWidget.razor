@@ -26,31 +26,28 @@
         {
             <div class="flex flex-col h-full bg-white rounded-lg shadow">
                 @* Header *@
-                <div class="flex items-center gap-3 px-6 py-4 border-b bg-blue-600 rounded-t-lg">
-                    <div class="p-2 bg-blue-500 rounded-lg">
-                        @* Sparkles Icon *@
-                        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <div class="flex items-center px-4 py-3 bg-indigo-600 rounded-t-lg">
+                    <div class="w-9 h-9 flex items-center justify-center bg-indigo-500 rounded-lg shrink-0">
+                        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
                         </svg>
                     </div>
-                    <div class="flex-1">
-                        <h2 class="text-lg font-semibold text-white">Trợ lý AI</h2>
-                        <p class="text-sm text-blue-100">Hỗ trợ quản lý cửa hàng</p>
+                    <div class="flex-1 ml-3 h-9 flex flex-col justify-center">
+                        <h2 class="text-sm font-semibold text-white leading-none m-0">Trợ lý AI</h2>
+                        <p class="text-xs text-indigo-200 leading-none mt-0.5 mb-0">Hỗ trợ quản lý cửa hàng</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button @onclick="StartNewConversation"
-                                class="p-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white transition"
+                        <button type="button" @onclick="StartNewConversation"
+                                class="w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-500 text-white hover:bg-indigo-400"
                                 title="Cuộc hội thoại mới">
-                            @* Plus Icon *@
                             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
                         </button>
-                        <button @onclick="@(async () => { await LoadConversations(); showHistory = true; })"
-                                class="p-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white transition"
+                        <button type="button" @onclick="@(async () => { await LoadConversations(); showHistory = true; })"
+                                class="w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-500 text-white hover:bg-indigo-400"
                                 title="Lịch sử hội thoại">
-                            @* History Icon *@
                             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
@@ -89,7 +86,7 @@
                                @bind="input"
                                @bind:event="oninput"
                                placeholder="Nhập câu hỏi của bạn..."
-                               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                disabled="@loading"
                                maxlength="@MAX_MESSAGE_LENGTH" />
                         @if (loading)
@@ -109,7 +106,7 @@
                         {
                             <button type="submit"
                                     disabled="@(string.IsNullOrWhiteSpace(input))"
-                                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2">
+                                    class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2">
                                 @* Send Icon *@
                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="22" y1="2" x2="11" y2="13"></line>

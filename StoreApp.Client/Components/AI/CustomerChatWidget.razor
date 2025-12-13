@@ -7,8 +7,6 @@
  @inject ICustomerAuthService AuthService
  @implements IDisposable
  
- @* Customer Chat Widget - Giao diện thân thiện cho khách hàng *@
- 
  @if (isOpen)
  {
      @* Chat Window *@
@@ -28,34 +26,33 @@
          {
              <div class="flex flex-col h-full bg-white rounded-lg shadow">
                  @* Header - Màu xanh lá thân thiện *@
-                 <div class="flex items-center gap-3 px-5 py-3 border-b bg-gradient-to-r from-green-500 to-teal-500 rounded-t-lg">
-                     <div class="p-2 bg-white/20 rounded-lg">
-                         @* Shopping Bag Icon *@
+                 <div class="flex items-center px-4 py-3 bg-gradient-to-r from-green-500 to-teal-500 rounded-t-lg">
+                     <div class="w-9 h-9 flex items-center justify-center bg-white/20 rounded-lg shrink-0">
                          <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
                              <path d="M3 6h18"></path>
                              <path d="M16 10a4 4 0 0 1-8 0"></path>
                          </svg>
                      </div>
-                     <div class="flex-1">
-                     <h2 class="text-base font-semibold text-white">Hỗ trợ mua hàng</h2>
-                         <p class="text-xs text-green-100">Tôi có thể giúp gì cho bạn?</p>
+                     <div class="flex-1 ml-3 h-9 flex flex-col justify-center">
+                         <h2 class="text-sm font-semibold text-white leading-none m-0">Hỗ trợ mua hàng</h2>
+                         <p class="text-xs text-green-100 leading-none mt-0.5 mb-0">Tôi có thể giúp gì cho bạn?</p>
                      </div>
-                     <div class="flex items-center gap-1">
+                     <div class="flex items-center gap-2">
                          @if (isAuthenticated)
                          {
-                             <button @onclick="StartNewConversation"
-                                     class="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                             <button type="button" @onclick="StartNewConversation"
+                                     class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white"
                                      title="Cuộc hội thoại mới">
-                                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                      <line x1="12" y1="5" x2="12" y2="19"></line>
                                      <line x1="5" y1="12" x2="19" y2="12"></line>
                                  </svg>
                              </button>
-                             <button @onclick="@(async () => { await LoadConversations(); showHistory = true; })"
-                                     class="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition"
+                             <button type="button" @onclick="@(async () => { await LoadConversations(); showHistory = true; })"
+                                     class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 text-white"
                                      title="Lịch sử">
-                                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                      <circle cx="12" cy="12" r="10"></circle>
                                      <polyline points="12 6 12 12 16 14"></polyline>
                                  </svg>

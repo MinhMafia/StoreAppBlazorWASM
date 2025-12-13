@@ -97,3 +97,13 @@ body.tawk-open #tawkchat-widget-container {
 body.tawk-open div[class*="bottom-24"][class*="right-6"] {
   right: 24px !important;
 }
+
+/* Conversation history - show delete button on hover */
+.conversation-item .delete-btn {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.conversation-item:hover .delete-btn {
+  opacity: 1;
+}
