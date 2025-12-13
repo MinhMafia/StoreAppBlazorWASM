@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -9,6 +9,9 @@ using Microsoft.AspNetCore.Components;
 
 namespace StoreApp.Client.Middlewares
 {
+    /// <summary>
+    /// Attaches JWT to outgoing requests and auto-logs out on 401 (except auth/cart endpoints).
+    /// </summary>
     public class JwtAuthorizationMessageHandler : DelegatingHandler
     {
         private readonly ILocalStorageService _localStorage;
@@ -20,27 +23,25 @@ namespace StoreApp.Client.Middlewares
             _nav = nav;
         }
 
-        protected override async Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            // 1. Attach token nếu có
             var token = await _localStorage.GetItemAsStringAsync("authToken");
             var hasToken = !string.IsNullOrWhiteSpace(token);
 
             if (hasToken)
             {
-                var cleanToken = token.Trim('"');
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", cleanToken);
+                // LocalStorage string may include quotes, trim them.
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim('"'));
             }
 
             var response = await base.SendAsync(request, cancellationToken);
 
-            // 2. Auto logout khi có token và nhận 401 (hết hạn/sai). Bỏ qua các auth endpoint.
             var path = request.RequestUri?.AbsolutePath ?? string.Empty;
             var isAuthEndpoint = path.Contains("/api/auth", StringComparison.OrdinalIgnoreCase);
+            // Do not force logout when cart endpoint returns 401 (e.g., role mismatch)
+            var ignoreAutoLogout = path.StartsWith("/api/cart", StringComparison.OrdinalIgnoreCase);
 
-            if (hasToken && !isAuthEndpoint && response.StatusCode == HttpStatusCode.Unauthorized)
+            if (hasToken && !isAuthEndpoint && !ignoreAutoLogout && response.StatusCode == HttpStatusCode.Unauthorized)
             {
                 await _localStorage.RemoveItemAsync("authToken");
                 await _localStorage.RemoveItemAsync("userName");

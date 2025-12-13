@@ -215,9 +215,22 @@ namespace StoreApp.Data
                 .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<UserCart>()
+                .ToTable("user_carts")
                 .HasIndex(c => c.UserId)
                 .IsUnique()
                 .HasDatabaseName("ux_usercart_user");
+
+            modelBuilder.Entity<UserCart>()
+                .Property(c => c.UserId)
+                .HasColumnName("user_id");
+
+            modelBuilder.Entity<UserCart>()
+                .Property(c => c.CartJson)
+                .HasColumnName("cart_json");
+
+            modelBuilder.Entity<UserCart>()
+                .Property(c => c.UpdatedAt)
+                .HasColumnName("updated_at");
         }
     }
 }

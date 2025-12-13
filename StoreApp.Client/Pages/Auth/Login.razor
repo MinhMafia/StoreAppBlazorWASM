@@ -1,4 +1,4 @@
-@page "/login"
+﻿@page "/login"
 @using System.Net.Http.Json
 @using StoreApp.Shared
 @layout StoreApp.Client.Layout.EmptyLayout
@@ -35,11 +35,8 @@
                     <label class="form-label fw-semibold">
                         <i class="bi bi-person-fill me-2"></i>Tên đăng nhập hoặc Email
                     </label>
-                    <InputText @bind-Value="loginRequest.Username" 
-                               class="form-control form-control-lg" 
-                               placeholder="Nhập tên đăng nhập hoặc email"
-                               disabled="@isLoading"
-                               autocomplete="username" />
+                    <InputText @bind-Value="loginRequest.Username" class="form-control form-control-lg"
+                        placeholder="Nhập tên đăng nhập hoặc email" disabled="@isLoading" autocomplete="username" />
                     <ValidationMessage For="@(() => loginRequest.Username)" class="text-danger small" />
                 </div>
 
@@ -48,26 +45,18 @@
                         <i class="bi bi-lock-fill me-2"></i>Mật khẩu
                     </label>
                     <div class="input-group">
-                        <InputText type="@(showPassword ? "text" : "password")" 
-                                   @bind-Value="loginRequest.Password" 
-                                   class="form-control form-control-lg" 
-                                   placeholder="Nhập mật khẩu"
-                                   disabled="@isLoading"
-                                   autocomplete="current-password" />
-                        <button class="btn btn-outline-secondary" 
-                                type="button" 
-                                @onclick="@(() => showPassword = !showPassword)"
-                                disabled="@isLoading"
-                                tabindex="-1">
+                        <InputText type="@(showPassword ? "text" : "password")" @bind-Value="loginRequest.Password"
+                            class="form-control form-control-lg" placeholder="Nhập mật khẩu" disabled="@isLoading"
+                            autocomplete="current-password" />
+                        <button class="btn btn-outline-secondary" type="button"
+                            @onclick="@(() => showPassword = !showPassword)" disabled="@isLoading" tabindex="-1">
                             <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")"></i>
                         </button>
                     </div>
                     <ValidationMessage For="@(() => loginRequest.Password)" class="text-danger small" />
                 </div>
 
-                <button type="submit" 
-                        class="btn btn-primary btn-lg w-100 mb-3" 
-                        disabled="@isLoading">
+                <button type="submit" class="btn btn-primary btn-lg w-100 mb-3" disabled="@isLoading">
                     @if (isLoading)
                     {
                         <span class="spinner-border spinner-border-sm me-2" role="status"></span>
@@ -83,7 +72,7 @@
 
             <div class="text-center">
                 <small class="text-muted">
-                    Chưa có tài khoản? 
+                    Chưa có tài khoản?
                     <a href="/register" class="text-primary text-decoration-none fw-semibold">Đăng ký ngay</a>
                 </small>
             </div>
@@ -148,7 +137,7 @@
             if (response.IsSuccessStatusCode)
             {
                 var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
-                
+
                 if (authResponse != null)
                 {
                     Console.WriteLine($"✅ Login successful - Role: {authResponse.Role}");
@@ -168,8 +157,16 @@
 
                     Console.WriteLine($"✅ Customer authenticated successfully");
 
-                    // Redirect về store
-                    Nav.NavigateTo("/store", forceLoad: true);
+                    // Redirect theo luong tu thanh toan neu co
+                    var redirectAfterCart = await LocalStorage.GetItemAsync<bool>("redirectAfterLoginCart");
+                    if (redirectAfterCart)
+                    {
+                        Nav.NavigateTo("/store/cart", forceLoad: true);
+                    }
+                    else
+                    {
+                        Nav.NavigateTo("/store", forceLoad: true);
+                    }
                 }
             }
             else

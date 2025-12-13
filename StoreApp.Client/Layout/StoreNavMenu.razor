@@ -1,4 +1,4 @@
-﻿@using Blazored.LocalStorage
+@using Blazored.LocalStorage
 @using StoreApp.Client.Services
 @inject ILocalStorageService LocalStorage
 @inject IStoreCartService CartService
@@ -28,7 +28,6 @@
 <header class="store-header">
     <div class="container">
         <div class="header-content">
-            <!-- Logo -->
             <div class="logo-section">
                 <a href="/store" class="logo">
                     <div class="logo-icon">
@@ -71,12 +70,12 @@
                 <NavLink href="/store/cart" class="cart-link">
                     <div class="cart-icon-wrapper">
                         <i class="bi bi-cart3"></i>
-                        @if (cartItemCount > 0 && IsLoggedIn)
+                        @if (cartItemCount > 0 && IsCustomer)
                         {
                             <span class="cart-badge">@cartItemCount</span>
                         }
                     </div>
-                    <span class="cart-amount">@(IsLoggedIn ? $"{cartTotalAmount:N0}₫" : "Giỏ hàng")</span>
+                    <span class="cart-amount">@(IsCustomer ? $"{cartTotalAmount:N0}₫" : "Giỏ hàng")</span>
                 </NavLink>
             </div>
         </div>
@@ -91,7 +90,7 @@
                 <i class="bi bi-list"></i>
                 DANH MỤC SẢN PHẨM
             </button>
-            
+
             <div class="navbar-menu">
                 <NavLink href="/store" Match="NavLinkMatch.All" class="nav-link">
                     TRANG CHỦ
@@ -102,7 +101,7 @@
                 <NavLink href="/store/cart" class="nav-link">
                     GIỎ HÀNG
                 </NavLink>
-                @if (IsLoggedIn)
+                @if (IsCustomer)
                 {
                     <NavLink href="/store/orders" class="nav-link">
                         ĐƠN HÀNG CỦA TÔI
@@ -134,6 +133,7 @@
     private int cartItemCount = 0;
     private decimal cartTotalAmount = 0;
     private bool IsLoggedIn;
+    private bool IsCustomer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -142,10 +142,10 @@
         await LoadCartInfo();
     }
 
-    private async void OnCartChanged()
+    private async Task OnCartChanged()
     {
         await LoadCartInfo();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task CheckLoginAsync()
@@ -153,9 +153,12 @@
         try
         {
             var token = await LocalStorage.GetItemAsStringAsync("authToken");
-            IsLoggedIn = !string.IsNullOrWhiteSpace(token);
+            var role = await LocalStorage.GetItemAsStringAsync("userRole");
 
-            if (IsLoggedIn)
+            IsLoggedIn = !string.IsNullOrWhiteSpace(token);
+            IsCustomer = string.Equals(role?.Trim('"'), "customer", StringComparison.OrdinalIgnoreCase);
+
+            if (IsCustomer)
             {
                 await CartService.PullFromServerAsync();
             }
@@ -163,6 +166,7 @@
         catch
         {
             IsLoggedIn = false;
+            IsCustomer = false;
         }
     }
 
@@ -170,7 +174,7 @@
     {
         try
         {
-            if (!IsLoggedIn)
+            if (!IsCustomer)
             {
                 cartItemCount = 0;
                 cartTotalAmount = 0;
@@ -190,12 +194,17 @@
 
     private async Task HandleLogout()
     {
-        await CartService.SyncToServerAsync();
-        await CartService.ClearCart();
+        if (IsCustomer)
+        {
+            await CartService.SyncToServerAsync();
+            // Chỉ xóa local để tránh ghi đè cart trên server thành rỗng
+            await CartService.ClearLocalCart();
+        }
+
         await LocalStorage.RemoveItemAsync("authToken");
         await LocalStorage.RemoveItemAsync("userName");
         await LocalStorage.RemoveItemAsync("userRole");
-        Nav.NavigateTo("/login", forceLoad: true);
+        Nav.NavigateTo("/store", forceLoad: true);
     }
 
     public void Dispose()

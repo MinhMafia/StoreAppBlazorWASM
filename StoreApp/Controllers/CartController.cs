@@ -73,7 +73,8 @@ namespace StoreApp.Controllers
 
         private int? ResolveUserId()
         {
-            var idClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            // Token uses "uid" claim; fallback to NameIdentifier for compatibility.
+            var idClaim = User?.FindFirst("uid")?.Value ?? User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (int.TryParse(idClaim, out var claimId))
                 return claimId;
 

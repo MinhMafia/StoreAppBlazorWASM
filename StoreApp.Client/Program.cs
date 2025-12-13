@@ -43,8 +43,6 @@ AddHttpClientWithAuth<IPromotionService, PromotionService>();
 AddHttpClientWithAuth<ICustomerAuthService, CustomerAuthService>();
 AddHttpClientWithAuth<IOrdersClientService, OrdersClientService>(); 
 AddHttpClientWithAuth<IMeClientService, MeClientService>();
-// Store Cart Service
-AddHttpClientWithAuth<IStoreCartService, StoreCartService>();
 
 // Giữ nguyên vì không cần gắn header
 // AI Chat Service
@@ -55,6 +53,20 @@ builder.Services.AddScoped<ICustomerAiChatService, CustomerAiChatService>();
 
 // Auth Service
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+// HttpClient dùng chung cho cart (có JWT handler)
+builder.Services.AddHttpClient("ApiWithAuth", client =>
+{
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
+}).AddHttpMessageHandler<JwtAuthorizationMessageHandler>();
+
+// Đảm bảo IStoreCartService dùng một instance scoped (để event OnCartChanged hoạt động)
+builder.Services.AddScoped<IStoreCartService>(sp =>
+{
+    var client = sp.GetRequiredService<IHttpClientFactory>().CreateClient("ApiWithAuth");
+    var localStorage = sp.GetRequiredService<Blazored.LocalStorage.ILocalStorageService>();
+    return new StoreCartService(localStorage, client);
+});
 
 
 // LocalStorage => Code cũ

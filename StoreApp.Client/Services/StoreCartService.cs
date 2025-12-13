@@ -12,12 +12,13 @@ public interface IStoreCartService
     Task UpdateQuantity(int productId, int quantity);
     Task<List<CartItemDTO>> GetCartItems();
     Task ClearCart();
+    Task ClearLocalCart(); // clear local without pushing empty cart to server (useful on logout)
     Task<int> GetCartItemCount();
     Task SyncToServerAsync();
     Task PullFromServerAsync();
     Task RemovePurchasedItemsFromCart(IEnumerable<int> purchasedProductIds);
 
-    event Action? OnCartChanged;
+    event Func<Task>? OnCartChanged;
 }
 
 public class StoreCartService : IStoreCartService
@@ -26,7 +27,7 @@ public class StoreCartService : IStoreCartService
     private readonly ILocalStorageService _localStorage;
     private readonly HttpClient _httpClient;
 
-    public event Action? OnCartChanged;
+    public event Func<Task>? OnCartChanged;
 
     public StoreCartService(ILocalStorageService localStorage, HttpClient httpClient)
     {
@@ -34,12 +35,24 @@ public class StoreCartService : IStoreCartService
         _httpClient = httpClient;
     }
 
-    private async Task<bool> HasTokenAsync()
+    private async Task RaiseCartChangedAsync()
+    {
+        if (OnCartChanged == null) return;
+        foreach (var handler in OnCartChanged.GetInvocationList().Cast<Func<Task>>())
+        {
+            try { await handler(); } catch { }
+        }
+    }
+
+    private async Task<bool> HasCustomerTokenAsync()
     {
         try
         {
             var token = await _localStorage.GetItemAsStringAsync("authToken");
-            return !string.IsNullOrWhiteSpace(token);
+            if (string.IsNullOrWhiteSpace(token)) return false;
+
+            var role = await _localStorage.GetItemAsStringAsync("userRole");
+            return string.Equals(role?.Trim('"'), "customer", StringComparison.OrdinalIgnoreCase);
         }
         catch
         {
@@ -75,6 +88,23 @@ public class StoreCartService : IStoreCartService
         }
     }
 
+    private async Task SaveCartAndBroadcast(List<CartItemDTO> cartItems, bool syncToServer)
+    {
+        await SaveCartToStorage(cartItems);
+        await RaiseCartChangedAsync();
+
+        if (syncToServer && await HasCustomerTokenAsync())
+        {
+            try
+            {
+                await _httpClient.PostAsJsonAsync("api/cart/sync", cartItems);
+            }
+            catch
+            {
+            }
+        }
+    }
+
     public async Task AddToCart(int productId, string productName, string imageUrl, decimal price, int quantity = 1, int? availableQuantity = null)
     {
         var cartItems = await LoadCartFromStorage();
@@ -102,16 +132,14 @@ public class StoreCartService : IStoreCartService
             });
         }
 
-        await SaveCartToStorage(cartItems);
-        OnCartChanged?.Invoke();
+        await SaveCartAndBroadcast(cartItems, syncToServer: true);
     }
 
     public async Task RemoveFromCart(int productId)
     {
         var cartItems = await LoadCartFromStorage();
         cartItems.RemoveAll(x => x.ProductId == productId);
-        await SaveCartToStorage(cartItems);
-        OnCartChanged?.Invoke();
+        await SaveCartAndBroadcast(cartItems, syncToServer: true);
     }
 
     public async Task UpdateQuantity(int productId, int quantity)
@@ -131,8 +159,7 @@ public class StoreCartService : IStoreCartService
                 quantity = item.AvailableQuantity.Value;
             }
             item.Quantity = quantity;
-            await SaveCartToStorage(cartItems);
-            OnCartChanged?.Invoke();
+            await SaveCartAndBroadcast(cartItems, syncToServer: true);
         }
     }
 
@@ -143,8 +170,13 @@ public class StoreCartService : IStoreCartService
 
     public async Task ClearCart()
     {
-        await _localStorage.RemoveItemAsync(CART_STORAGE_KEY);
-        OnCartChanged?.Invoke();
+        await SaveCartAndBroadcast(new List<CartItemDTO>(), syncToServer: true);
+    }
+
+    public async Task ClearLocalCart()
+    {
+        await SaveCartToStorage(new List<CartItemDTO>());
+        await RaiseCartChangedAsync();
     }
 
     public async Task<int> GetCartItemCount()
@@ -160,13 +192,12 @@ public class StoreCartService : IStoreCartService
 
         var cartItems = await LoadCartFromStorage();
         cartItems.RemoveAll(item => purchasedProductIds.Contains(item.ProductId));
-        await SaveCartToStorage(cartItems);
-        OnCartChanged?.Invoke();
+        await SaveCartAndBroadcast(cartItems, syncToServer: true);
     }
 
     public async Task SyncToServerAsync()
     {
-        if (!await HasTokenAsync()) return;
+        if (!await HasCustomerTokenAsync()) return;
         try
         {
             var items = await LoadCartFromStorage();
@@ -179,12 +210,26 @@ public class StoreCartService : IStoreCartService
 
     public async Task PullFromServerAsync()
     {
-        if (!await HasTokenAsync()) return;
+        if (!await HasCustomerTokenAsync()) return;
         try
         {
-            var items = await _httpClient.GetFromJsonAsync<List<CartItemDTO>>("api/cart") ?? new List<CartItemDTO>();
-            await SaveCartToStorage(items);
-            OnCartChanged?.Invoke();
+            var localItems = await LoadCartFromStorage();
+            var overrideFromLocal = await _localStorage.GetItemAsync<bool>("redirectAfterLoginCart");
+
+            // Chỉ ghi đè server khi đây là luồng bấm Mua hàng -> login
+            if (overrideFromLocal && localItems.Any())
+            {
+                await _httpClient.PostAsJsonAsync("api/cart/sync", localItems);
+                await SaveCartToStorage(localItems);
+                await _localStorage.RemoveItemAsync("redirectAfterLoginCart");
+            }
+            else
+            {
+                var serverItems = await _httpClient.GetFromJsonAsync<List<CartItemDTO>>("api/cart") ?? new List<CartItemDTO>();
+                await SaveCartToStorage(serverItems);
+            }
+
+            await RaiseCartChangedAsync();
         }
         catch
         {
