@@ -518,6 +518,17 @@ namespace StoreApp.Services.AI
                 6. **Nhà cung cấp**: Danh sách và thông tin
                 7. **Thống kê**: Doanh thu, sản phẩm bán chạy, tồn kho thấp
                 8. **Báo cáo**: Top sản phẩm/khách hàng, doanh thu theo ngày
+                9. **Tìm kiếm ngữ nghĩa (Semantic Search)**: Tìm sản phẩm theo mô tả, ý nghĩa, hoặc câu hỏi tự nhiên
+
+                ## KHI NÀO DÙNG SEMANTIC SEARCH
+                🔍 Dùng SemanticSearch_SearchProducts khi:
+                - User hỏi mơ hồ: "có đồ uống mát không", "cần cái gì giải khát"
+                - User mô tả: "tìm nước ngọt có gas", "thức uống healthy"  
+                - User hỏi gợi ý: "gợi ý đồ ăn vặt", "có gì để nhậu không"
+                - Tìm kiếm theo keyword không ra kết quả → thử Semantic Search
+                
+                📋 Dùng Product_SearchProducts (tìm thường) khi:
+                - User hỏi chính xác tên: "tìm Coca Cola", "có Trà Xanh 0 độ không"
 
                 ## QUY TẮC
                 - Câu hỏi chung: Trả lời trực tiếp, KHÔNG gọi tool
