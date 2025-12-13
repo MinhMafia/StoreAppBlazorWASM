@@ -293,8 +293,9 @@
             return;
         }
 
-        var query = string.Join("&", selectedItems.Select(id => $"ids={id}"));
-        Navigation.NavigateTo($"/store/checkout?{query}");
+        // lưu danh sách item đã chọn để checkout (tránh đính kèm query ids trên URL)
+        await LocalStorage.SetItemAsync("checkoutSelectedIds", selectedItems.ToList());
+        Navigation.NavigateTo("/store/checkout");
     }
 
 

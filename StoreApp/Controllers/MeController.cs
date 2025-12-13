@@ -13,10 +13,12 @@ namespace StoreApp.Controllers
     public class MeController : ControllerBase
     {
         private readonly UserService _userService;
+        private readonly CustomerService _customerService;
 
-        public MeController(UserService userService)
+        public MeController(UserService userService, CustomerService customerService)
         {
             _userService = userService;
+            _customerService = customerService;
         }
 
         [HttpGet]
@@ -26,11 +28,24 @@ namespace StoreApp.Controllers
             if (userId == null)
                 return Unauthorized("Missing X-User-Id header.");
 
-            var user = await _userService.GetUserByIdAsync(userId.Value);
-            if (user == null)
-                return NotFound("User not found.");
+            var role = User?.FindFirst(ClaimTypes.Role)?.Value;
 
-            return Ok(MapToMeDto(user));
+            if (string.Equals(role, "customer", StringComparison.OrdinalIgnoreCase))
+            {
+                var customerResult = await _customerService.GetCustomerByIdAsync(userId.Value);
+                if (customerResult == null || customerResult.Data == null)
+                    return NotFound("Customer not found.");
+
+                return Ok(MapToMeDto(customerResult.Data));
+            }
+            else
+            {
+                var user = await _userService.GetUserByIdAsync(userId.Value);
+                if (user == null)
+                    return NotFound("User not found.");
+
+                return Ok(MapToMeDto(user));
+            }
         }
 
         [HttpPut]
@@ -40,25 +55,52 @@ namespace StoreApp.Controllers
             if (userId == null)
                 return Unauthorized("Missing X-User-Id header.");
 
-            ModelState.Remove(nameof(MeDTO.Username));
-            ModelState.Remove(nameof(MeDTO.Email));
-            ModelState.Remove(nameof(MeDTO.FullName));
+            var role = User?.FindFirst(ClaimTypes.Role)?.Value;
 
-            ValidateProfilePayload(request);
-            if (!ModelState.IsValid)
-                return ValidationProblem(ModelState);
+            if (string.Equals(role, "customer", StringComparison.OrdinalIgnoreCase))
+            {
+                ValidateCustomerProfilePayload(request);
+                if (!ModelState.IsValid)
+                    return ValidationProblem(ModelState);
 
-            if (await _userService.UserExistsUsernameAsync(request.Username, userId.Value))
-                return Conflict("Username already exists.");
+                var updateDto = new CustomerUpdateDTO
+                {
+                    FullName = request.FullName,
+                    Phone = request.Phone,
+                    Email = request.Email,
+                    Address = request.Address
+                };
 
-            if (await _userService.UserExistsEmailAsync(request.Email, userId.Value))
-                return Conflict("Email already exists.");
+                var result = await _customerService.UpdateCustomerAsync(userId.Value, updateDto);
+                if (result == null || result.Data == null)
+                    return NotFound("Customer not found.");
 
-            var updated = await _userService.UpdateProfileAsync(userId.Value, request);
-            if (updated == null)
-                return NotFound("User not found.");
+                if (!result.Success && result.StatusCode >= 400)
+                {
+                    var msg = result.Errors.FirstOrDefault() ?? "Update failed.";
+                    return StatusCode(result.StatusCode, msg);
+                }
 
-            return Ok(MapToMeDto(updated));
+                return Ok(MapToMeDto(result.Data));
+            }
+            else
+            {
+                ValidateProfilePayload(request);
+                if (!ModelState.IsValid)
+                    return ValidationProblem(ModelState);
+
+                if (await _userService.UserExistsUsernameAsync(request.Username, userId.Value))
+                    return Conflict("Username already exists.");
+
+                if (await _userService.UserExistsEmailAsync(request.Email, userId.Value))
+                    return Conflict("Email already exists.");
+
+                var updated = await _userService.UpdateProfileAsync(userId.Value, request);
+                if (updated == null)
+                    return NotFound("User not found.");
+
+                return Ok(MapToMeDto(updated));
+            }
         }
 
         [HttpPut("change-password")]
@@ -129,6 +171,18 @@ namespace StoreApp.Controllers
             };
         }
 
+        private static MeDTO MapToMeDto(CustomerResponseDTO customer)
+        {
+            return new MeDTO
+            {
+                Username = customer.Email ?? string.Empty,
+                Email = customer.Email ?? string.Empty,
+                FullName = customer.FullName,
+                Phone = customer.Phone,
+                Address = customer.Address
+            };
+        }
+
         private void ValidateProfilePayload(MeDTO request)
         {
             if (string.IsNullOrWhiteSpace(request.Username))
@@ -155,6 +209,41 @@ namespace StoreApp.Controllers
             else if (request.Email.Length > 255)
             {
                 ModelState.AddModelError(nameof(MeDTO.Email), "Email must be at most 255 characters.");
+            }
+        }
+
+        private void ValidateCustomerProfilePayload(MeDTO request)
+        {
+            if (string.IsNullOrWhiteSpace(request.FullName))
+            {
+                ModelState.AddModelError(nameof(MeDTO.FullName), "Full name is required.");
+            }
+            else if (request.FullName.Length < 3)
+            {
+                ModelState.AddModelError(nameof(MeDTO.FullName), "Full name must be at least 3 characters.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Email))
+            {
+                ModelState.AddModelError(nameof(MeDTO.Email), "Email is required.");
+            }
+            else if (!new EmailAddressAttribute().IsValid(request.Email))
+            {
+                ModelState.AddModelError(nameof(MeDTO.Email), "Email is invalid.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                var phoneRegex = new System.Text.RegularExpressions.Regex("^(0|\\+84)[35789]\\d{8}$");
+                if (!phoneRegex.IsMatch(request.Phone))
+                {
+                    ModelState.AddModelError(nameof(MeDTO.Phone), "Phone number is invalid.");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Address) && request.Address.Length > 250)
+            {
+                ModelState.AddModelError(nameof(MeDTO.Address), "Address must be at most 250 characters.");
             }
         }
     }

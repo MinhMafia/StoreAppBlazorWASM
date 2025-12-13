@@ -124,15 +124,20 @@ namespace StoreApp.Client.Services
                 var json = Encoding.UTF8.GetString(Convert.FromBase64String(payload));
                 using var doc = JsonDocument.Parse(json);
 
+                // Staff/Admin token uses "uid"
                 if (doc.RootElement.TryGetProperty("uid", out var uidProp))
-                {
                     return uidProp.GetString();
-                }
 
+                // Some tokens might expose user id as "userId" or "nameid"
                 if (doc.RootElement.TryGetProperty("userId", out var userIdProp))
-                {
                     return userIdProp.GetString();
-                }
+
+                if (doc.RootElement.TryGetProperty("nameid", out var nameIdProp))
+                    return nameIdProp.GetString();
+
+                // Customer token uses "customerId"
+                if (doc.RootElement.TryGetProperty("customerId", out var customerIdProp))
+                    return customerIdProp.GetString();
             }
             catch
             {

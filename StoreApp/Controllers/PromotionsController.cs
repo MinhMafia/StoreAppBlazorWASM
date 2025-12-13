@@ -261,6 +261,7 @@ namespace StoreApp.Controllers
         }
 
         // GET api/promotions/active
+        [AllowAnonymous] // public cho store
         [HttpGet("active")]
         public async Task<ActionResult<List<PromotionDTO>>> GetActivePromotions()
         {
@@ -332,6 +333,7 @@ namespace StoreApp.Controllers
         /// <summary>
         /// Áp dụng khuyến mãi cho đơn hàng dựa trên promotionId, orderId, và customerId (dùng cho POS hoặc test)
         /// </summary>
+        [AllowAnonymous]
         [HttpPost("apply")]
         public async Task<IActionResult> ApplyPromotion([FromBody] ApplyPromotionRequest request)
         {

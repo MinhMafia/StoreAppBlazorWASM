@@ -8,7 +8,7 @@ namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "admin,staff")]
+    [Authorize(Roles = "admin,staff,customer")]
     public class PaymentController : ControllerBase
     {
         private readonly PaymentService _paymentService;
@@ -90,7 +90,6 @@ namespace StoreApp.Controllers
         }
     }
 }
-
 
 
 

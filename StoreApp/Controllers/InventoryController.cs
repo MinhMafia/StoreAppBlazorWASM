@@ -7,7 +7,7 @@ namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "admin,staff")]
+    [Authorize(Roles = "admin,staff,customer")]
     public class InventoryController : ControllerBase
     {
         private readonly InventoryService _inventoryService;

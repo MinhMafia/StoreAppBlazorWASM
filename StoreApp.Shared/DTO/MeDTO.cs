@@ -11,6 +11,12 @@ namespace StoreApp.Shared
 
         public string? FullName { get; set; }
 
+        [MaxLength(50)]
+        public string? Phone { get; set; }
+
+        [MaxLength(250)]
+        public string? Address { get; set; }
+
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? CurrentPassword { get; set; }
 

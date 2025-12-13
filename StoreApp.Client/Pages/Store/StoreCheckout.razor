@@ -1,8 +1,9 @@
-@page "/store/checkout"
+﻿@page "/store/checkout"
 @inject NavigationManager Navigation
 @inject IStoreCartService CartService
 @inject IOrdersClientService _ordersClient
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject IMeClientService MeClient
 @inject IJSRuntime JS
 @layout StoreLayout
 @using Microsoft.AspNetCore.WebUtilities
@@ -367,32 +368,45 @@
         }
 
         promotions = await _ordersClient.GetListActivePromotion();
-        currentOrder = await _ordersClient.CreateTemporaryOnlineOrderAsync();
-        // Đọc URL để lấy danh sách ID được chọn từ giỏ hàng
-        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
-        var query = QueryHelpers.ParseQuery(uri.Query);
 
-
-        HashSet<int> selectedProductIds = new();
-
-        if (query.TryGetValue("ids", out var values))
+        // Khởi tạo order mới (sẽ lấy Id/OrderNumber sau khi tạo thật sự)
+        currentOrder = new OrderDTO
         {
-            foreach (var value in values)
-            {
-                if (int.TryParse(value, out int id))
-                {
-                    selectedProductIds.Add(id);
-                }
-            }
+            Status = "pending",
+            PaymentMethod = "cash",
+            PaymentStatus = "pending",
+            Subtotal = 0,
+            Discount = 0,
+            TotalAmount = 0
+        };
+
+        // Load cart from local storage
+        checkoutItems = await CartService.GetCartItems();
+
+        // Apply selected items saved in localStorage (no ids in URL)
+        var selectedIds = await LocalStorage.GetItemAsync<List<int>>("checkoutSelectedIds");
+        if (selectedIds != null && selectedIds.Count > 0)
+        {
+            checkoutItems = checkoutItems.Where(x => selectedIds.Contains(x.ProductId)).ToList();
+            await LocalStorage.RemoveItemAsync("checkoutSelectedIds");
         }
 
-        //Lấy toàn bộ giỏ hàng từ localStorage (qua CartService)
-        var allItemsInCart = await CartService.GetCartItems();
-
-        // Chỉ lấy những sản phẩm có ID nằm trong selectedProductIds
-        checkoutItems = allItemsInCart
-        .Where(item => selectedProductIds.Contains(item.ProductId))
-        .ToList();
+        // Auto-fill customer info if available (skip if token invalid)
+        var profile = await MeClient.GetProfileAsync();
+        if (profile != null)
+        {
+            currentOrder.CustomerName = profile.FullName ?? currentOrder.CustomerName;
+            currentOrder.Email = profile.Email ?? currentOrder.Email;
+            currentOrder.SoDienThoai = profile.Phone ?? currentOrder.SoDienThoai;
+            currentOrder.DiaChiKhachHang = profile.Address ?? currentOrder.DiaChiKhachHang;
+        }
+        else
+        {
+            // If profile cannot be loaded (likely 401), redirect to login with return url
+            var returnUrl = Navigation.ToBaseRelativePath(Navigation.Uri);
+            Navigation.NavigateTo($"/login?returnUrl=/{returnUrl}", forceLoad: true);
+            return;
+        }
 
         CalculateOrderTotals();
 
@@ -402,7 +416,7 @@
     // Chuẩn bị dữ liệu để gửi lên db
     private List<OrderItemReponse> preparedListOrderItemResponse(List<CartItemDTO> list)
     {
-        List<OrderItemReponse> listOrderItemReponse = new List<OrderItemReponse>();
+        var listOrderItemReponse = new List<OrderItemReponse>();
         foreach (var item in list)
         {
             listOrderItemReponse.Add(new OrderItemReponse
@@ -417,7 +431,6 @@
         return listOrderItemReponse;
     }
 
-    // Chuẩn bị ApplyPromotionRequest
     public ApplyPromotionRequest preparedPromotion(OrderDTO order)
     {
         return new ApplyPromotionRequest
@@ -430,10 +443,9 @@
 
     }
 
-    // Chuẩn bị List ReduceInventoryDto
     public List<ReduceInventoryDto> preparedListReduceInventoryDto(List<OrderItemReponse> items)
     {
-        List<ReduceInventoryDto> list = new List<ReduceInventoryDto>();
+        var list = new List<ReduceInventoryDto>();
         foreach (var item in items)
         {
             list.Add(new ReduceInventoryDto
@@ -446,22 +458,27 @@
 
     }
 
-
-
-
     async Task createNewOrder()
     {
-        // In ra console.log của trình duyệt
+        if (currentOrder == null)
+        {
+            await ShowAlert("Khong the tao don, vui long tai lai trang.");
+            return;
+        }
+
         listOrderProducts = preparedListOrderItemResponse(checkoutItems);
         JS.InvokeVoidAsync("console.log", "Đơn hàng:", currentOrder);
         JS.InvokeVoidAsync("console.log", "Danh sách sản phẩm muốn mua:", listOrderProducts);
 
-        bool result = await _ordersClient.SaveFinalOrderAsync(currentOrder);
-        if (result == false)
+                var savedOrder = await _ordersClient.SaveFinalOrderAsync(currentOrder);
+        if (savedOrder == null)
         {
-            JS.InvokeVoidAsync("console.log", "Lưu order bị lỗi");
+            JS.InvokeVoidAsync("console.log", "Luu order bi loi");
             return;
         }
+        currentOrder = savedOrder;
+
+        listOrderProducts.ForEach(i => i.orderid = currentOrder.Id);
         bool result2 = await _ordersClient.SaveListOrderItem(listOrderProducts);
         if (result2 == false)
         {
@@ -520,22 +537,14 @@
 
         }
 
-        // Lấy danh sách ProductId đã mua thành công từ listOrderProducts
         var purchasedProductIds = listOrderProducts.Select(x => x.id).ToList();
-        // Chỉ xóa những món đã mua, giữ lại món chưa mua
         await CartService.RemovePurchasedItemsFromCart(purchasedProductIds);
-        GoToThankyou(currentOrder.Id.ToString());
-
-
+        await GoToThankyou(currentOrder.Id.ToString());
     }
 
-    // Chuyển trang
-    private async Task GoToThankyou(String orderId)
+    private async Task GoToThankyou(string orderId)
     {
-
         Navigation.NavigateTo($"/store/thankyou?orderId={orderId}");
-
-
     }
 
     private async Task<bool> IsCustomerLoggedIn()
@@ -552,5 +561,6 @@
             return false;
         }
     }
-
 }
+
+

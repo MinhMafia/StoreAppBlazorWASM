@@ -1,4 +1,4 @@
-@page "/admin/orders"
+﻿@page "/admin/orders"
 @using StoreApp.Shared
 @using System.Net.Http.Json
 @inject HttpClient Http
@@ -14,45 +14,45 @@
 <div class="max-w-8xl mx-auto p-4 sm:p-6">
 
 
-    @* // Lọc đơn hàng và tạo đơn hàng mới *@
+    @* // Lá»c Ä‘Æ¡n hÃ ng vÃ  táº¡o Ä‘Æ¡n hÃ ng má»›i *@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div class="flex items-center gap-3 w-full sm:w-auto">
             <label class="text-sm font-bold text-gray-700 whitespace-nowrap">
-                Lọc trạng thái:
+                Lá»c tráº¡ng thÃ¡i:
             </label>
             <select @onchange="OnStatusChanged"
                 class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary">
-                <option value="">Tất cả trạng thái</option>
-                <option value="pending">Chưa xử lý</option>
-                <option value="paid">Đã thanh toán</option>
-                <option value="completed">Hoàn thành</option>
-                <option value="cancelled">Đã hủy</option>
+                <option value="">Táº¥t cáº£ tráº¡ng thÃ¡i</option>
+                <option value="pending">ChÆ°a xá»­ lÃ½</option>
+                <option value="paid">ÄÃ£ thanh toÃ¡n</option>
+                <option value="completed">HoÃ n thÃ nh</option>
+                <option value="cancelled">ÄÃ£ há»§y</option>
             </select>
         </div>
 
         <button
             @onclick="CreateNewOrder"
             class="w-full sm:w-auto px-6 py-3 bg-purple-500 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg transition">
-            Tạo Đơn Hàng Mới
+            Táº¡o ÄÆ¡n HÃ ng Má»›i
         </button>
     </div>
 
-    @* {/* Tìm kiếm */} *@
+    @* {/* TÃ¬m kiáº¿m */} *@
     <div class="flex gap-3 mb-4">
         <input type="text" 
             @bind-value="searchKeyword"
             class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary" />
         <button @onclick="SearchOrders"
             class="px-6 py-3 bg-purple-500 text-white rounded-lg font-bold hover:bg-blue-700">
-            Tìm Kiếm
+            TÃ¬m Kiáº¿m
         </button>
     </div>
 
     <div class="flex gap-4 mb-6 w-full">
 
-        <!-- Từ ngày -->
+        <!-- Tá»« ngÃ y -->
         <div class="flex flex-col flex-1">
-            <label class="text-sm font-semibold text-gray-700 mb-1">Từ ngày</label>
+            <label class="text-sm font-semibold text-gray-700 mb-1">Tá»« ngÃ y</label>
             <input 
             @bind-value="selectedStartDate" 
             type="date" 
@@ -60,21 +60,21 @@
                         focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" />
         </div>
 
-        <!-- Đến ngày -->
+        <!-- Äáº¿n ngÃ y -->
         <div class="flex flex-col flex-1">
-            <label class="text-sm font-semibold text-gray-700 mb-1">Đến ngày</label>
+            <label class="text-sm font-semibold text-gray-700 mb-1">Äáº¿n ngÃ y</label>
             <input type="date" 
             @bind-value="selectedEndDate" 
             class="px-3 py-2.5 border border-gray-300 rounded-lg w-full
                         focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" />
         </div>
 
-        <!-- Button có label ẩn để cân chiều cao -->
+        <!-- Button cÃ³ label áº©n Ä‘á»ƒ cÃ¢n chiá»u cao -->
         <div class="flex flex-col">
             <label class="invisible mb-1">.</label>
             <button @onclick="FilterByDate" class="px-6 py-2.5 bg-purple-500 text-white rounded-lg font-bold 
                     hover:bg-blue-700 w-full">
-                Lọc
+                Lá»c
             </button>
         </div>
 
@@ -85,7 +85,7 @@
 
 
 
-    @* {/* Form đơn hàng */} => Dùng xem chi tiết hoặc tạo đơn mới ẩn lúc ban đầu , Chứa DetailOrder (chi tiết sản phẩm ), PromotionSection (khuyến mãi)*@
+    @* {/* Form Ä‘Æ¡n hÃ ng */} => DÃ¹ng xem chi tiáº¿t hoáº·c táº¡o Ä‘Æ¡n má»›i áº©n lÃºc ban Ä‘áº§u , Chá»©a DetailOrder (chi tiáº¿t sáº£n pháº©m ), PromotionSection (khuyáº¿n mÃ£i)*@
     @if (showOrderModel)
     {
         <OrderForm
@@ -100,7 +100,7 @@
         />
     }
 
-    @* {/* Danh sách đơn hàng*/} => Danh sách đơn hàng có một số thông tin cơ bản như {Mã đơn, Thời gian, Khách hàng, Nhân viên, Tổng tiền, Số lượng, Trạng thái đơn,Trạng thái thanh toán, Thao tác (Xem, Chờ xử lí => nếu là đươn online, )}*@
+    @* {/* Danh sÃ¡ch Ä‘Æ¡n hÃ ng*/} => Danh sÃ¡ch Ä‘Æ¡n hÃ ng cÃ³ má»™t sá»‘ thÃ´ng tin cÆ¡ báº£n nhÆ° {MÃ£ Ä‘Æ¡n, Thá»i gian, KhÃ¡ch hÃ ng, NhÃ¢n viÃªn, Tá»•ng tiá»n, Sá»‘ lÆ°á»£ng, Tráº¡ng thÃ¡i Ä‘Æ¡n,Tráº¡ng thÃ¡i thanh toÃ¡n, Thao tÃ¡c (Xem, Chá» xá»­ lÃ­ => náº¿u lÃ  Ä‘Æ°Æ¡n online, )}*@
 
     <OrderTable 
         listOrders="@listOrders" 
@@ -119,50 +119,50 @@
 @code {
 
 
-    // Biến điều khiển hiển thị modal khách hàng, sản phẩm và form đơn hàng
+    // Biáº¿n Ä‘iá»u khiá»ƒn hiá»ƒn thá»‹ modal khÃ¡ch hÃ ng, sáº£n pháº©m vÃ  form Ä‘Æ¡n hÃ ng
     bool showOrderModel = false;
 
-    // Chế độ form đơn hàng: "create" hoặc "detail"
+    // Cháº¿ Ä‘á»™ form Ä‘Æ¡n hÃ ng: "create" hoáº·c "detail"
     string ordersFormMode = "create";
 
-    // Đơn hàng hiện tại => currentOrder
+    // ÄÆ¡n hÃ ng hiá»‡n táº¡i => currentOrder
     OrderDTO? currentOrder = null;
 
 
-    // Sản phẩm được chọn => selectedProduct
+    // Sáº£n pháº©m Ä‘Æ°á»£c chá»n => selectedProduct
     ProductDTO? selectedProduct = null;
-    // Danh sách sản phẩm trong đơn => listOrderProducts
+    // Danh sÃ¡ch sáº£n pháº©m trong Ä‘Æ¡n => listOrderProducts
     List<OrderItemReponse> listOrderProducts = new();
 
-    // Khách hàng được chọn => selectedCustomer
-    // Thông tin thanh toán được chọn => payment
-    // Thông tin khuyến mãi của đơn => promotion
+    // KhÃ¡ch hÃ ng Ä‘Æ°á»£c chá»n => selectedCustomer
+    // ThÃ´ng tin thanh toÃ¡n Ä‘Æ°á»£c chá»n => payment
+    // ThÃ´ng tin khuyáº¿n mÃ£i cá»§a Ä‘Æ¡n => promotion
     PromotionDTO? promotion = null;
 
 
-    // Danh sách đơn hàng => listOrders
+    // Danh sÃ¡ch Ä‘Æ¡n hÃ ng => listOrders
     List<OrderDTO> listOrders = new();
 
-    // Trang hiện tại => currentPage
+    // Trang hiá»‡n táº¡i => currentPage
     int currentPage = 1;
-    // Kích thước trang => pageSize
+    // KÃ­ch thÆ°á»›c trang => pageSize
     int pageSize = 10;
-    // Tổng trang => totalPages
+    // Tá»•ng trang => totalPages
     int totalPages = 1;
 
-    // Trạng thái đơn hàng đang được chọn để lọc => selectedStatus
+    // Tráº¡ng thÃ¡i Ä‘Æ¡n hÃ ng Ä‘ang Ä‘Æ°á»£c chá»n Ä‘á»ƒ lá»c => selectedStatus
     string selectedStatus = "";
-    // Ngày bắt đầu được chọn để lọc => selectedStartDate
+    // NgÃ y báº¯t Ä‘áº§u Ä‘Æ°á»£c chá»n Ä‘á»ƒ lá»c => selectedStartDate
     DateTime? selectedStartDate = null;
-    // Ngày kết thúc được chọn để lọc => selectedEndDate
+    // NgÃ y káº¿t thÃºc Ä‘Æ°á»£c chá»n Ä‘á»ƒ lá»c => selectedEndDate
     DateTime? selectedEndDate = null;
-    // Từ khóa tìm kiếm => searchKeyword
+    // Tá»« khÃ³a tÃ¬m kiáº¿m => searchKeyword
     string searchKeyword = "";
 
 
     /**
-    * Lấy danh sách có phân trang nâng cao (Phân trang bình thường, lọc theo trạng thái đơn hàng, lọc theo ngày bắt đầu kết
-thúc, tìm kiếm )
+    * Láº¥y danh sÃ¡ch cÃ³ phÃ¢n trang nÃ¢ng cao (PhÃ¢n trang bÃ¬nh thÆ°á»ng, lá»c theo tráº¡ng thÃ¡i Ä‘Æ¡n hÃ ng, lá»c theo ngÃ y báº¯t Ä‘áº§u káº¿t
+thÃºc, tÃ¬m kiáº¿m )
 */
     async Task LoadOrdersAdvanced()
     {
@@ -179,14 +179,14 @@ thúc, tìm kiếm )
         totalPages = response.TotalPages;
     }
 
-    //Xem chi tiết đon hàng
+    //Xem chi tiáº¿t Ä‘on hÃ ng
     async Task ViewOrderDetail(OrderDTO order){
         currentOrder = order;
         ordersFormMode = "detail";
-        // Lấy danh sách sản phẩm của đơn hàng
+        // Láº¥y danh sÃ¡ch sáº£n pháº©m cá»§a Ä‘Æ¡n hÃ ng
         listOrderProducts = await _ordersClient.GetOrderItemsByOrderIdAsync(order.Id);
 
-        //Lấy thông tin khuyến mãi nếu có
+        //Láº¥y thÃ´ng tin khuyáº¿n mÃ£i náº¿u cÃ³
         if (order.PromotionId != null){
             promotion = await _ordersClient.GetPromotionByIdAsync(order.PromotionId.Value);
         }
@@ -196,13 +196,13 @@ thúc, tìm kiếm )
     }
 
 
-    //Xuất hiện thông báo
+    //Xuáº¥t hiá»‡n thÃ´ng bÃ¡o
     async Task ShowAlert(string message)
     {
         await JS.InvokeVoidAsync("alert", message);
     }
 
-    // Xử lý khi trạng thái lọc thay đổi
+    // Xá»­ lÃ½ khi tráº¡ng thÃ¡i lá»c thay Ä‘á»•i
     async Task OnStatusChanged(ChangeEventArgs e)
     {
         selectedStatus = e.Value?.ToString() ?? "";
@@ -213,13 +213,13 @@ thúc, tìm kiếm )
     }
 
 
-    // Lọc theo ngày
+    // Lá»c theo ngÃ y
     async Task FilterByDate()
     {
         if (selectedStartDate != null && selectedEndDate != null && selectedStartDate > selectedEndDate)
         {
 
-            await JS.InvokeVoidAsync("alert", "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc. Vui lòng chọn lại.");
+            await JS.InvokeVoidAsync("alert", "NgÃ y báº¯t Ä‘áº§u pháº£i nhá» hÆ¡n hoáº·c báº±ng ngÃ y káº¿t thÃºc. Vui lÃ²ng chá»n láº¡i.");
             return;
         }
 
@@ -233,7 +233,7 @@ thúc, tìm kiếm )
     {
         if (string.IsNullOrWhiteSpace(searchKeyword))
         {
-            ShowAlert("Không để rỗng từ khóa tìm kiếm");
+            ShowAlert("KhÃ´ng Ä‘á»ƒ rá»—ng tá»« khÃ³a tÃ¬m kiáº¿m");
             return;
         }
         
@@ -253,18 +253,18 @@ thúc, tìm kiếm )
     }
 
 
-    // Hiển thị danh sách đơn hàng khi trang được tải
+    // Hiá»ƒn thá»‹ danh sÃ¡ch Ä‘Æ¡n hÃ ng khi trang Ä‘Æ°á»£c táº£i
 protected override async Task OnInitializedAsync()
     {
-        // Tải dữ liệu lần đầu ngay khi component được khởi tạo
+        // Táº£i dá»¯ liá»‡u láº§n Ä‘áº§u ngay khi component Ä‘Æ°á»£c khá»Ÿi táº¡o
         await LoadOrdersAdvanced();
     }
 
-    // Xử tạo đơn hàng mới
+    // Xá»­ táº¡o Ä‘Æ¡n hÃ ng má»›i
     async Task CreateNewOrder()
     {
         ordersFormMode = "create";
-        //Gọi một đơn tạm vởi server để lấy id đơn hàng mới
+        //Gá»i má»™t Ä‘Æ¡n táº¡m vá»Ÿi server Ä‘á»ƒ láº¥y id Ä‘Æ¡n hÃ ng má»›i
         currentOrder = await _ordersClient.CreateTemporaryOrderAsync();
         listOrderProducts.Clear();
         selectedProduct=null;
@@ -278,29 +278,32 @@ protected override async Task OnInitializedAsync()
        
     }
 
-    // Tạo đơn hàng mới 
+    // Táº¡o Ä‘Æ¡n hÃ ng má»›i 
     async Task createNewOrder (){
         if (listOrderProducts.Count==0){
-            ShowAlert("Vui lòng chọn sản phẩm để mua");
+            ShowAlert("Vui lÃ²ng chá»n sáº£n pháº©m Ä‘á»ƒ mua");
             return;
 
         }
-        // In ra console.log của trình duyệt
-        JS.InvokeVoidAsync("console.log", "Đơn hàng:", currentOrder);
+        // In ra console.log cá»§a trÃ¬nh duyá»‡t
+        JS.InvokeVoidAsync("console.log", "ÄÆ¡n hÃ ng:", currentOrder);
         
         if(currentOrder.PaymentMethod=="cash"){
             currentOrder.Status="completed";
         }
       
 
-        bool result = await _ordersClient.SaveFinalOrderAsync(currentOrder);
-        if(result==false){
-            JS.InvokeVoidAsync("console.log", "Lưu order bị lỗi");
+        var savedOrder = await _ordersClient.SaveFinalOrderAsync(currentOrder);
+        if(savedOrder == null){
+            JS.InvokeVoidAsync("console.log", "Luu order bi loi");
             return ;
         }
+        currentOrder = savedOrder;
+
+
 
         listOrderProducts?.ForEach(item => item.orderid = currentOrder.Id);
-        JS.InvokeVoidAsync("console.log", "Danh sách sản phẩm muốn mua:", listOrderProducts);
+        JS.InvokeVoidAsync("console.log", "Danh sÃ¡ch sáº£n pháº©m muá»‘n mua:", listOrderProducts);
         bool result2= await _ordersClient.SaveListOrderItem (listOrderProducts);
         if(result2==false){
             return ;
@@ -327,21 +330,21 @@ protected override async Task OnInitializedAsync()
 
                 return ;
             }else{
-                ShowAlert("Đã tạo đơn hàng thành công");
+                ShowAlert("ÄÃ£ táº¡o Ä‘Æ¡n hÃ ng thÃ nh cÃ´ng");
               
             }
         }else{
             paymentResult=await _ordersClient.PayWithMomoAsync(currentOrder.Id, currentOrder.TotalAmount);
                 if(paymentResult.Success==false){
-                JS.InvokeVoidAsync("console.log", $"Lỗi thanh toán MoMo: {paymentResult.Message}");
+                JS.InvokeVoidAsync("console.log", $"Lá»—i thanh toÃ¡n MoMo: {paymentResult.Message}");
                 return ;
             }else{
-                ShowAlert("Đã tạo đơn hàng thành công");
+                ShowAlert("ÄÃ£ táº¡o Ä‘Æ¡n hÃ ng thÃ nh cÃ´ng");
                
             }
 
         }
-        bool wantPrint = await JS.InvokeAsync<bool>("confirm", "Bạn có muốn in hóa đơn không?");
+        bool wantPrint = await JS.InvokeAsync<bool>("confirm", "Báº¡n cÃ³ muá»‘n in hÃ³a Ä‘Æ¡n khÃ´ng?");
         if (wantPrint){
             await  PrintInvoiceAsync(currentOrder, listOrderProducts);
         }
@@ -353,7 +356,7 @@ protected override async Task OnInitializedAsync()
 
 
 
-    // Chuẩn bị ApplyPromotionRequest
+    // Chuáº©n bá»‹ ApplyPromotionRequest
     public ApplyPromotionRequest preparedPromotion (OrderDTO order){
         return new ApplyPromotionRequest{
             PromotionId = order.PromotionId ?? 0,
@@ -364,7 +367,7 @@ protected override async Task OnInitializedAsync()
 
     }
 
-    // Chuẩn bị List ReduceInventoryDto
+    // Chuáº©n bá»‹ List ReduceInventoryDto
     public List<ReduceInventoryDto> preparedListReduceInventoryDto(List<OrderItemReponse> items){
         List <ReduceInventoryDto> list=new List<ReduceInventoryDto>();
         foreach (var item in items){
@@ -377,7 +380,7 @@ protected override async Task OnInitializedAsync()
 
     }
 
-    // Hàm in hóa đơn 
+    // HÃ m in hÃ³a Ä‘Æ¡n 
     public async Task PrintInvoiceAsync(OrderDTO order, List<OrderItemReponse> items)
     {
         Func<decimal, string> fmt = (num) =>
@@ -400,13 +403,13 @@ protected override async Task OnInitializedAsync()
         {
             promotionHtml = $@"
                 <div style='color:red; font-weight:bold; margin-top:5px;'>
-                    Khuyến mãi ({order.PromotionCode}): -{fmt(order.Discount)}
+                    Khuyáº¿n mÃ£i ({order.PromotionCode}): -{fmt(order.Discount)}
                 </div>";
         }
 
         string paymentHtml = order.PaymentMethod?.ToLower() switch
         {
-            "cash" => "TIỀN MẶT",
+            "cash" => "TIá»€N Máº¶T",
             "momo" => "MOMO",
             _       => (order.PaymentMethod ?? "cash").ToUpper()
         };
@@ -415,7 +418,7 @@ protected override async Task OnInitializedAsync()
         <!DOCTYPE html>
         <html><head>
         <meta charset='utf-8'>
-        <title>Hóa đơn #{order.OrderNumber ?? order.Id.ToString()}</title>
+        <title>HÃ³a Ä‘Æ¡n #{order.OrderNumber ?? order.Id.ToString()}</title>
 
         <style>
         body {{ font-family: Arial, sans-serif; margin: 20px; font-size: 14px; }}
@@ -429,26 +432,26 @@ protected override async Task OnInitializedAsync()
         </style>
 
         </head><body>
-        <h2>PHIẾU THANH TOÁN</h2>
+        <h2>PHIáº¾U THANH TOÃN</h2>
 
-        <div class='info'><strong>Mã đơn:</strong> #{order.OrderNumber ?? order.Id.ToString()}</div>
-        <div class='info'><strong>Khách hàng:</strong> {(order.CustomerName)}</div>
-        <div class='info'><strong>Thời gian:</strong> {DateTime.Now:dd/MM/yyyy HH:mm:ss}</div>
+        <div class='info'><strong>MÃ£ Ä‘Æ¡n:</strong> #{order.OrderNumber ?? order.Id.ToString()}</div>
+        <div class='info'><strong>KhÃ¡ch hÃ ng:</strong> {(order.CustomerName)}</div>
+        <div class='info'><strong>Thá»i gian:</strong> {DateTime.Now:dd/MM/yyyy HH:mm:ss}</div>
 
         <table>
-            <tr><th>Sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr>
+            <tr><th>Sáº£n pháº©m</th><th>SL</th><th>ÄÆ¡n giÃ¡</th><th>ThÃ nh tiá»n</th></tr>
             {rows}
         </table>
 
-        <div class='total'>TỔNG TIỀN: {fmt(order.TotalAmount)}</div>
+        <div class='total'>Tá»”NG TIá»€N: {fmt(order.TotalAmount)}</div>
 
         {promotionHtml}
 
         <div style='margin-top:15px; font-size:17px; font-weight:bold;'>
-            Thanh toán: {paymentHtml}
+            Thanh toÃ¡n: {paymentHtml}
         </div>
 
-        <div class='footer'>CẢM ƠN QUÝ KHÁCH!<br>HẸN GẶP LẠI</div>
+        <div class='footer'>Cáº¢M Æ N QUÃ KHÃCH!<br>Háº¸N Gáº¶P Láº I</div>
         </body></html>";
 
         string safeHtml = html.Replace("`", "\\`");

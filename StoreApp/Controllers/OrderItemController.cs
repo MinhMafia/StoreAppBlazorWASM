@@ -8,7 +8,7 @@ namespace StoreApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "admin,staff")]
+    [Authorize] // default authenticated; specific roles per action
     public class OrderItemController : ControllerBase
     {
         private readonly OrderItemService _orderItemService;
@@ -18,24 +18,8 @@ namespace StoreApp.Controllers
             _orderItemService = orderItemService;
         }
 
-        // POST: api/OrderItem/create=> CODE CŨ
-        // [HttpPost("create")]
-        // public async Task<IActionResult> CreateOrderItems([FromBody] List<OrderItem> items)
-        // {
-        //     if (items == null || !items.Any())
-        //         return BadRequest(false);
-
-        //     try
-        //     {
-        //         bool success = await _orderItemService.SaveOrderItemsAsync(items);
-        //         return Ok(success);
-        //     }
-        //     catch (Exception)
-        //     {
-        //         return StatusCode(500, false);
-        //     }
-        // }
-                // POST: api/OrderItem/create
+        // POST: api/OrderItem/create
+        [Authorize(Roles = "admin,staff,customer")]
         [HttpPost("create")]
         public async Task<IActionResult> CreateOrderItems([FromBody] List<OrderItemReponse> items)
         {
@@ -54,6 +38,7 @@ namespace StoreApp.Controllers
         }
 
         // GET: api/OrderItem/by-order/{orderId}
+        [Authorize(Roles = "admin,staff,customer")]
         [HttpGet("by-order/{orderId}")]
         public async Task<IActionResult> GetItemsByOrder(int orderId)
         {
@@ -62,6 +47,7 @@ namespace StoreApp.Controllers
         }
 
         // DELETE: api/OrderItem/by-order/{orderId}
+        [Authorize(Roles = "admin,staff")]
         [HttpDelete("by-order/{orderId}")]
         public async Task<IActionResult> DeleteItemsByOrder(int orderId)
         {
@@ -69,13 +55,12 @@ namespace StoreApp.Controllers
             return Ok(new { message = "Đã xóa các item của đơn hàng." });
         }
 
+        [Authorize(Roles = "admin,staff,customer")]
         [HttpGet("byorder/{orderId}")]
         public async Task<IActionResult> GetByOrder(int orderId)
         {
             var data = await _orderItemService.GetItemsByOrderAsync(orderId);
             return Ok(data);
         }
-
-
     }
 }

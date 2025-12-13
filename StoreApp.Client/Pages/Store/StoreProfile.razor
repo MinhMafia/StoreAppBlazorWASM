@@ -58,6 +58,21 @@
                            placeholder="Nhập họ tên của bạn" />
                 </div>
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Số điện thoại</label>
+                        <input class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                               @bind="profileForm.Phone"
+                               placeholder="Ví dụ: 0912345678" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Địa chỉ</label>
+                        <input class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                               @bind="profileForm.Address"
+                               placeholder="Địa chỉ nhận hàng" />
+                    </div>
+                </div>
+
                 <div class="flex items-center justify-end gap-3 pt-2">
                     <button type="button"
                             class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
@@ -163,6 +178,7 @@
 
 @code {
     private static readonly Regex EmailRegex = new(@"^[^\s@]+@[^\s@]+\.[^\s@]+$", RegexOptions.Compiled);
+    private static readonly Regex PhoneRegex = new(@"^(0|\+84)[35789]\d{8}$", RegexOptions.Compiled);
 
     private ProfileForm profileForm = new();
     private PasswordForm passwordForm = new();
@@ -199,7 +215,9 @@
             {
                 Username = data.Username ?? string.Empty,
                 Email = data.Email ?? string.Empty,
-                FullName = data.FullName ?? string.Empty
+                FullName = data.FullName ?? string.Empty,
+                Phone = data.Phone ?? string.Empty,
+                Address = data.Address ?? string.Empty
             };
         }
         catch (Exception ex)
@@ -216,6 +234,9 @@
     {
         var trimmedUsername = (profileForm.Username ?? string.Empty).Trim();
         var trimmedEmail = (profileForm.Email ?? string.Empty).Trim();
+        var trimmedFullName = (profileForm.FullName ?? string.Empty).Trim();
+        var trimmedPhone = (profileForm.Phone ?? string.Empty).Trim();
+        var trimmedAddress = (profileForm.Address ?? string.Empty).Trim();
 
         if (trimmedUsername.Length < 3)
         {
@@ -229,6 +250,24 @@
             return;
         }
 
+        if (trimmedFullName.Length < 3)
+        {
+            alert = AlertMessage.Error("Họ tên phải có ít nhất 3 ký tự.");
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(trimmedPhone) && !PhoneRegex.IsMatch(trimmedPhone))
+        {
+            alert = AlertMessage.Error("Số điện thoại không hợp lệ.");
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(trimmedAddress) && trimmedAddress.Length > 250)
+        {
+            alert = AlertMessage.Error("Địa chỉ tối đa 250 ký tự.");
+            return;
+        }
+
         isSaving = true;
         alert = null;
 
@@ -238,7 +277,9 @@
             {
                 Username = trimmedUsername,
                 Email = trimmedEmail,
-                FullName = string.IsNullOrWhiteSpace(profileForm.FullName) ? string.Empty : profileForm.FullName.Trim()
+                FullName = trimmedFullName,
+                Phone = trimmedPhone,
+                Address = trimmedAddress
             };
 
             var updated = await MeClientService.UpdateProfileAsync(payload);
@@ -246,7 +287,9 @@
             {
                 Username = updated.Username ?? trimmedUsername,
                 Email = updated.Email ?? trimmedEmail,
-                FullName = updated.FullName ?? profileForm.FullName
+                FullName = updated.FullName ?? trimmedFullName,
+                Phone = updated.Phone ?? trimmedPhone,
+                Address = updated.Address ?? trimmedAddress
             };
 
             alert = AlertMessage.Success("Thông tin cá nhân đã được cập nhật.");
@@ -328,6 +371,8 @@
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string? FullName { get; set; } = string.Empty;
+        public string? Phone { get; set; } = string.Empty;
+        public string? Address { get; set; } = string.Empty;
     }
 
     private sealed class PasswordForm
