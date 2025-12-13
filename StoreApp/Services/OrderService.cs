@@ -30,25 +30,9 @@ namespace StoreApp.Services
             _logService = logService;
             _customerRepo = customerRepo;
             _userRepo = userRepo;
-            _paymentRepo=paymentRepository;
+            _paymentRepo = paymentRepository;
             _httpContextAccessor = httpContextAccessor;
         }
-
-
-        /*
-            PhÆ°Æ¡ng thÃºc Táº¡o Ä‘Æ¡n hÃ ng má»›i 
-            Tráº£ vá» object OrderDTO vá»«a táº¡o cÃ³ 
-                Id: Láº¥y max Id + 1
-                OrderNumber: DH_Id_timestamp <VÃ­ dá»¥: DH_5_1696543200>
-                CustomerId: 0 => Máº·c Ä‘á»‹nh lÃ  khÃ¡ch vÃ£ng lai
-                UserId: NhÃ¢n viÃªn Ä‘ang táº¡o Ä‘Æ¡n hÃ ng (Táº¡m thá»i Ä‘á»ƒ lÃ  2 vÃ¬ chÆ°a biáº¿t ai Ä‘ang lÃ m Ä‘Äƒng nháº­p . Táº¡m thá»i Ä‘á»ƒ Ä‘Ã³)
-                Status: pending
-                Subtotal, Discount, TotalAmount: 0m
-                PromotionId: null
-                Note: null
-                CreatedAt, UpdatedAt: thá»i gian hiá»‡n táº¡i
-
-        */
 
         private int GetCurrentUserId()
         {
@@ -88,29 +72,12 @@ namespace StoreApp.Services
             throw new InvalidOperationException("KhÃ´ng tÃ¬m tháº¥y customerId trong token");
         }
 
-        /*
-            PhÆ°Æ¡ng thÃºc Táº¡o Ä‘Æ¡n hÃ ng má»›i 
-            Tráº£ vá» object OrderDTO vá»«a táº¡o cÃ³ 
-                Id: Láº¥y max Id + 1
-                OrderNumber: Guid.NewGuid().ToString()
-                CustomerId: 0 => Máº·c Ä‘á»‹nh lÃ  khÃ¡ch vÃ£ng lai
-                UserId: NhÃ¢n viÃªn Ä‘ang táº¡o Ä‘Æ¡n hÃ ng (Táº¡m thá»i Ä‘á»ƒ lÃ  2 vÃ¬ chÆ°a biáº¿t ai Ä‘ang lÃ m Ä‘Äƒng nháº­p . Táº¡m thá»i Ä‘á»ƒ Ä‘Ã³)
-                Status: pending
-                Subtotal, Discount, TotalAmount: 0m
-                PromotionId: null
-                Note: null
-                CreatedAt, UpdatedAt: thá»i gian hiá»‡n táº¡i
-
-        */
-        // HÃ m táº¡o Ä‘Æ¡n táº¡m cho Ä‘Æ¡n hÃ ng POS (nhÃ¢n viÃªn táº¡o)
- 
         public async Task<OrderDTO> CreateTemporaryOrderAsync()
         {
             int maxId = await _orderRepo.GetMaxIdAsync();
             int newId = maxId + 1;
             string orderCode = Guid.NewGuid().ToString();
 
-            // Láº¥y staff_id thá»±c táº¿
             int staffId = 2;
             try
             {
@@ -118,7 +85,7 @@ namespace StoreApp.Services
             }
             catch
             {
-                
+
             }
             var staff = await _userRepo.GetByIdAsync(staffId);
             string staffName = staff?.FullName ?? $"NhÃ¢n viÃªn #{staffId}";
@@ -144,22 +111,16 @@ namespace StoreApp.Services
                 CustomerName = customerName,
                 StaffName = staffName,
                 PromotionCode = null,
-                PaymentMethod="cash",
-                PaymentStatus="pending",
-                TransactionRef=null
+                PaymentMethod = "cash",
+                PaymentStatus = "pending",
+                TransactionRef = null
             };
 
             return tempOrder;
         }
 
-        /// <summary>
-        /// Táº¡o Ä‘Æ¡n hÃ ng táº¡m thá»i cho khÃ¡ch mua online (Ä‘Ã£ Ä‘Äƒng nháº­p)
-        /// - Customer: láº¥y tá»« customerId trong token
-        /// - Staff: null (Ä‘Æ¡n online khÃ´ng cÃ³ nhÃ¢n viÃªn)
-        /// </summary>
         public async Task<OrderDTO> CreateTemporaryOnlineOrderAsync()
         {
-            // 1. Láº¥y CustomerId tá»« token
             int customerId;
             try
             {
@@ -167,33 +128,31 @@ namespace StoreApp.Services
             }
             catch
             {
-                throw new UnauthorizedAccessException("KhÃ´ng thá»ƒ xÃ¡c Ä‘á»‹nh khÃ¡ch hÃ ng. Vui lÃ²ng Ä‘Äƒng nháº­p láº¡i.");
+                throw new UnauthorizedAccessException("Không thấy ID khách hàng, vui lòng nhập lại.");
             }
 
             var customer = (await _customerRepo.GetByIdAsync(customerId))
-               ?? throw new InvalidOperationException($"KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin khÃ¡ch hÃ ng cho customerId {customerId}");
+               ?? throw new InvalidOperationException($"Không tìm thấy thông tin khách hàng cho customerId {customerId}");
 
 
             if (!customer.IsActive)
-                throw new InvalidOperationException("TÃ i khoáº£n khÃ¡ch hÃ ng Ä‘Ã£ bá»‹ khÃ³a.");
-
-            // 3. NhÃ¢n viÃªn máº·c Ä‘á»‹nh cho Ä‘Æ¡n online (Id = 0 hoáº·c báº¡n cÃ³ thá»ƒ táº¡o má»™t User tÃªn "Há»‡ thá»‘ng" hoáº·c "Online")
+                throw new InvalidOperationException("Tài khoản khách hàng đã bị khóa.");
             int staffId = 0;
             var staff = await _userRepo.GetByIdAsync(staffId);
-            string staffName = staff?.FullName ?? "Há»‡ thá»‘ng Online";
+            string staffName = staff?.FullName ?? "Hệ thống Online";
 
-            // 4. Táº¡o mÃ£ Ä‘Æ¡n vÃ  Id má»›i
+            // 4. Tạo mã đơn và Id mới
             int maxId = await _orderRepo.GetMaxIdAsync();
             int newId = maxId + 1;
             string orderNumber = Guid.NewGuid().ToString();
 
-            // 5. Táº¡o OrderDTO vá»›i Ä‘áº§y Ä‘á»§ thÃ´ng tin khÃ¡ch hÃ ng
+            // 5. Tạo OrderDTO với đầy đủ thông tin khách hàng
             var onlineOrder = new OrderDTO
             {
                 Id = newId,
                 OrderNumber = orderNumber,
-                CustomerId = customer.Id,                   
-                StaffId = staffId,                            
+                CustomerId = customer.Id,
+                StaffId = staffId,
                 Status = "pending",
                 Subtotal = 0m,
                 Discount = 0m,
@@ -203,17 +162,15 @@ namespace StoreApp.Services
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
 
-                // ThÃ´ng tin hiá»ƒn thá»‹ khÃ¡ch hÃ ng
-                CustomerName = customer.FullName??"N/A",
+                CustomerName = customer.FullName ?? "N/A",
                 SoDienThoai = customer.Phone,
                 Email = customer.Email,
                 DiaChiKhachHang = customer.Address,
 
-                // ThÃ´ng tin nhÃ¢n viÃªn
                 StaffName = staffName,
 
                 PromotionCode = null,
-                PaymentMethod = "cash",          
+                PaymentMethod = "cash",
                 PaymentStatus = "pending",
                 TransactionRef = null
             };
@@ -222,10 +179,9 @@ namespace StoreApp.Services
         }
 
 
-        // LÆ°u Ä‘Æ¡n hÃ ng (frontend Ä‘Ã£ gá»­i Ä‘á»§ dá»¯ liá»‡u)
         public async Task<OrderDTO?> CreateOrderAsync(OrderDTO dto)
         {
-                        // generate id/order number if missing
+            // generate id/order number if missing
             if (string.IsNullOrWhiteSpace(dto.OrderNumber))
             {
                 dto.OrderNumber = Guid.NewGuid().ToString();
@@ -256,18 +212,18 @@ namespace StoreApp.Services
 
             var order = new Order
             {
-                Id           = dto.Id,
-                OrderNumber  = dto.OrderNumber,
-                CustomerId   = dto.CustomerId,
-                StaffId      = dto.StaffId,
-                Status       = dto.Status,
-                Subtotal     = dto.Subtotal,
-                Discount     = dto.Discount,
-                TotalAmount  = dto.TotalAmount,
-                PromotionId  = dto.PromotionId,
-                Note         = dto.Note,
-                CreatedAt    = dto.CreatedAt,
-                UpdatedAt    = dto.UpdatedAt
+                Id = dto.Id,
+                OrderNumber = dto.OrderNumber,
+                CustomerId = dto.CustomerId,
+                StaffId = dto.StaffId,
+                Status = dto.Status,
+                Subtotal = dto.Subtotal,
+                Discount = dto.Discount,
+                TotalAmount = dto.TotalAmount,
+                PromotionId = dto.PromotionId,
+                Note = dto.Note,
+                CreatedAt = dto.CreatedAt,
+                UpdatedAt = dto.UpdatedAt
             };
 
             var saved = await _orderRepo.SaveOrderAsync(order);
@@ -280,11 +236,10 @@ namespace StoreApp.Services
 
 
 
-        // Chuyá»ƒn Order sang OrderDTO Ä‘áº§y Ä‘á»§
         public async Task<OrderDTO> MapToDTOAsync(int orderId)
         {
             var order = await _orderRepo.GetByIdAsync(orderId);
-            if (order == null) throw new Exception("KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n hÃ ng");
+            if (order == null) throw new Exception("Không tìm thấy đơn hàng");
 
             return new OrderDTO
             {
@@ -308,60 +263,56 @@ namespace StoreApp.Services
 
         // Method cho AI Tool
         public async Task<PagedResult<OrderDTO>> GetPagedOrdersAsync(
-            int pageNumber, int pageSize, string? status = null, 
+            int pageNumber, int pageSize, string? status = null,
             DateTime? startDate = null, DateTime? endDate = null, string? search = null)
         {
             var orders = await _orderRepo.GetAllAsync();
-            
+
             if (!string.IsNullOrEmpty(status))
                 orders = orders.Where(o => o.Status == status).ToList();
-            
+
             if (startDate.HasValue)
                 orders = orders.Where(o => o.CreatedAt >= startDate.Value).ToList();
-            
+
             if (endDate.HasValue)
                 orders = orders.Where(o => o.CreatedAt <= endDate.Value).ToList();
-            
+
             if (!string.IsNullOrEmpty(search))
                 orders = orders.Where(o => o.OrderNumber.Contains(search)).ToList();
-            
+
             var total = orders.Count;
             var items = orders.Skip((pageNumber - 1) * pageSize).Take(pageSize)
-                .Select(o => new OrderDTO 
-                { 
-                    Id = o.Id, 
+                .Select(o => new OrderDTO
+                {
+                    Id = o.Id,
                     OrderNumber = o.OrderNumber,
                     Status = o.Status,
                     TotalAmount = o.TotalAmount,
                     CreatedAt = o.CreatedAt,
                     CustomerName = o.Customer?.FullName
                 }).ToList();
-            
+
             return new PagedResult<OrderDTO> { TotalItems = total, Items = items };
         }
 
-        /// <summary>
-        /// Láº¥y Ä‘Æ¡n hÃ ng theo CustomerId - dÃ¹ng cho Customer AI
-        /// </summary>
         public async Task<PagedResult<OrderDTO>> GetOrdersByCustomerIdAsync(
             int customerId, int page = 1, int pageSize = 10, string? status = null)
         {
             var orders = await _orderRepo.GetAllAsync();
-            
-            // Lá»c theo customerId
+
             orders = orders.Where(o => o.CustomerId == customerId).ToList();
-            
+
             if (!string.IsNullOrEmpty(status))
                 orders = orders.Where(o => o.Status == status).ToList();
-            
+
             var total = orders.Count;
             var items = orders
                 .OrderByDescending(o => o.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(o => new OrderDTO 
-                { 
-                    Id = o.Id, 
+                .Select(o => new OrderDTO
+                {
+                    Id = o.Id,
                     OrderNumber = o.OrderNumber,
                     CustomerId = o.CustomerId ?? 0,
                     Status = o.Status,
@@ -371,20 +322,20 @@ namespace StoreApp.Services
                     CreatedAt = o.CreatedAt,
                     CustomerName = o.Customer?.FullName
                 }).ToList();
-            
+
             return new PagedResult<OrderDTO> { TotalItems = total, Items = items };
         }
 
         /// <summary>
-        /// Láº¥y Ä‘Æ¡n hÃ ng theo OrderNumber - dÃ¹ng cho Customer AI
+        /// Lấy đơn hàng theo OrderNumber - dùng cho Customer AI
         /// </summary>
         public async Task<OrderDTO?> GetByOrderNumberAsync(string orderNumber)
         {
             var orders = await _orderRepo.GetAllAsync();
             var order = orders.FirstOrDefault(o => o.OrderNumber == orderNumber);
-            
+
             if (order == null) return null;
-            
+
             return new OrderDTO
             {
                 Id = order.Id,
@@ -398,8 +349,7 @@ namespace StoreApp.Services
                 CustomerName = order.Customer?.FullName
             };
         }
-        //PhÃ¢n trang káº¿t há»£p tÃ¬m kiáº¿m 
-        public async Task<ResultPaginatedDTO<OrderDTO> > GetPagedOrdersAsyncForOrderPage(
+        public async Task<ResultPaginatedDTO<OrderDTO>> GetPagedOrdersAsyncForOrderPage(
             int pageNumber,
             int pageSize,
             string? status,
@@ -412,51 +362,50 @@ namespace StoreApp.Services
                 pageNumber, pageSize, status, startDate, endDate, search
             );
 
-            return new ResultPaginatedDTO<OrderDTO> 
+            return new ResultPaginatedDTO<OrderDTO>
             {
                 Items = data,
-                TotalItems  = totalItems,
+                TotalItems = totalItems,
                 CurrentPage = pageNumber,
                 TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
             };
         }
 
-        
-        /* Service xá»­ lÃ½ Ä‘Æ¡n hÃ ng Ä‘Ã£ tÃ­ch há»£p láº¥y UserId vÃ  cáº­p nháº­t UserId vÃ o order */
+
         public async Task<bool> HandleProcessOrderAsync(OrderDTO order)
         {
             if (order == null)
                 throw new ArgumentNullException(nameof(order));
 
-            // 1. Láº¥y ngÆ°á»i dÃ¹ng hiá»‡n táº¡i
+            // 1. Lấy người dùng hiện tại
             int currentUserId = 2;
             try
             {
-                currentUserId=GetCurrentUserId();
+                currentUserId = GetCurrentUserId();
             }
             catch
             {
-                
-            }
-          
 
-            // 2. Láº¥y order tháº­t trong DB
+            }
+
+
+            // 2. Lấy order thật trong DB
             var existingOrder = await _orderRepo.GetByIdAsync(order.Id);
             if (existingOrder == null)
                 return false;
 
-            // 3. Ghi láº¡i StaffId vÃ o order
+            // 3. Ghi lại StaffId vào order
             await _orderRepo.UpdateOrderStaffAsync(order.Id, currentUserId);
 
-            // 4. Xá»­ lÃ½ theo phÆ°Æ¡ng thá»©c thanh toÃ¡n
+            // 4. Xử lý theo phương thức thanh toán
             string method = order.PaymentMethod?.ToLower();
 
             if (method == "cash")
             {
-                // Cáº­p nháº­t tráº¡ng thÃ¡i order
+                // Cập nhật trạng thái order
                 await _orderRepo.UpdateOrderStatusAsync(order.Id, "paid");
 
-                // Cáº­p nháº­t tráº¡ng thÃ¡i payment
+                // Cập nhật trạng thái payment
                 await _paymentRepo.UpdatePaymentStatusByOrderIdAsync(order.Id, "completed");
 
                 return true;
@@ -472,33 +421,27 @@ namespace StoreApp.Services
         }
 
 
-        // Há»§y Ä‘Æ¡n
         public async Task<bool> CancelOrderAsync(int orderId)
         {
-            // 1. Láº¥y user hiá»‡n táº¡i
             int currentUserId = 2;
             try
             {
-                currentUserId=GetCurrentUserId();
+                currentUserId = GetCurrentUserId();
             }
             catch
             {
-                
+
             }
 
-            // 2. Kiá»ƒm tra order tá»“n táº¡i
             var order = await _orderRepo.GetByIdAsync(orderId);
             if (order == null)
                 return false;
 
-            // 3. Ghi láº¡i ai lÃ  ngÆ°á»i há»§y Ä‘Æ¡n (staff)
             await _orderRepo.UpdateOrderStaffAsync(orderId, currentUserId);
 
-            // 4. Tiáº¿n hÃ nh há»§y Ä‘Æ¡n
             return await _orderRepo.CancelOrderAsync(orderId);
         }
 
-        // Láº¥y Ä‘Æ¡n hÃ ng theo orderId
         public async Task<OrderDTO?> GetOrderDtoByIdAsync_MA(int orderId)
         {
             var order = await _orderRepo.GetOrderDtoByIdAsync_MA(orderId);
@@ -513,14 +456,6 @@ namespace StoreApp.Services
         {
             return await _orderRepo.GetOrdersByCustomerAsync(customerId);
         }
-
-
-
-
-
-
-
-
     }
 }
 

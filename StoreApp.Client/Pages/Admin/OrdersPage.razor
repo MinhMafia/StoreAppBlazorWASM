@@ -5,76 +5,66 @@
 @inject NavigationManager Navigation
 @using StoreApp.Client.Components.OrderPage
 @using System.Text.Json
-@inject IOrdersClientService  _ordersClient
+@inject IOrdersClientService _ordersClient
 
 
 @inject IJSRuntime JS
 
 
 <div class="max-w-8xl mx-auto p-4 sm:p-6">
-
-
-    @* // Lá»c Ä‘Æ¡n hÃ ng vÃ  táº¡o Ä‘Æ¡n hÃ ng má»›i *@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div class="flex items-center gap-3 w-full sm:w-auto">
             <label class="text-sm font-bold text-gray-700 whitespace-nowrap">
-                Lá»c tráº¡ng thÃ¡i:
+                Lọc trạng thái:
             </label>
             <select @onchange="OnStatusChanged"
                 class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary">
-                <option value="">Táº¥t cáº£ tráº¡ng thÃ¡i</option>
-                <option value="pending">ChÆ°a xá»­ lÃ½</option>
-                <option value="paid">ÄÃ£ thanh toÃ¡n</option>
-                <option value="completed">HoÃ n thÃ nh</option>
-                <option value="cancelled">ÄÃ£ há»§y</option>
+                <option value="">Tất cả trạng thái</option>
+                <option value="pending">Chưa xử lý</option>
+                <option value="paid">Đã thanh toán</option>
+                <option value="completed">Hoàn thành</option>
+                <option value="cancelled">Đã hủy</option>
             </select>
         </div>
 
-        <button
-            @onclick="CreateNewOrder"
+        <button @onclick="CreateNewOrder"
             class="w-full sm:w-auto px-6 py-3 bg-purple-500 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg transition">
-            Táº¡o ÄÆ¡n HÃ ng Má»›i
+            Tạo Đơn Hàng Mới
         </button>
     </div>
 
-    @* {/* TÃ¬m kiáº¿m */} *@
+    @* {/* Tìm kiếm */} *@
     <div class="flex gap-3 mb-4">
-        <input type="text" 
-            @bind-value="searchKeyword"
+        <input type="text" @bind-value="searchKeyword"
             class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary" />
         <button @onclick="SearchOrders"
             class="px-6 py-3 bg-purple-500 text-white rounded-lg font-bold hover:bg-blue-700">
-            TÃ¬m Kiáº¿m
+            Tìm kiếm
         </button>
     </div>
 
     <div class="flex gap-4 mb-6 w-full">
 
-        <!-- Tá»« ngÃ y -->
+        <!-- Từ ngày -->
         <div class="flex flex-col flex-1">
-            <label class="text-sm font-semibold text-gray-700 mb-1">Tá»« ngÃ y</label>
-            <input 
-            @bind-value="selectedStartDate" 
-            type="date" 
-            class="px-3 py-2.5 border border-gray-300 rounded-lg w-full
+            <label class="text-sm font-semibold text-gray-700 mb-1">Từ ngày</label>
+            <input @bind-value="selectedStartDate" type="date" class="px-3 py-2.5 border border-gray-300 rounded-lg w-full
                         focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" />
         </div>
 
-        <!-- Äáº¿n ngÃ y -->
+        <!-- Đến ngày -->
         <div class="flex flex-col flex-1">
-            <label class="text-sm font-semibold text-gray-700 mb-1">Äáº¿n ngÃ y</label>
-            <input type="date" 
-            @bind-value="selectedEndDate" 
-            class="px-3 py-2.5 border border-gray-300 rounded-lg w-full
+            <label class="text-sm font-semibold text-gray-700 mb-1">Đến ngày</label>
+            <input type="date" @bind-value="selectedEndDate" class="px-3 py-2.5 border border-gray-300 rounded-lg w-full
                         focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" />
         </div>
 
-        <!-- Button cÃ³ label áº©n Ä‘á»ƒ cÃ¢n chiá»u cao -->
+        <!-- Button có label ẩn để cân chiều cao -->
         <div class="flex flex-col">
             <label class="invisible mb-1">.</label>
             <button @onclick="FilterByDate" class="px-6 py-2.5 bg-purple-500 text-white rounded-lg font-bold 
                     hover:bg-blue-700 w-full">
-                Lá»c
+                Lọc
             </button>
         </div>
 
@@ -85,31 +75,16 @@
 
 
 
-    @* {/* Form Ä‘Æ¡n hÃ ng */} => DÃ¹ng xem chi tiáº¿t hoáº·c táº¡o Ä‘Æ¡n má»›i áº©n lÃºc ban Ä‘áº§u , Chá»©a DetailOrder (chi tiáº¿t sáº£n pháº©m ), PromotionSection (khuyáº¿n mÃ£i)*@
     @if (showOrderModel)
     {
-        <OrderForm
-        selectedProduct="@selectedProduct"
-        promotion="@promotion"
-        ListOrderProducts="@listOrderProducts"
-        currentOrder="@currentOrder" 
-        ordersFormMode="@ordersFormMode"
-        OnCloseOrdersForm="() => showOrderModel = false" 
-        OnOrderChanged="HandleOrderChanged" 
-        createNewOrder="createNewOrder"
-        />
+        <OrderForm selectedProduct="@selectedProduct" promotion="@promotion" ListOrderProducts="@listOrderProducts"
+            currentOrder="@currentOrder" ordersFormMode="@ordersFormMode" OnCloseOrdersForm="() => showOrderModel = false"
+            OnOrderChanged="HandleOrderChanged" createNewOrder="createNewOrder" />
     }
 
-    @* {/* Danh sÃ¡ch Ä‘Æ¡n hÃ ng*/} => Danh sÃ¡ch Ä‘Æ¡n hÃ ng cÃ³ má»™t sá»‘ thÃ´ng tin cÆ¡ báº£n nhÆ° {MÃ£ Ä‘Æ¡n, Thá»i gian, KhÃ¡ch hÃ ng, NhÃ¢n viÃªn, Tá»•ng tiá»n, Sá»‘ lÆ°á»£ng, Tráº¡ng thÃ¡i Ä‘Æ¡n,Tráº¡ng thÃ¡i thanh toÃ¡n, Thao tÃ¡c (Xem, Chá» xá»­ lÃ­ => náº¿u lÃ  Ä‘Æ°Æ¡n online, )}*@
 
-    <OrderTable 
-        listOrders="@listOrders" 
-        currentPage="@currentPage" 
-        totalPages="@totalPages"
-        ViewOrderDetail="ViewOrderDetail"
-        onPageChange="@(page => OnPageChanged(page))"
-        OnReload="ReloadOrders"
-         />
+    <OrderTable listOrders="@listOrders" currentPage="@currentPage" totalPages="@totalPages"
+        ViewOrderDetail="ViewOrderDetail" onPageChange="@(page => OnPageChanged(page))" OnReload="ReloadOrders" />
 
 
 
@@ -119,90 +94,65 @@
 @code {
 
 
-    // Biáº¿n Ä‘iá»u khiá»ƒn hiá»ƒn thá»‹ modal khÃ¡ch hÃ ng, sáº£n pháº©m vÃ  form Ä‘Æ¡n hÃ ng
     bool showOrderModel = false;
 
-    // Cháº¿ Ä‘á»™ form Ä‘Æ¡n hÃ ng: "create" hoáº·c "detail"
     string ordersFormMode = "create";
 
-    // ÄÆ¡n hÃ ng hiá»‡n táº¡i => currentOrder
     OrderDTO? currentOrder = null;
 
 
-    // Sáº£n pháº©m Ä‘Æ°á»£c chá»n => selectedProduct
     ProductDTO? selectedProduct = null;
-    // Danh sÃ¡ch sáº£n pháº©m trong Ä‘Æ¡n => listOrderProducts
     List<OrderItemReponse> listOrderProducts = new();
 
-    // KhÃ¡ch hÃ ng Ä‘Æ°á»£c chá»n => selectedCustomer
-    // ThÃ´ng tin thanh toÃ¡n Ä‘Æ°á»£c chá»n => payment
-    // ThÃ´ng tin khuyáº¿n mÃ£i cá»§a Ä‘Æ¡n => promotion
     PromotionDTO? promotion = null;
 
 
-    // Danh sÃ¡ch Ä‘Æ¡n hÃ ng => listOrders
     List<OrderDTO> listOrders = new();
 
-    // Trang hiá»‡n táº¡i => currentPage
     int currentPage = 1;
-    // KÃ­ch thÆ°á»›c trang => pageSize
     int pageSize = 10;
-    // Tá»•ng trang => totalPages
     int totalPages = 1;
 
-    // Tráº¡ng thÃ¡i Ä‘Æ¡n hÃ ng Ä‘ang Ä‘Æ°á»£c chá»n Ä‘á»ƒ lá»c => selectedStatus
     string selectedStatus = "";
-    // NgÃ y báº¯t Ä‘áº§u Ä‘Æ°á»£c chá»n Ä‘á»ƒ lá»c => selectedStartDate
     DateTime? selectedStartDate = null;
-    // NgÃ y káº¿t thÃºc Ä‘Æ°á»£c chá»n Ä‘á»ƒ lá»c => selectedEndDate
     DateTime? selectedEndDate = null;
-    // Tá»« khÃ³a tÃ¬m kiáº¿m => searchKeyword
     string searchKeyword = "";
-
-
-    /**
-    * Láº¥y danh sÃ¡ch cÃ³ phÃ¢n trang nÃ¢ng cao (PhÃ¢n trang bÃ¬nh thÆ°á»ng, lá»c theo tráº¡ng thÃ¡i Ä‘Æ¡n hÃ ng, lá»c theo ngÃ y báº¯t Ä‘áº§u káº¿t
-thÃºc, tÃ¬m kiáº¿m )
-*/
     async Task LoadOrdersAdvanced()
     {
         var response = await _ordersClient.LoadOrdersAdvanced(
-            currentPage,
-            pageSize,
-            selectedStatus,
-            selectedStartDate,
-            selectedEndDate,
-            searchKeyword
+        currentPage,
+        pageSize,
+        selectedStatus,
+        selectedStartDate,
+        selectedEndDate,
+        searchKeyword
         );
 
         listOrders = response.Items;
         totalPages = response.TotalPages;
     }
 
-    //Xem chi tiáº¿t Ä‘on hÃ ng
-    async Task ViewOrderDetail(OrderDTO order){
+    async Task ViewOrderDetail(OrderDTO order)
+    {
         currentOrder = order;
         ordersFormMode = "detail";
-        // Láº¥y danh sÃ¡ch sáº£n pháº©m cá»§a Ä‘Æ¡n hÃ ng
         listOrderProducts = await _ordersClient.GetOrderItemsByOrderIdAsync(order.Id);
 
-        //Láº¥y thÃ´ng tin khuyáº¿n mÃ£i náº¿u cÃ³
-        if (order.PromotionId != null){
+        if (order.PromotionId != null)
+        {
             promotion = await _ordersClient.GetPromotionByIdAsync(order.PromotionId.Value);
         }
-        
+
         showOrderModel = true;
         StateHasChanged();
     }
 
 
-    //Xuáº¥t hiá»‡n thÃ´ng bÃ¡o
     async Task ShowAlert(string message)
     {
         await JS.InvokeVoidAsync("alert", message);
     }
 
-    // Xá»­ lÃ½ khi tráº¡ng thÃ¡i lá»c thay Ä‘á»•i
     async Task OnStatusChanged(ChangeEventArgs e)
     {
         selectedStatus = e.Value?.ToString() ?? "";
@@ -213,7 +163,6 @@ thÃºc, tÃ¬m kiáº¿m )
     }
 
 
-    // Lá»c theo ngÃ y
     async Task FilterByDate()
     {
         if (selectedStartDate != null && selectedEndDate != null && selectedStartDate > selectedEndDate)
@@ -233,10 +182,10 @@ thÃºc, tÃ¬m kiáº¿m )
     {
         if (string.IsNullOrWhiteSpace(searchKeyword))
         {
-            ShowAlert("KhÃ´ng Ä‘á»ƒ rá»—ng tá»« khÃ³a tÃ¬m kiáº¿m");
+            ShowAlert("Không để rỗng từ khóa tìm kiếm");
             return;
         }
-        
+
 
         currentPage = 1;
         await LoadOrdersAdvanced();
@@ -249,25 +198,25 @@ thÃºc, tÃ¬m kiáº¿m )
     }
     private async Task ReloadOrders()
     {
-        await LoadOrdersAdvanced(); 
-    }
-
-
-    // Hiá»ƒn thá»‹ danh sÃ¡ch Ä‘Æ¡n hÃ ng khi trang Ä‘Æ°á»£c táº£i
-protected override async Task OnInitializedAsync()
-    {
-        // Táº£i dá»¯ liá»‡u láº§n Ä‘áº§u ngay khi component Ä‘Æ°á»£c khá»Ÿi táº¡o
         await LoadOrdersAdvanced();
     }
 
-    // Xá»­ táº¡o Ä‘Æ¡n hÃ ng má»›i
+
+    // Hiển thị danh sách đơn hàng khi trang được tải
+    protected override async Task OnInitializedAsync()
+    {
+        // Tải dữ liệu lần đầu ngay khi component được khởi tạo
+        await LoadOrdersAdvanced();
+    }
+
+    // Tạo đơn hàng mới
     async Task CreateNewOrder()
     {
         ordersFormMode = "create";
-        //Gá»i má»™t Ä‘Æ¡n táº¡m vá»Ÿi server Ä‘á»ƒ láº¥y id Ä‘Æ¡n hÃ ng má»›i
+        //Gọi một đơn tạm với server để lấy id đơn hàng mới
         currentOrder = await _ordersClient.CreateTemporaryOrderAsync();
         listOrderProducts.Clear();
-        selectedProduct=null;
+        selectedProduct = null;
         promotion = null;
         showOrderModel = true;
     }
@@ -275,206 +224,225 @@ protected override async Task OnInitializedAsync()
     void HandleOrderChanged(OrderDTO updatedOrder)
     {
         currentOrder = updatedOrder;
-       
+
     }
 
-    // Táº¡o Ä‘Æ¡n hÃ ng má»›i 
-    async Task createNewOrder (){
-        if (listOrderProducts.Count==0){
-            ShowAlert("Vui lÃ²ng chá»n sáº£n pháº©m Ä‘á»ƒ mua");
+    // Tạo đơn hàng mới
+    async Task createNewOrder()
+    {
+        if (listOrderProducts.Count == 0)
+        {
+            ShowAlert("Vui lòng chọn sản phẩm để mua");
             return;
 
         }
-        // In ra console.log cá»§a trÃ¬nh duyá»‡t
-        JS.InvokeVoidAsync("console.log", "ÄÆ¡n hÃ ng:", currentOrder);
-        
-        if(currentOrder.PaymentMethod=="cash"){
-            currentOrder.Status="completed";
+        // In ra console.log của trình duyệt
+        JS.InvokeVoidAsync("console.log", "Đơn hàng:", currentOrder);
+
+        if (currentOrder.PaymentMethod == "cash")
+        {
+            currentOrder.Status = "completed";
         }
-      
+
 
         var savedOrder = await _ordersClient.SaveFinalOrderAsync(currentOrder);
-        if(savedOrder == null){
-            JS.InvokeVoidAsync("console.log", "Luu order bi loi");
-            return ;
+        if (savedOrder == null)
+        {
+            JS.InvokeVoidAsync("console.log", "Lưu order bị lỗi");
+            return;
         }
         currentOrder = savedOrder;
 
 
 
         listOrderProducts?.ForEach(item => item.orderid = currentOrder.Id);
-        JS.InvokeVoidAsync("console.log", "Danh sÃ¡ch sáº£n pháº©m muá»‘n mua:", listOrderProducts);
-        bool result2= await _ordersClient.SaveListOrderItem (listOrderProducts);
-        if(result2==false){
-            return ;
+        JS.InvokeVoidAsync("console.log", "Danh sách sản phẩm mới mua:", listOrderProducts);
+        bool result2 = await _ordersClient.SaveListOrderItem(listOrderProducts);
+        if (result2 == false)
+        {
+            return;
         }
-        List <ReduceInventoryDto> reducelist=preparedListReduceInventoryDto(listOrderProducts);
-        bool result3= await _ordersClient.ReduceMultipleAsync(reducelist);
-        if(result3==false){
-            return ;
+        List<ReduceInventoryDto> reducelist = preparedListReduceInventoryDto(listOrderProducts);
+        bool result3 = await _ordersClient.ReduceMultipleAsync(reducelist);
+        if (result3 == false)
+        {
+            return;
         }
 
-        if(currentOrder.PromotionId!=null){
+        if (currentOrder.PromotionId != null)
+        {
             // Apply Promotion
-            ApplyPromotionRequest requesst=preparedPromotion (currentOrder);
-            bool result4=await _ordersClient.ApplyPromotionAsync(requesst);
-            if(result4==false){
-                return ;
+            ApplyPromotionRequest requesst = preparedPromotion(currentOrder);
+            bool result4 = await _ordersClient.ApplyPromotionAsync(requesst);
+            if (result4 == false)
+            {
+                return;
             }
         }
 
         PaymentResult paymentResult;
-        if (currentOrder.PaymentMethod=="cash"){
-            paymentResult= await _ordersClient.PayOfflineAsync(currentOrder.Id, currentOrder.TotalAmount);
-            if(paymentResult.Success==false){
+        if (currentOrder.PaymentMethod == "cash")
+        {
+            paymentResult = await _ordersClient.PayOfflineAsync(currentOrder.Id, currentOrder.TotalAmount);
+            if (paymentResult.Success == false)
+            {
 
-                return ;
-            }else{
-                ShowAlert("ÄÃ£ táº¡o Ä‘Æ¡n hÃ ng thÃ nh cÃ´ng");
-              
+                return;
             }
-        }else{
-            paymentResult=await _ordersClient.PayWithMomoAsync(currentOrder.Id, currentOrder.TotalAmount);
-                if(paymentResult.Success==false){
-                JS.InvokeVoidAsync("console.log", $"Lá»—i thanh toÃ¡n MoMo: {paymentResult.Message}");
-                return ;
-            }else{
-                ShowAlert("ÄÃ£ táº¡o Ä‘Æ¡n hÃ ng thÃ nh cÃ´ng");
-               
+            else
+            {
+                ShowAlert("Đã tạo đơn hàng thành công");
+
+            }
+        }
+        else
+        {
+            paymentResult = await _ordersClient.PayWithMomoAsync(currentOrder.Id, currentOrder.TotalAmount);
+            if (paymentResult.Success == false)
+            {
+                JS.InvokeVoidAsync("console.log", $"Lỗi thanh toán MoMo: {paymentResult.Message}");
+                return;
+            }
+            else
+            {
+                ShowAlert("Đã tạo đơn hàng thành công");
+
             }
 
         }
-        bool wantPrint = await JS.InvokeAsync<bool>("confirm", "Báº¡n cÃ³ muá»‘n in hÃ³a Ä‘Æ¡n khÃ´ng?");
-        if (wantPrint){
-            await  PrintInvoiceAsync(currentOrder, listOrderProducts);
+        bool wantPrint = await JS.InvokeAsync<bool>("confirm", "Bạn có muốn in hóa đơn không?");
+        if (wantPrint)
+        {
+            await PrintInvoiceAsync(currentOrder, listOrderProducts);
         }
-    
-        showOrderModel=false;
-        
+
+        showOrderModel = false;
+
 
     }
 
 
 
     // Chuáº©n bá»‹ ApplyPromotionRequest
-    public ApplyPromotionRequest preparedPromotion (OrderDTO order){
-        return new ApplyPromotionRequest{
+    public ApplyPromotionRequest preparedPromotion(OrderDTO order)
+    {
+        return new ApplyPromotionRequest
+        {
             PromotionId = order.PromotionId ?? 0,
-            OrderId=order.Id,
-            CustomerId=order.CustomerId
+            OrderId = order.Id,
+            CustomerId = order.CustomerId
 
         };
 
     }
 
-    // Chuáº©n bá»‹ List ReduceInventoryDto
-    public List<ReduceInventoryDto> preparedListReduceInventoryDto(List<OrderItemReponse> items){
-        List <ReduceInventoryDto> list=new List<ReduceInventoryDto>();
-        foreach (var item in items){
-            list.Add(new ReduceInventoryDto{
-                ProductId=item.id,
-                Quantity=item.qty
+    public List<ReduceInventoryDto> preparedListReduceInventoryDto(List<OrderItemReponse> items)
+    {
+        List<ReduceInventoryDto> list = new List<ReduceInventoryDto>();
+        foreach (var item in items)
+        {
+            list.Add(new ReduceInventoryDto
+            {
+                ProductId = item.id,
+                Quantity = item.qty
             });
         }
         return list;
 
     }
 
-    // HÃ m in hÃ³a Ä‘Æ¡n 
     public async Task PrintInvoiceAsync(OrderDTO order, List<OrderItemReponse> items)
     {
         Func<decimal, string> fmt = (num) =>
-            string.Format(new System.Globalization.CultureInfo("vi-VN"), "{0:C0}", num);
+        string.Format(new System.Globalization.CultureInfo("vi-VN"), "{0:C0}", num);
 
         string rows = "";
         foreach (var p in items)
         {
             rows += $@"
-                <tr>
-                    <td style='text-align:left; padding-left:10px;'>{p.product}</td>
-                    <td>{p.qty}</td>
-                    <td>{fmt(p.price)}</td>
-                    <td>{fmt(p.total)}</td>
-                </tr>";
+<tr>
+<td style='text-align:left; padding-left:10px;'>{p.product}</td>
+<td>{p.qty}</td>
+<td>{fmt(p.price)}</td>
+<td>{fmt(p.total)}</td>
+</tr>";
         }
 
         string promotionHtml = "";
         if (!string.IsNullOrEmpty(order.PromotionCode))
         {
             promotionHtml = $@"
-                <div style='color:red; font-weight:bold; margin-top:5px;'>
-                    Khuyáº¿n mÃ£i ({order.PromotionCode}): -{fmt(order.Discount)}
-                </div>";
+<div style='color:red; font-weight:bold; margin-top:5px;'>
+Khuyáº¿n mÃ£i ({order.PromotionCode}): -{fmt(order.Discount)}
+</div>";
         }
 
         string paymentHtml = order.PaymentMethod?.ToLower() switch
         {
             "cash" => "TIá»€N Máº¶T",
             "momo" => "MOMO",
-            _       => (order.PaymentMethod ?? "cash").ToUpper()
+            _ => (order.PaymentMethod ?? "cash").ToUpper()
         };
 
         string html = $@"
-        <!DOCTYPE html>
-        <html><head>
-        <meta charset='utf-8'>
-        <title>HÃ³a Ä‘Æ¡n #{order.OrderNumber ?? order.Id.ToString()}</title>
+<!DOCTYPE html>
+<html><head>
+<meta charset='utf-8'>
+<title>Hóa đơn #{order.OrderNumber ?? order.Id.ToString()}</title>
 
-        <style>
-        body {{ font-family: Arial, sans-serif; margin: 20px; font-size: 14px; }}
-        h2 {{ text-align: center; color: #1a9a7d; margin: 0 0 15px 0; }}
-        .info {{ margin: 4px 0; }}
-        table {{ width: 100%; border-collapse: collapse; margin: 15px 0; }}
-        th, td {{ border: 1px solid #000; padding: 8px; text-align: center; }}
-        th {{ background: #f0f0f0; }}
-        .total {{ text-align: right; font-weight: bold; font-size: 18px; margin-top: 10px; }}
-        .footer {{ margin-top: 40px; text-align: center; font-size: 18px; font-weight: bold; }}
-        </style>
+<style>
+body {{ font-family: Arial, sans-serif; margin: 20px; font-size: 14px; }}
+h2 {{ text-align: center; color: #1a9a7d; margin: 0 0 15px 0; }}
+.info {{ margin: 4px 0; }}
+table {{ width: 100%; border-collapse: collapse; margin: 15px 0; }}
+th, td {{ border: 1px solid #000; padding: 8px; text-align: center; }}
+th {{ background: #f0f0f0; }}
+.total {{ text-align: right; font-weight: bold; font-size: 18px; margin-top: 10px; }}
+.footer {{ margin-top: 40px; text-align: center; font-size: 18px; font-weight: bold; }}
+</style>
 
-        </head><body>
-        <h2>PHIáº¾U THANH TOÃN</h2>
+</head><body>
+<h2>PHIẾU THANH TOÁN</h2>
 
-        <div class='info'><strong>MÃ£ Ä‘Æ¡n:</strong> #{order.OrderNumber ?? order.Id.ToString()}</div>
-        <div class='info'><strong>KhÃ¡ch hÃ ng:</strong> {(order.CustomerName)}</div>
-        <div class='info'><strong>Thá»i gian:</strong> {DateTime.Now:dd/MM/yyyy HH:mm:ss}</div>
+<div class='info'><strong>Mã đơn:</strong> #{order.OrderNumber ?? order.Id.ToString()}</div>
+<div class='info'><strong>Khách hàng:</strong> {(order.CustomerName)}</div>
+<div class='info'><strong>Thời gian:</strong> {DateTime.Now:dd/MM/yyyy HH:mm:ss}</div>
+<table>
+<tr><th>Sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr>
+{rows}
+</table>
 
-        <table>
-            <tr><th>Sáº£n pháº©m</th><th>SL</th><th>ÄÆ¡n giÃ¡</th><th>ThÃ nh tiá»n</th></tr>
-            {rows}
-        </table>
+<div class='total'>TỔNG TIỀN: {fmt(order.TotalAmount)}</div>
+{promotionHtml}
 
-        <div class='total'>Tá»”NG TIá»€N: {fmt(order.TotalAmount)}</div>
+<div style='margin-top:15px; font-size:17px; font-weight:bold;'>
+Thanh toán: {paymentHtml}
+</div>
 
-        {promotionHtml}
-
-        <div style='margin-top:15px; font-size:17px; font-weight:bold;'>
-            Thanh toÃ¡n: {paymentHtml}
-        </div>
-
-        <div class='footer'>Cáº¢M Æ N QUÃ KHÃCH!<br>Háº¸N Gáº¶P Láº I</div>
-        </body></html>";
+<div class='footer'>CẢM ƠN QUÝ KHÁCH!<br>HẸN GẶP LẠI</div>
+</body></html>";
 
         string safeHtml = html.Replace("`", "\\`");
 
         string js = $@"
-            var iframe = document.createElement('iframe');
-            iframe.style.position = 'fixed';
-            iframe.style.right = '0';
-            iframe.style.bottom = '0';
-            iframe.style.width = '0';
-            iframe.style.height = '0';
-            iframe.style.border = 'none';
-            document.body.appendChild(iframe);
+var iframe = document.createElement('iframe');
+iframe.style.position = 'fixed';
+iframe.style.right = '0';
+iframe.style.bottom = '0';
+iframe.style.width = '0';
+iframe.style.height = '0';
+iframe.style.border = 'none';
+document.body.appendChild(iframe);
 
-            var doc = iframe.contentWindow.document;
-            doc.open();
-            doc.write(`{safeHtml}`);
-            doc.close();
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
+var doc = iframe.contentWindow.document;
+doc.open();
+doc.write(`{safeHtml}`);
+doc.close();
+iframe.contentWindow.focus();
+iframe.contentWindow.print();
 
-            iframe.contentWindow.onafterprint = () => document.body.removeChild(iframe);
-        ";
+iframe.contentWindow.onafterprint = () => document.body.removeChild(iframe);
+";
 
         await JS.InvokeVoidAsync("eval", js);
     }
