@@ -1,4 +1,5 @@
-@* Centralized route guard *@
+@* Components/Auth/AuthorizedRouteView.razor *@
+@using Microsoft.AspNetCore.Components.Rendering
 @using Blazored.LocalStorage
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager Nav
@@ -17,17 +18,20 @@ else
             <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
-            <p class="text-muted">Đang tải...</p>
+            <p class="text-muted">Äang táº£i...</p>
         </div>
     </div>
 }
 
 @code {
-    [Parameter] public RouteData RouteData { get; set; } = default!;
-    [Parameter] public Type? DefaultLayout { get; set; }
+    [Parameter]
+    public RouteData RouteData { get; set; } = default!;
 
-    private bool isChecked;
-    private bool isAuthorized;
+    [Parameter]
+    public Type? DefaultLayout { get; set; }
+
+    private bool isChecked = false;
+    private bool isAuthorized = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -39,22 +43,12 @@ else
 
     private async Task CheckAuthorizationAsync()
     {
-        var path = Nav.ToBaseRelativePath(Nav.Uri).Trim('/').ToLowerInvariant();
+        var path = Nav.ToBaseRelativePath(Nav.Uri).ToLower();
 
-        // Public routes (không cần auth). Thêm/bớt tại đây để kiểm soát.
-        var publicPrefixes = new[]
-        {
-            "login",
-            "admin/login",
-            "register",
-            "",
-            "store",
-            "store/products"
-        };
+        // CÃ¡c trang cÃ´ng khai khÃ´ng cáº§n auth
+        var publicPages = new[] { "login", "admin/login", "register", "store", "store/products" };
 
-        var isPublic = publicPrefixes.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase));
-
-        if (isPublic)
+        if (publicPages.Any(p => path.StartsWith(p)))
         {
             try
             {
@@ -62,6 +56,7 @@ else
                 if (!string.IsNullOrEmpty(token))
                 {
                     var role = await LocalStorage.GetItemAsStringAsync("userRole");
+
                     if (path.StartsWith("admin/login"))
                     {
                         if (role == "admin" || role == "staff")
@@ -70,14 +65,14 @@ else
                             return;
                         }
                     }
-                    else if (path.StartsWith("login"))
+                    else if (path.StartsWith("login") && !path.StartsWith("admin/login"))
                     {
                         if (role == "customer")
                         {
                             Nav.NavigateTo("/store", forceLoad: true);
                             return;
                         }
-                        if (role == "admin" || role == "staff")
+                        else if (role == "admin" || role == "staff")
                         {
                             Nav.NavigateTo("/admin/home", forceLoad: true);
                             return;
@@ -93,20 +88,15 @@ else
             return;
         }
 
+        // CÃ¡c trang khÃ¡c cáº§n auth
         try
         {
             var token = await LocalStorage.GetItemAsStringAsync("authToken");
             var role = await LocalStorage.GetItemAsStringAsync("userRole");
 
-            if (string.IsNullOrEmpty(token))
-            {
-                Nav.NavigateTo("/login", forceLoad: true);
-                return;
-            }
-
             if (path.StartsWith("admin"))
             {
-                if (role != "admin" && role != "staff")
+                if (string.IsNullOrEmpty(token) || (role != "admin" && role != "staff"))
                 {
                     Nav.NavigateTo("/admin/login", forceLoad: true);
                     return;
@@ -114,14 +104,29 @@ else
             }
             else if (path.StartsWith("store"))
             {
-                if (!string.Equals(role, "customer", StringComparison.OrdinalIgnoreCase))
+                var isPublicStore = path == "store" || path.StartsWith("store/products");
+                if (isPublicStore && string.IsNullOrEmpty(token))
+                {
+                    isAuthorized = true;
+                    isChecked = true;
+                    StateHasChanged();
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(token) || role != "customer")
                 {
                     Nav.NavigateTo("/login", forceLoad: true);
                     return;
                 }
             }
-            else if (string.IsNullOrEmpty(path))
+            else if (string.IsNullOrEmpty(path) || path == "/")
             {
+                if (string.IsNullOrEmpty(token))
+                {
+                    Nav.NavigateTo("/store", forceLoad: true);
+                    return;
+                }
+
                 if (role == "admin" || role == "staff")
                 {
                     Nav.NavigateTo("/admin/home", forceLoad: true);

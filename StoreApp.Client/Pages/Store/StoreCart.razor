@@ -269,7 +269,7 @@
         Navigation.NavigateTo("/api/store/products");
     }
 
-    //Chuy?n trang qua trang mua hàng = TUI ÐÃ S?A ? ÐÂY
+    // Chuyển trang qua mua hàng
     private async Task GoToCheckout()
     {
         if (selectedItems.Count == 0)
@@ -344,7 +344,7 @@
         // Không cho phép giảm xuống dưới 1
         if (item.Quantity <= 1)
         {
-            errorMessage = "S? lu?ng t?i thi?u là 1 s?n ph?m";
+            errorMessage = "Số lượng tối thiểu là 1 sản phẩm";
             errorProductId = productId;
             StateHasChanged();
             await Task.Delay(3000);

@@ -2,6 +2,7 @@
 @inject NavigationManager Navigation
 @inject IStoreCartService CartService
 @inject IOrdersClientService _ordersClient
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 @inject IJSRuntime JS
 @layout StoreLayout
 @using Microsoft.AspNetCore.WebUtilities
@@ -75,7 +76,7 @@
                         }
                         else
                         {
-                           
+
                             @foreach (var item in checkoutItems)
                             {
                                 <div class="flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition">
@@ -86,9 +87,9 @@
                                     </div>
                                     <span class="text-base font-semibold text-primaryDark whitespace-nowrap">@item.Total ₫</span>
                                 </div>
-                              
+
                             }
-                           
+
                             @* currentOrder.TotalAmount = tongTien + 30000; *@
 
                         }
@@ -118,8 +119,7 @@
 
                             @foreach (var item in promotions)
                             {
-                                <label
-                                    @onclick="() => HandleSelect(item)"
+                                <label @onclick="() => HandleSelect(item)"
                                     class="flex items-center justify-between p-4 border-2 border-orange-300 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition cursor-pointer">
                                     <div class="flex items-center gap-3">
                                         <div>
@@ -165,11 +165,8 @@
                         <label
                             class="flex items-center justify-between p-4 border-2 border-primary rounded-xl bg-primary/5">
                             <div class="flex items-center gap-3">
-                                <input 
-                                value="cash"
-                              
-                                @onchange="@(() => SetPaymentMethod("cash"))"
-                                type="radio" name="payment" class="w-4 h-4 text-primary" />
+                                <input value="cash" @onchange="@(() => SetPaymentMethod("cash"))" type="radio"
+                                    name="payment" class="w-4 h-4 text-primary" />
                                 <div>
                                     <div class="font-medium text-base">Thanh toán khi nhận hàng (COD)</div>
                                     <div class="text-xs text-gray-600">Trả tiền mặt khi nhận hàng</div>
@@ -181,12 +178,9 @@
                         <label
                             class="flex items-center justify-between p-4 border-2 border-pink-400 rounded-xl hover:border-pink-500 hover:bg-pink-50 transition">
                             <div class="flex items-center gap-3">
-                                <input type="radio" 
-                                value="other" 
-                                checked="@(currentOrder.PaymentMethod == "other")"
-                                @onchange="@(() => SetPaymentMethod("other"))"
-                  
-                                name="payment" class="w-4 h-4 text-pink-600">
+                                <input type="radio" value="other" checked="@(currentOrder.PaymentMethod == "other")"
+                                    @onchange="@(() => SetPaymentMethod("other"))" name="payment"
+                                    class="w-4 h-4 text-pink-600">
                                 <div>
                                     <div class="font-medium text-pink-600 text-base">Ví Momo</div>
                                     <div class="text-xs text-gray-600">Nhận thêm ưu đãi từ Momo</div>
@@ -208,7 +202,7 @@
                             <span>Tạm tính</span>
                             <span id="subtotal" class="font-semibold">@currentOrder.Subtotal.ToString() ₫</span>
                         </div>
-                       
+
                         <div class="flex justify-between text-primary font-bold text-lg">
                             <span>Giảm giá</span>
                             <span id="discount">- @currentOrder.Discount ₫</span>
@@ -295,7 +289,7 @@
         {
             JS.InvokeVoidAsync("alert", "Mã giảm giá này chưa đến thời gian áp dụng!");
             ResetPromotionSelection();
-      
+
             return;
         }
 
@@ -304,7 +298,7 @@
         {
             JS.InvokeVoidAsync("alert", "Mã giảm giá này đã hết hạn!");
             ResetPromotionSelection();
-    
+
             return;
         }
 
@@ -338,7 +332,7 @@
         currentOrder.Discount = discountAmount;
         currentOrder.TotalAmount = subtotal - discountAmount;
 
-      
+
     }
     void ResetPromotionSelection()
     {
@@ -353,25 +347,31 @@
     {
         decimal tongTien = checkoutItems.Sum(item => item.Total);
 
-        
-        
+
+
         // Cập nhật Subtotal (chỉ tiền hàng)
         currentOrder.Subtotal = tongTien;
         currentOrder.TotalAmount = tongTien;
 
-        
+
     }
 
 
 
     protected override async Task OnInitializedAsync()
     {
+        if (!await IsCustomerLoggedIn())
+        {
+            Navigation.NavigateTo("/store", forceLoad: true);
+            return;
+        }
+
         promotions = await _ordersClient.GetListActivePromotion();
         currentOrder = await _ordersClient.CreateTemporaryOnlineOrderAsync();
         // Đọc URL để lấy danh sách ID được chọn từ giỏ hàng
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         var query = QueryHelpers.ParseQuery(uri.Query);
-        
+
 
         HashSet<int> selectedProductIds = new();
 
@@ -386,14 +386,6 @@
             }
         }
 
-        // Nếu không có ID nào → báo lỗi
-        if (selectedProductIds.Count == 0)
-        {
-            await JS.InvokeVoidAsync("alert", "Không có sản phẩm nào được chọn!");
-            Navigation.NavigateTo("/store/cart");
-            return;
-        }
-
         //Lấy toàn bộ giỏ hàng từ localStorage (qua CartService)
         var allItemsInCart = await CartService.GetCartItems();
 
@@ -402,132 +394,163 @@
         .Where(item => selectedProductIds.Contains(item.ProductId))
         .ToList();
 
-        // Nếu có id truyền qua mà không tìm thấy trong giỏ → có thể giỏ bị xóa giữa chừng
-        if (!checkoutItems.Any())
-        {
-            await JS.InvokeVoidAsync("alert", "Giỏ hàng đã thay đổi. Vui lòng quay lại giỏ hàng!");
-            Navigation.NavigateTo("/store/cart");
-            return;
-        }
-         CalculateOrderTotals();
+        CalculateOrderTotals();
 
         isLoading = false;
     }
 
     // Chuẩn bị dữ liệu để gửi lên db
-    private  List<OrderItemReponse> preparedListOrderItemResponse (List<CartItemDTO> list){
-        List<OrderItemReponse> listOrderItemReponse= new List<OrderItemReponse>();
-        foreach (var item in list){
-            listOrderItemReponse.Add(new OrderItemReponse{
-                id=item.ProductId,
-                orderid=currentOrder.Id,
-                qty=item.Quantity,
-                price=item.Price,
-                total=item.Total
+    private List<OrderItemReponse> preparedListOrderItemResponse(List<CartItemDTO> list)
+    {
+        List<OrderItemReponse> listOrderItemReponse = new List<OrderItemReponse>();
+        foreach (var item in list)
+        {
+            listOrderItemReponse.Add(new OrderItemReponse
+            {
+                id = item.ProductId,
+                orderid = currentOrder.Id,
+                qty = item.Quantity,
+                price = item.Price,
+                total = item.Total
             });
         }
         return listOrderItemReponse;
     }
 
     // Chuẩn bị ApplyPromotionRequest
-    public ApplyPromotionRequest preparedPromotion (OrderDTO order){
-        return new ApplyPromotionRequest{
+    public ApplyPromotionRequest preparedPromotion(OrderDTO order)
+    {
+        return new ApplyPromotionRequest
+        {
             PromotionId = order.PromotionId ?? 0,
-            OrderId=order.Id,
-            CustomerId=order.CustomerId
+            OrderId = order.Id,
+            CustomerId = order.CustomerId
 
         };
 
     }
 
-        // Chuẩn bị List ReduceInventoryDto
-    public List<ReduceInventoryDto> preparedListReduceInventoryDto(List<OrderItemReponse> items){
-        List <ReduceInventoryDto> list=new List<ReduceInventoryDto>();
-        foreach (var item in items){
-            list.Add(new ReduceInventoryDto{
-                ProductId=item.id,
-                Quantity=item.qty
+    // Chuẩn bị List ReduceInventoryDto
+    public List<ReduceInventoryDto> preparedListReduceInventoryDto(List<OrderItemReponse> items)
+    {
+        List<ReduceInventoryDto> list = new List<ReduceInventoryDto>();
+        foreach (var item in items)
+        {
+            list.Add(new ReduceInventoryDto
+            {
+                ProductId = item.id,
+                Quantity = item.qty
             });
         }
         return list;
 
     }
 
-    
 
 
-    async Task createNewOrder (){
+
+    async Task createNewOrder()
+    {
         // In ra console.log của trình duyệt
-        listOrderProducts=preparedListOrderItemResponse(checkoutItems);
+        listOrderProducts = preparedListOrderItemResponse(checkoutItems);
         JS.InvokeVoidAsync("console.log", "Đơn hàng:", currentOrder);
         JS.InvokeVoidAsync("console.log", "Danh sách sản phẩm muốn mua:", listOrderProducts);
 
         bool result = await _ordersClient.SaveFinalOrderAsync(currentOrder);
-        if(result==false){
+        if (result == false)
+        {
             JS.InvokeVoidAsync("console.log", "Lưu order bị lỗi");
-            return ;
+            return;
         }
-        bool result2= await _ordersClient.SaveListOrderItem (listOrderProducts);
-        if(result2==false){
+        bool result2 = await _ordersClient.SaveListOrderItem(listOrderProducts);
+        if (result2 == false)
+        {
             JS.InvokeVoidAsync("console.log", "Lưu danh sách item lỗi");
-            return ;
+            return;
         }
-        List <ReduceInventoryDto> reducelist=preparedListReduceInventoryDto(listOrderProducts);
-        bool result3= await _ordersClient.ReduceMultipleAsync(reducelist);
-        if(result3==false){
+        List<ReduceInventoryDto> reducelist = preparedListReduceInventoryDto(listOrderProducts);
+        bool result3 = await _ordersClient.ReduceMultipleAsync(reducelist);
+        if (result3 == false)
+        {
             JS.InvokeVoidAsync("console.log", "Giảm list sản phẩm lỗi");
-            return ;
+            return;
         }
-                
-        if(currentOrder.PromotionId!=null){
+
+        if (currentOrder.PromotionId != null)
+        {
             // Apply Promotion
-            ApplyPromotionRequest requesst=preparedPromotion (currentOrder);
-            bool result4=await _ordersClient.ApplyPromotionAsync(requesst);
-            if(result4==false){
+            ApplyPromotionRequest requesst = preparedPromotion(currentOrder);
+            bool result4 = await _ordersClient.ApplyPromotionAsync(requesst);
+            if (result4 == false)
+            {
                 JS.InvokeVoidAsync("console.log", "Apply khuyến mãi lỗi");
-                return ;
+                return;
             }
         }
 
         PaymentResult paymentResult;
-        if (currentOrder.PaymentMethod=="cash"){
-            paymentResult= await _ordersClient.PayCashInOnlineOrderAsync(currentOrder.Id, currentOrder.TotalAmount);
-            if(paymentResult.Success==false){
+        if (currentOrder.PaymentMethod == "cash")
+        {
+            paymentResult = await _ordersClient.PayCashInOnlineOrderAsync(currentOrder.Id, currentOrder.TotalAmount);
+            if (paymentResult.Success == false)
+            {
                 JS.InvokeVoidAsync("console.log", "Thanh toán ofline lỗi");
-                return ;
-            }else{
-                ShowAlert("Đã tạo đơn hàng thành công");
-            
+                return;
             }
-        }else{
-            paymentResult= await _ordersClient. PayWithMomoWitOnlineOrderAsync(currentOrder.Id, currentOrder.TotalAmount);
-            if(paymentResult.Success==false){
-                 JS.InvokeVoidAsync("console.log", $"Lỗi thanh toán MoMo: {paymentResult.Message}");
-                return ;
-            }else{
+            else
+            {
                 ShowAlert("Đã tạo đơn hàng thành công");
-             
-              
+
+            }
+        }
+        else
+        {
+            paymentResult = await _ordersClient.PayWithMomoWitOnlineOrderAsync(currentOrder.Id, currentOrder.TotalAmount);
+            if (paymentResult.Success == false)
+            {
+                JS.InvokeVoidAsync("console.log", $"Lỗi thanh toán MoMo: {paymentResult.Message}");
+                return;
+            }
+            else
+            {
+                ShowAlert("Đã tạo đơn hàng thành công");
+
+
             }
 
         }
 
-    // Lấy danh sách ProductId đã mua thành công từ listOrderProducts
+        // Lấy danh sách ProductId đã mua thành công từ listOrderProducts
         var purchasedProductIds = listOrderProducts.Select(x => x.id).ToList();
         // Chỉ xóa những món đã mua, giữ lại món chưa mua
         await CartService.RemovePurchasedItemsFromCart(purchasedProductIds);
-        GoToThankyou(currentOrder.Id.ToString()); 
+        GoToThankyou(currentOrder.Id.ToString());
 
-        
+
     }
 
     // Chuyển trang
-    private async Task GoToThankyou(String orderId) 
+    private async Task GoToThankyou(String orderId)
     {
 
         Navigation.NavigateTo($"/store/thankyou?orderId={orderId}");
-        
+
 
     }
-   
+
+    private async Task<bool> IsCustomerLoggedIn()
+    {
+        try
+        {
+            var token = await LocalStorage.GetItemAsStringAsync("authToken");
+            if (string.IsNullOrWhiteSpace(token)) return false;
+            var role = await LocalStorage.GetItemAsStringAsync("userRole");
+            return string.Equals(role?.Trim('\"'), "customer", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
 }
