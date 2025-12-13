@@ -17,7 +17,7 @@
 <div class="max-w-7xl mx-auto px-4 py-10 bg-gray-50 min-h-screen">
     <h2 class="text-3xl lg:text-4xl font-bold text-center text-gray-800 mb-10">Xác nhận & Thanh toán</h2>
 
-    @if (isLoading == true)
+    @if (isLoading == true || currentOrder == null)
     {
         <div class="text-center py-20">
             <p class="text-xl">Đang tải đơn hàng của bạn...</p>
@@ -38,19 +38,19 @@
                     </h3>
 
                     <div class="grid md:grid-cols-2 gap-4"> <!-- giảm gap-6 → gap-4 -->
-                        <input type="text" id="full_name" value="@currentOrder.CustomerName"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base"
+                        <input type="text" id="full_name" value="@currentOrder.CustomerName" disabled
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-600 cursor-not-allowed text-base"
                             required>
 
-                        <input type="tel" id="phone" value="@currentOrder.SoDienThoai"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base"
+                        <input type="tel" id="phone" value="@currentOrder.SoDienThoai" disabled
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-600 cursor-not-allowed text-base"
                             required>
 
-                        <input type="email" id="email" value="@(currentOrder.Email ?? "khachhang@gmail.com")"
-                            class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base">
+                        <input type="email" id="email" value="@(currentOrder.Email ?? "khachhang@gmail.com")" disabled
+                            class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-600 cursor-not-allowed text-base">
 
-                        <textarea id="address" rows="3"
-                        value="@(currentOrder.DiaChiKhachHang ?? "273 An Dương Vương, Phường Chợ Quán, TP. HCM")"
+                        <textarea id="address" rows="3" placeholder="Địa chỉ giao hàng"
+                        @bind="currentOrder.ShippingAddress"
                         class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base resize-none"
                         required></textarea>
 
@@ -419,6 +419,7 @@
             currentOrder.Email = profile.Email ?? currentOrder.Email;
             currentOrder.SoDienThoai = profile.Phone ?? currentOrder.SoDienThoai;
             currentOrder.DiaChiKhachHang = profile.Address ?? currentOrder.DiaChiKhachHang;
+            currentOrder.ShippingAddress = profile.Address ?? currentOrder.ShippingAddress;
         }
         else
         {

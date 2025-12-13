@@ -139,6 +139,7 @@ namespace StoreApp.Repository
                     TotalAmount = o.TotalAmount,
                     PromotionId = o.PromotionId,
                     Note = o.Note,
+                    ShippingAddress = o.ShippingAddress,
                     CreatedAt = o.CreatedAt,
                     UpdatedAt = o.UpdatedAt,
 
@@ -274,6 +275,7 @@ namespace StoreApp.Repository
                     TotalAmount = o.TotalAmount,
                     PromotionId = o.PromotionId,
                     Note = o.Note,
+                    ShippingAddress = o.ShippingAddress,
                     CreatedAt = o.CreatedAt,
                     UpdatedAt = o.UpdatedAt,
 
@@ -293,7 +295,7 @@ namespace StoreApp.Repository
                         ? o.Payments.FirstOrDefault()!.TransactionRef
                         : null,
                     
-                    DiaChiKhachHang = o.Customer != null ? o.Customer.Address : null,
+                    DiaChiKhachHang = o.ShippingAddress ?? (o.Customer != null ? o.Customer.Address : null),
                     SoDienThoai = o.Customer != null ? o.Customer.Phone : null,
                     Email=o.Customer != null ? o.Customer.Email : null
                     
@@ -324,6 +326,8 @@ namespace StoreApp.Repository
                     Discount = o.Discount,
                     TotalAmount = o.TotalAmount,
                     PromotionId = o.PromotionId,
+                    Note = o.Note,
+                    ShippingAddress = o.ShippingAddress,
                     PromotionCode = o.Promotion != null ? o.Promotion.Code : null,
                     CreatedAt = o.CreatedAt,
                     UpdatedAt = o.UpdatedAt,
@@ -331,7 +335,7 @@ namespace StoreApp.Repository
                     PaymentStatus = o.Payments.OrderByDescending(p => p.Id).Select(p => p.Status).FirstOrDefault(),
                     CustomerName = o.Customer != null ? o.Customer.FullName : null,
                     SoDienThoai = o.Customer != null ? o.Customer.Phone : null,
-                    DiaChiKhachHang = o.Customer != null ? o.Customer.Address : null
+                    DiaChiKhachHang = o.ShippingAddress ?? (o.Customer != null ? o.Customer.Address : null)
                 })
                 .ToListAsync();
         }

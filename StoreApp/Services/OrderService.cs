@@ -1,4 +1,4 @@
-﻿using StoreApp.Models;
+using StoreApp.Models;
 using StoreApp.Repository;
 using StoreApp.Shared;
 using System;
@@ -159,6 +159,7 @@ namespace StoreApp.Services
                 TotalAmount = 0m,
                 PromotionId = null,
                 Note = null,
+                ShippingAddress = customer.Address,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
 
@@ -222,6 +223,7 @@ namespace StoreApp.Services
                 TotalAmount = dto.TotalAmount,
                 PromotionId = dto.PromotionId,
                 Note = dto.Note,
+                ShippingAddress = dto.ShippingAddress,
                 CreatedAt = dto.CreatedAt,
                 UpdatedAt = dto.UpdatedAt
             };
@@ -253,6 +255,7 @@ namespace StoreApp.Services
                 TotalAmount = order.TotalAmount,
                 PromotionId = order.PromotionId,
                 Note = order.Note,
+                ShippingAddress = order.ShippingAddress,
                 CreatedAt = order.CreatedAt,
                 UpdatedAt = order.UpdatedAt,
                 CustomerName = order.Customer?.FullName,
