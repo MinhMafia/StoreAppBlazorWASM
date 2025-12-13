@@ -183,24 +183,63 @@ namespace StoreApp.Services.AI
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error preparing customer conversation");
-                    // Không block chat nếu lưu DB lỗi, tiếp tục chat bình thường
                 }
                 
                 yield return $"convId:{convId}|";
             }
 
-            var (kernel, chatCompletion) = CreateKernelWithPlugins(authenticatedCustomerId);
+            Kernel? kernel = null;
+            IChatCompletionService? chatCompletion = null;
+            string? initError = null;
+            
+            try
+            {
+                (kernel, chatCompletion) = CreateKernelWithPlugins(authenticatedCustomerId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create kernel");
+                initError = "⚠️ Không thể kết nối AI, vui lòng thử lại";
+            }
+            
+            if (initError != null)
+            {
+                yield return initError;
+                yield break;
+            }
+            
             var fullResponse = new StringBuilder();
             
             // Lấy tên khách hàng nếu đã đăng nhập
             string? customerName = null;
             if (authenticatedCustomerId.HasValue)
             {
-                customerName = await GetCustomerNameAsync(authenticatedCustomerId.Value);
+                try
+                {
+                    customerName = await GetCustomerNameAsync(authenticatedCustomerId.Value);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to get customer name");
+                }
+            }
+            
+            // Clean history trước khi build - loại bỏ markers từ lần chat trước
+            if (clientHistory != null)
+            {
+                foreach (var msg in clientHistory)
+                {
+                    if (!string.IsNullOrEmpty(msg.Content))
+                    {
+                        msg.Content = CleanMessageContent(msg.Content);
+                    }
+                }
             }
             
             var systemPrompt = GetCustomerSystemPrompt(authenticatedCustomerId.HasValue, customerName);
             var chatHistory = BuildManagedChatHistory(systemPrompt, clientHistory, userMessage);
+            
+            _logger.LogDebug("Built chat history with {Count} messages", chatHistory.Count);
 
             var settings = new OpenAIPromptExecutionSettings
             {
@@ -210,18 +249,21 @@ namespace StoreApp.Services.AI
 
             const int maxIterations = 10;
             int iteration = 0;
+            string? streamError = null;
 
-            while (iteration < maxIterations)
+            while (iteration < maxIterations && streamError == null)
             {
                 iteration++;
                 AuthorRole? authorRole = null;
                 var fccBuilder = new FunctionCallContentBuilder();
 
-                var streamingResponse = chatCompletion.GetStreamingChatMessageContentsAsync(
-                    chatHistory, settings, kernel, cancellationToken);
+                var streamingResponse = chatCompletion!.GetStreamingChatMessageContentsAsync(
+                    chatHistory, settings, kernel!, cancellationToken);
                 
                 await foreach (var chunk in streamingResponse)
                 {
+                    if (cancellationToken.IsCancellationRequested) break;
+                    
                     if (!string.IsNullOrEmpty(chunk.Content))
                     {
                         fullResponse.Append(chunk.Content);
@@ -235,6 +277,7 @@ namespace StoreApp.Services.AI
                 if (!functionCalls.Any()) break;
 
                 var funcNames = functionCalls.Select(f => f.FunctionName).Distinct().ToList();
+                _logger.LogInformation("Invoking functions: {Functions}", string.Join(", ", funcNames));
                 yield return $"\n\n⏳ *Đang tìm kiếm: {string.Join(", ", funcNames)}...*\n\n";
 
                 var assistantMessage = new ChatMessageContent(role: authorRole ?? AuthorRole.Assistant, content: null);
@@ -246,11 +289,14 @@ namespace StoreApp.Services.AI
                 {
                     try
                     {
+                        _logger.LogDebug("Invoking {Plugin}.{Function}", fc.PluginName, fc.FunctionName);
                         var result = await fc.InvokeAsync(kernel, cancellationToken);
+                        _logger.LogDebug("Function {Function} completed", fc.FunctionName);
                         return (fc, result, (Exception?)null);
                     }
                     catch (Exception ex)
                     {
+                        _logger.LogError(ex, "Function {Plugin}.{Function} failed", fc.PluginName, fc.FunctionName);
                         return (fc, (FunctionResultContent?)null, ex);
                     }
                 });
@@ -265,26 +311,7 @@ namespace StoreApp.Services.AI
                     }
                     else if (result != null)
                     {
-                        var resultValue = result.Result;
-                        string resultStr;
-                        
-                        if (resultValue == null)
-                        {
-                            resultStr = "";
-                        }
-                        else if (resultValue is string strVal)
-                        {
-                            resultStr = strVal;
-                        }
-                        else
-                        {
-                            resultStr = JsonSerializer.Serialize(resultValue, new JsonSerializerOptions 
-                            { 
-                                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                                WriteIndented = false 
-                            });
-                        }
-                        
+                        var resultStr = result.Result?.ToString() ?? "";
                         if (_tokenizer.CountTokens(resultStr) > AiConstants.MaxToolResultTokens)
                         {
                             var truncated = TruncateToolResult(resultStr);
@@ -292,7 +319,7 @@ namespace StoreApp.Services.AI
                         }
                         else
                         {
-                            chatHistory.Add(new FunctionResultContent(fc, resultStr).ToChatMessage());
+                            chatHistory.Add(result.ToChatMessage());
                         }
                     }
                 }
@@ -308,6 +335,26 @@ namespace StoreApp.Services.AI
                 }
                 catch { }
             }
+        }
+        
+        private static string CleanMessageContent(string content)
+        {
+            if (string.IsNullOrEmpty(content)) return content;
+            
+            // Remove [TOOL_COMPLETE] markers
+            content = content.Replace("[TOOL_COMPLETE]", "");
+            
+            // Remove loading indicators ⏳ *Đang tìm kiếm...*
+            content = System.Text.RegularExpressions.Regex.Replace(
+                content,
+                @"\n*⏳[^\n]*\n*",
+                ""
+            );
+            
+            // Normalize multiple newlines
+            content = System.Text.RegularExpressions.Regex.Replace(content, @"\n{3,}", "\n\n");
+            
+            return content.Trim();
         }
 
         public IAsyncEnumerable<string> ChatStreamAsync(

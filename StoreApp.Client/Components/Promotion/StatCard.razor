@@ -5,15 +5,15 @@
     [Parameter] public string Color { get; set; } = "blue";
 }
 
-<div class="w-full md:w-1/2 lg:w-1/4 px-3 mb-6">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow h-full">
+<div class="w-full">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow h-full">
         <div class="flex items-center">
-            <div class="shrink-0 @GetBgColor() rounded-lg p-3">
+            <div class="shrink-0 @GetBgColor() rounded-lg p-2">
                 @GetIconSvg()
             </div>
-            <div class="ml-4">
-                <p class="text-sm font-medium text-gray-600">@Label</p>
-                <p class="text-2xl font-semibold text-gray-900">@Value</p>
+            <div class="ml-3">
+                <p class="text-xs font-medium text-gray-600">@Label</p>
+                <p class="text-xl font-semibold text-gray-900">@Value</p>
             </div>
         </div>
     </div>
@@ -24,6 +24,7 @@
     {
         "blue" => "bg-blue-100",
         "green" => "bg-green-100",
+        "yellow" => "bg-yellow-100",
         "red" => "bg-red-100",
         "gray" => "bg-gray-100",
         _ => "bg-blue-100"
@@ -33,6 +34,7 @@
     {
         "blue" => "text-blue-600",
         "green" => "text-green-600",
+        "yellow" => "text-yellow-600",
         "red" => "text-red-600",
         "gray" => "text-gray-600",
         _ => "text-blue-600"
@@ -48,6 +50,9 @@
         </svg>,
         "clock" => @<svg class="w-6 h-6 @GetTextColor()" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>,
+        "calendar" => @<svg class="w-6 h-6 @GetTextColor()" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>,
         "x" => @<svg class="w-6 h-6 @GetTextColor()" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />

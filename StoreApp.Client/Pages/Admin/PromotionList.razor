@@ -1,38 +1,36 @@
 @page "/admin/promotions"
 @using StoreApp.Client.Services
 @using StoreApp.Shared
+@using StoreApp.Shared.Helpers
 @using StoreApp.Client.Components.Promotion
 @inject IPromotionService PromotionService
 @inject IJSRuntime JS
 
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-    <!-- Header -->
-    <div class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <h1 class="text-2xl font-bold text-gray-900">
-                    Quản lý Khuyến mãi
-                </h1>
-                <button @onclick="() => ShowCreateModal = true"
-                    class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl">
-                    <span class="flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
-                        Tạo khuyến mãi mới
-                    </span>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">
+                Quản lý Khuyến mãi
+            </h1>
+            <button @onclick="() => ShowCreateModal = true"
+                class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl">
+                <span class="flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Tạo khuyến mãi mới
+                </span>
+            </button>
+        </div>
+
         <!-- Statistics -->
-        <div class="flex flex-wrap -mx-3 mb-8">
-            <StatCard Icon="tag" Label="Tổng số" Value="@(Stats?.Total ?? 0)" Color="blue" />
-            <StatCard Icon="check" Label="Đang hoạt động" Value="@(Stats?.Active ?? 0)" Color="green" />
-            <StatCard Icon="clock" Label="Hết hạn" Value="@(Stats?.Expired ?? 0)" Color="red" />
-            <StatCard Icon="x" Label="Không hoạt động" Value="@(Stats?.Inactive ?? 0)" Color="gray" />
+        <div class="flex flex-wrap gap-3 mb-8">
+            <div class="flex-1 min-w-[140px]"><StatCard Icon="tag" Label="Tổng số" Value="@(Stats?.Total ?? 0)" Color="blue" /></div>
+            <div class="flex-1 min-w-[140px]"><StatCard Icon="check" Label="Đang hoạt động" Value="@(Stats?.Active ?? 0)" Color="green" /></div>
+            <div class="flex-1 min-w-[140px]"><StatCard Icon="calendar" Label="Chưa bắt đầu" Value="@(Stats?.Scheduled ?? 0)" Color="yellow" /></div>
+            <div class="flex-1 min-w-[140px]"><StatCard Icon="clock" Label="Hết hạn" Value="@(Stats?.Expired ?? 0)" Color="red" /></div>
+            <div class="flex-1 min-w-[140px]"><StatCard Icon="x" Label="Không hoạt động" Value="@(Stats?.Inactive ?? 0)" Color="gray" /></div>
         </div>
 
         <!-- Filters -->
@@ -52,6 +50,7 @@
                     class="block w-full lg:w-64 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
                     <option value="all">Tất cả trạng thái</option>
                     <option value="active">Đang hoạt động</option>
+                    <option value="scheduled">Chưa bắt đầu</option>
                     <option value="inactive">Không hoạt động</option>
                     <option value="expired">Hết hạn</option>
                 </select>
@@ -381,10 +380,7 @@
 
     private string FormatDate(DateTime? date)
     {
-        if (!date.HasValue) return "N/A";
-        // Convert UTC to Vietnam time (UTC+7)
-        var vnTime = date.Value.AddHours(7);
-        return vnTime.ToString("dd/MM/yyyy");
+        return DateTimeHelper.FormatVietnam(date);
     }
 
     private string GetTypeBadgeClass(string type)
@@ -403,7 +399,6 @@
 
     private RenderFragment GetStatusBadge(PromotionDTO promo)
     {
-        var now = DateTime.Now;
         string badgeClass;
         string text;
         
@@ -412,12 +407,12 @@
             badgeClass = "bg-gray-100 text-gray-800";
             text = "Không hoạt động";
         }
-        else if (promo.EndDate.HasValue && promo.EndDate.Value < now)
+        else if (DateTimeHelper.IsExpired(promo.EndDate))
         {
             badgeClass = "bg-red-100 text-red-800";
             text = "Hết hạn";
         }
-        else if (promo.StartDate.HasValue && promo.StartDate.Value > now)
+        else if (DateTimeHelper.IsScheduled(promo.StartDate))
         {
             badgeClass = "bg-yellow-100 text-yellow-800";
             text = "Chưa bắt đầu";

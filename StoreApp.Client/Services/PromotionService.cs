@@ -10,6 +10,7 @@ public class PromotionOverviewStats
 {
     public int Total { get; set; }
     public int Active { get; set; }
+    public int Scheduled { get; set; }
     public int Expired { get; set; }
     public int Inactive { get; set; }
 }

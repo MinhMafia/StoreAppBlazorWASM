@@ -1,9 +1,11 @@
 @using StoreApp.Shared
 
+
+
 <div class="flex flex-col h-full bg-white rounded-lg shadow">
     @* Header *@
-    <div class="flex items-center gap-3 px-6 py-4 border-b bg-blue-600 rounded-t-lg">
-        <button @onclick="OnBack" class="p-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white transition">
+    <div class="flex items-center gap-3 px-6 py-4 border-b bg-indigo-600 rounded-t-lg">
+        <button @onclick="OnBack" class="p-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white transition">
             @* ChevronLeft Icon - Lucide *@
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m15 18-6-6 6-6"></path>
@@ -18,7 +20,7 @@
     <div class="flex-1 overflow-y-auto p-4">
         @* Action Buttons *@
         <div class="flex gap-2 mb-4">
-            <button @onclick="OnNewConversation" class="flex-1 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg flex items-center justify-center gap-2 transition">
+            <button @onclick="OnNewConversation" class="flex-1 px-4 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg flex items-center justify-center gap-2 transition">
                 @* Plus Icon - Lucide *@
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M5 12h14"></path>
@@ -63,7 +65,7 @@
                 @foreach (var conv in Conversations)
                 {
                     <div @onclick="() => HandleLoadConversation(conv.Id)"
-                         class="p-3 rounded-lg cursor-pointer flex items-center justify-between group transition @(conv.Id == CurrentConversationId ? "bg-blue-100 border border-blue-300" : "bg-gray-50 hover:bg-gray-100")">
+                         class="conversation-item p-3 rounded-lg cursor-pointer flex items-center justify-between transition @(conv.Id == CurrentConversationId ? "bg-indigo-100 border border-indigo-300" : "bg-gray-50 hover:bg-gray-100")">
                         <div class="flex-1 min-w-0">
                             <p class="font-medium text-gray-800 truncate">
                                 @(conv.Title ?? "Cuộc hội thoại")
@@ -74,7 +76,7 @@
                         </div>
                         <button @onclick="(e) => HandleDeleteConversation(conv.Id, e)"
                                 @onclick:stopPropagation="true"
-                                class="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-100 text-red-500 transition">
+                                class="delete-btn p-2 rounded-lg hover:bg-red-100 text-red-500 shrink-0">
                             @* Trash2 Icon - Lucide *@
                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M3 6h18"></path>

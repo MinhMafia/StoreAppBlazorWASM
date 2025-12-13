@@ -1,6 +1,7 @@
 using StoreApp.Data;
 using StoreApp.Models;
 using StoreApp.Shared;
+using StoreApp.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace StoreApp.Repository
@@ -35,7 +36,8 @@ namespace StoreApp.Repository
             if (page < 1) page = 1;
             if (pageSize <= 0) pageSize = 20;
 
-            var now = DateTime.UtcNow;
+            // Sử dụng DateTimeHelper để thống nhất timezone
+            var vnToday = DateTimeHelper.VietnamToday;
             IQueryable<Promotion> query = _context.Promotions
                 .AsNoTracking()
                 .Where(p => !p.IsDeleted);
@@ -55,13 +57,27 @@ namespace StoreApp.Repository
                 switch (status.ToLower())
                 {
                     case "active":
-                        query = query.Where(p => p.Active && (!p.EndDate.HasValue || p.EndDate >= now));
+                        // "active" trong màn quản lý = đang chạy (theo ngày VN)
+                        query = query.Where(p =>
+                            p.Active &&
+                            (!p.StartDate.HasValue || p.StartDate.Value.Date <= vnToday) &&
+                            (!p.EndDate.HasValue || p.EndDate.Value.Date >= vnToday) &&
+                            (!p.UsageLimit.HasValue || p.UsedCount < p.UsageLimit));
                         break;
                     case "inactive":
                         query = query.Where(p => !p.Active);
                         break;
                     case "expired":
-                        query = query.Where(p => p.EndDate.HasValue && p.EndDate < now);
+                        // Hết hạn theo ngày VN
+                        query = query.Where(p => p.EndDate.HasValue && p.EndDate.Value.Date < vnToday);
+                        break;
+                    case "scheduled":
+                        // "scheduled" = đã bật nhưng chưa tới ngày bắt đầu (theo ngày VN)
+                        query = query.Where(p =>
+                            p.Active &&
+                            p.StartDate.HasValue && p.StartDate.Value.Date > vnToday &&
+                            (!p.EndDate.HasValue || p.EndDate.Value.Date >= vnToday) &&
+                            (!p.UsageLimit.HasValue || p.UsedCount < p.UsageLimit));
                         break;
                 }
             }
@@ -112,15 +128,8 @@ namespace StoreApp.Repository
         // Create promotion
         public async Task<Promotion> CreateAsync(Promotion promotion)
         {
-            // Bên tui bị xung đột
-            // var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-            // var vietnamTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone);
-
-            // promotion.CreatedAt = vietnamTime;
-            // promotion.UpdatedAt = vietnamTime;
-            promotion.CreatedAt = DateTime.UtcNow;
-            promotion.UpdatedAt = DateTime.UtcNow;
-
+            promotion.CreatedAt = DateTimeHelper.UtcNow;
+            promotion.UpdatedAt = DateTimeHelper.UtcNow;
 
             _context.Promotions.Add(promotion);
             await _context.SaveChangesAsync();
@@ -130,11 +139,7 @@ namespace StoreApp.Repository
         // Update promotion
         public async Task<Promotion> UpdateAsync(Promotion promotion)
         {
-            // var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-            // var vietnamTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone);
-
-            // promotion.UpdatedAt = vietnamTime;
-            promotion.UpdatedAt = DateTime.UtcNow;
+            promotion.UpdatedAt = DateTimeHelper.UtcNow;
             _context.Promotions.Update(promotion);
             await _context.SaveChangesAsync();
             return promotion;
@@ -146,13 +151,8 @@ namespace StoreApp.Repository
             var promotion = await _context.Promotions.FirstOrDefaultAsync(p => p.Id == id);
             if (promotion == null) return false;
 
-            // var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-            // var vietnamTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone);
-
-            // promotion.IsDeleted = true;
-            // promotion.DeletedAt = vietnamTime;
             promotion.IsDeleted = true;
-            promotion.DeletedAt = DateTime.UtcNow;
+            promotion.DeletedAt = DateTimeHelper.UtcNow;
             _context.Promotions.Update(promotion);
             await _context.SaveChangesAsync();
             return true;
@@ -161,13 +161,14 @@ namespace StoreApp.Repository
         // Get active promotions
         public async Task<List<Promotion>> GetActivePromotionsAsync()
         {
-            var now = DateTime.UtcNow;
+            // Sử dụng DateTimeHelper để thống nhất timezone
+            var vnToday = DateTimeHelper.VietnamToday;
             return await _context.Promotions
                 .AsNoTracking()
                 .Where(p => !p.IsDeleted &&
                            p.Active &&
-                           (p.StartDate == null || p.StartDate <= now) &&
-                           (p.EndDate == null || p.EndDate >= now) &&
+                           (p.StartDate == null || p.StartDate.Value.Date <= vnToday) &&
+                           (p.EndDate == null || p.EndDate.Value.Date >= vnToday) &&
                            (p.UsageLimit == null || p.UsedCount < p.UsageLimit))
                 .ToListAsync();
         }
@@ -190,12 +191,8 @@ namespace StoreApp.Repository
             var promotion = await _context.Promotions.FindAsync(promotionId);
             if (promotion == null) return false;
 
-            // var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-            // var vietnamTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone);
-
             promotion.UsedCount++;
-            // promotion.UpdatedAt = vietnamTime;
-            promotion.UpdatedAt = DateTime.UtcNow;
+            promotion.UpdatedAt = DateTimeHelper.UtcNow;
             await _context.SaveChangesAsync();
             return true;
         }
@@ -203,11 +200,7 @@ namespace StoreApp.Repository
         // Add redemption record
         public async Task<PromotionRedemption> AddRedemptionAsync(PromotionRedemption redemption)
         {
-            // var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-            // var vietnamTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone);
-
-            // redemption.RedeemedAt = vietnamTime;
-            redemption.RedeemedAt = DateTime.UtcNow;
+            redemption.RedeemedAt = DateTimeHelper.UtcNow;
             _context.PromotionRedemptions.Add(redemption);
             await _context.SaveChangesAsync();
             return redemption;
@@ -239,7 +232,7 @@ namespace StoreApp.Repository
                     PromotionId = promo.Id,
                     CustomerId = order.CustomerId,
                     OrderId = order.Id,
-                    RedeemedAt = DateTime.UtcNow
+                    RedeemedAt = DateTimeHelper.UtcNow
                 };
                 await _context.PromotionRedemptions.AddAsync(redemption);
 
