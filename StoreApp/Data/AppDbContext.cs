@@ -93,9 +93,9 @@ namespace StoreApp.Data
                 .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Order>()
-                .HasOne(o => o.User)
+                .HasOne(o => o.Staff)
                 .WithMany()
-                .HasForeignKey(o => o.UserId)
+                .HasForeignKey(o => o.StaffId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Order>()
@@ -195,11 +195,11 @@ namespace StoreApp.Data
                 .HasForeignKey(o => o.CustomerId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // User -> Orders, InventoryAdjustments, ActivityLogs
+            // User -> Orders (as Staff), InventoryAdjustments, ActivityLogs
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Orders)
-                .WithOne(o => o.User)
-                .HasForeignKey(o => o.UserId)
+                .WithOne(o => o.Staff)
+                .HasForeignKey(o => o.StaffId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<User>()

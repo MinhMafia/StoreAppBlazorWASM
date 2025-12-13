@@ -37,18 +37,6 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">
-                        <i class="bi bi-person-circle me-2"></i>Tên đăng nhập <span class="text-danger">*</span>
-                    </label>
-                    <InputText @bind-Value="registerRequest.Username" 
-                               class="form-control" 
-                               placeholder="vidu: nguyenvana123"
-                               disabled="@isLoading" />
-                    <ValidationMessage For="@(() => registerRequest.Username)" class="text-danger small" />
-                    <small class="text-muted">Chỉ chữ cái, số và dấu gạch dưới (_)</small>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
                         <i class="bi bi-person-fill me-2"></i>Họ và tên <span class="text-danger">*</span>
                     </label>
                     <InputText @bind-Value="registerRequest.FullName" 
@@ -58,10 +46,23 @@
                     <ValidationMessage For="@(() => registerRequest.FullName)" class="text-danger small" />
                 </div>
 
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-envelope-fill me-2"></i>Email <span class="text-danger">*</span>
+                    </label>
+                    <InputText @bind-Value="registerRequest.Email" 
+                               type="email"
+                               class="form-control" 
+                               placeholder="example@email.com"
+                               disabled="@isLoading" />
+                    <ValidationMessage For="@(() => registerRequest.Email)" class="text-danger small" />
+                    <small class="text-muted">Email sẽ được dùng để đăng nhập</small>
+                </div>
+
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-telephone-fill me-2"></i>Số điện thoại <span class="text-danger">*</span>
+                            <i class="bi bi-telephone-fill me-2"></i>Số điện thoại
                         </label>
                         <InputText @bind-Value="registerRequest.Phone" 
                                    class="form-control" 
@@ -72,27 +73,14 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-envelope-fill me-2"></i>Email <span class="text-danger">*</span>
+                            <i class="bi bi-geo-alt-fill me-2"></i>Địa chỉ
                         </label>
-                        <InputText @bind-Value="registerRequest.Email" 
-                                   type="email"
+                        <InputText @bind-Value="registerRequest.Address" 
                                    class="form-control" 
-                                   placeholder="example@email.com"
+                                   placeholder="Số nhà, đường, quận..."
                                    disabled="@isLoading" />
-                        <ValidationMessage For="@(() => registerRequest.Email)" class="text-danger small" />
+                        <ValidationMessage For="@(() => registerRequest.Address)" class="text-danger small" />
                     </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        <i class="bi bi-geo-alt-fill me-2"></i>Địa chỉ
-                    </label>
-                    <InputTextArea @bind-Value="registerRequest.Address" 
-                                   class="form-control" 
-                                   rows="2"
-                                   placeholder="Số nhà, đường, phường, quận, thành phố"
-                                   disabled="@isLoading" />
-                    <ValidationMessage For="@(() => registerRequest.Address)" class="text-danger small" />
                 </div>
 
                 <div class="mb-3">
@@ -177,7 +165,7 @@
             errorMessage = string.Empty;
             successMessage = string.Empty;
 
-            Console.WriteLine($"📝 Attempting to register customer: {registerRequest.Username}");
+            Console.WriteLine($"📝 Attempting to register customer: {registerRequest.Email}");
 
             var response = await Http.PostAsJsonAsync("api/auth/register-customer", registerRequest);
 
@@ -195,7 +183,7 @@
             else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
                 var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                errorMessage = error?.Message ?? "Tên đăng nhập, email hoặc số điện thoại đã được sử dụng";
+                errorMessage = error?.Message ?? "Email hoặc số điện thoại đã được sử dụng";
                 Console.WriteLine($"❌ Registration conflict: {errorMessage}");
             }
             else
@@ -225,7 +213,6 @@
     {
         public string Message { get; set; } = string.Empty;
         public int CustomerId { get; set; }
-        public int UserId { get; set; }
     }
 }
 

@@ -73,8 +73,13 @@ namespace StoreApp.Controllers
 
         private int? ResolveUserId()
         {
-            // Token uses "uid" claim; fallback to NameIdentifier for compatibility.
-            var idClaim = User?.FindFirst("uid")?.Value ?? User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            // Ưu tiên đọc customerId (cho customer JWT)
+            var customerIdClaim = User?.FindFirst("customerId")?.Value;
+            if (int.TryParse(customerIdClaim, out var customerId))
+                return customerId;
+
+            // Fallback: đọc ClaimTypes.NameIdentifier
+            var idClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (int.TryParse(idClaim, out var claimId))
                 return claimId;
 

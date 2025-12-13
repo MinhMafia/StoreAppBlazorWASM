@@ -69,7 +69,7 @@ namespace StoreApp.Repository
         {
             return await _context.Orders
                 .Include(o => o.Customer)
-                .Include(o => o.User)
+                .Include(o => o.Staff)
                 .Include(o => o.Promotion)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
@@ -86,7 +86,7 @@ namespace StoreApp.Repository
         {
             var query = _context.Orders
                 .Include(o => o.Customer)
-                .Include(o => o.User)
+                .Include(o => o.Staff)
                 .Include(o => o.Promotion)
                 .Include(o => o.Payments)           // 1-1 relationship
                 .AsQueryable();
@@ -114,7 +114,7 @@ namespace StoreApp.Repository
 
                 query = query.Where(o =>
                     (o.Customer != null && EF.Functions.Like(o.Customer.FullName.ToLower(), pattern)) ||
-                    (o.User != null && EF.Functions.Like(o.User.FullName.ToLower(), pattern))
+                    (o.Staff != null && EF.Functions.Like(o.Staff.FullName.ToLower(), pattern))
                 );
             }
 
@@ -132,7 +132,7 @@ namespace StoreApp.Repository
                     Id = o.Id,
                     OrderNumber = o.OrderNumber,
                     CustomerId = o.CustomerId,
-                    UserId = o.UserId,
+                    StaffId = o.StaffId,
                     Status = o.Status,
                     Subtotal = o.Subtotal,
                     Discount = o.Discount,
@@ -143,7 +143,7 @@ namespace StoreApp.Repository
                     UpdatedAt = o.UpdatedAt,
 
                     CustomerName = o.Customer != null ? o.Customer.FullName : null,
-                    UserName = o.User != null ? o.User.FullName : null,
+                    StaffName = o.Staff != null ? o.Staff.FullName : null,
                     PromotionCode = o.Promotion != null ? o.Promotion.Code : null,
 
                     PaymentMethod = o.Payments.FirstOrDefault() != null 
@@ -167,15 +167,15 @@ namespace StoreApp.Repository
 
 
         /// <summary>
-        /// Cập nhật user xử lý đơn hàng theo user_id bạn truyền vào.
+        /// Cập nhật staff xử lý đơn hàng theo staff_id bạn truyền vào.
         /// </summary>
-        public async Task<bool> UpdateOrderUserAsync(int orderId, int? newUserId)
+        public async Task<bool> UpdateOrderStaffAsync(int orderId, int? newStaffId)
         {
             var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
             if (order == null)
                 return false;
 
-            order.UserId = newUserId;
+            order.StaffId = newStaffId;
             order.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -255,7 +255,7 @@ namespace StoreApp.Repository
         {
             var query = _context.Orders
                 .Include(o => o.Customer)
-                .Include(o => o.User)
+                .Include(o => o.Staff)
                 .Include(o => o.Promotion)
                 .Include(o => o.Payments) // 1-n nhưng bạn đang dùng FirstOrDefault
                 .AsQueryable();
@@ -267,7 +267,7 @@ namespace StoreApp.Repository
                     Id = o.Id,
                     OrderNumber = o.OrderNumber,
                     CustomerId = o.CustomerId,
-                    UserId = o.UserId,
+                    StaffId = o.StaffId,
                     Status = o.Status,
                     Subtotal = o.Subtotal,
                     Discount = o.Discount,
@@ -278,7 +278,7 @@ namespace StoreApp.Repository
                     UpdatedAt = o.UpdatedAt,
 
                     CustomerName = o.Customer != null ? o.Customer.FullName : null,
-                    UserName = o.User != null ? o.User.FullName : null,
+                    StaffName = o.Staff != null ? o.Staff.FullName : null,
                     PromotionCode = o.Promotion != null ? o.Promotion.Code : null,
 
                     PaymentMethod = o.Payments.FirstOrDefault() != null

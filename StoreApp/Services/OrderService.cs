@@ -73,6 +73,21 @@ namespace StoreApp.Services
             throw new InvalidOperationException("Không tìm thấy user_id trong token");
         }
 
+        // Lấy CustomerId từ token (cho customer đã đăng nhập)
+        private int GetCurrentCustomerId()
+        {
+            var context = _httpContextAccessor.HttpContext;
+
+            if (context?.User?.Identity?.IsAuthenticated == true)
+            {
+                var claim = context.User.FindFirst("customerId");
+                if (claim != null && int.TryParse(claim.Value, out int id))
+                    return id;
+            }
+
+            throw new InvalidOperationException("Không tìm thấy customerId trong token");
+        }
+
         /*
             Phương thúc Tạo đơn hàng mới 
             Trả về object OrderDTO vừa tạo có 
@@ -87,7 +102,7 @@ namespace StoreApp.Services
                 CreatedAt, UpdatedAt: thời gian hiện tại
 
         */
-        // Hàm tạo đơn tạm cho khách khi mua online
+        // Hàm tạo đơn tạm cho đơn hàng POS (nhân viên tạo)
  
         public async Task<OrderDTO> CreateTemporaryOrderAsync()
         {
@@ -95,18 +110,18 @@ namespace StoreApp.Services
             int newId = maxId + 1;
             string orderCode = Guid.NewGuid().ToString();
 
-            // Lấy user_id thực tế
-            int userId = 2;
+            // Lấy staff_id thực tế
+            int staffId = 2;
             try
             {
-                userId=GetCurrentUserId();
+                staffId = GetCurrentUserId();
             }
             catch
             {
                 
             }
-            var user = await _userRepo.GetByIdAsync(userId);
-            string userName = user?.FullName ?? $"Nhân viên #{userId}";
+            var staff = await _userRepo.GetByIdAsync(staffId);
+            string staffName = staff?.FullName ?? $"Nhân viên #{staffId}";
 
             int customerId = 0;
             var customer = await _customerRepo.GetByIdAsync(customerId);
@@ -117,7 +132,7 @@ namespace StoreApp.Services
                 Id = newId,
                 OrderNumber = orderCode,
                 CustomerId = customerId,
-                UserId = userId,
+                StaffId = staffId,
                 Status = "pending",
                 Subtotal = 0m,
                 Discount = 0m,
@@ -127,7 +142,7 @@ namespace StoreApp.Services
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CustomerName = customerName,
-                UserName = userName,
+                StaffName = staffName,
                 PromotionCode = null,
                 PaymentMethod="cash",
                 PaymentStatus="pending",
@@ -139,24 +154,24 @@ namespace StoreApp.Services
 
         /// <summary>
         /// Tạo đơn hàng tạm thời cho khách mua online (đã đăng nhập)
-        /// - Customer: lấy từ UserId hiện tại trong token
-        /// - User (nhân viên): mặc định là 0 (hệ thống/online)
+        /// - Customer: lấy từ customerId trong token
+        /// - Staff: null (đơn online không có nhân viên)
         /// </summary>
         public async Task<OrderDTO> CreateTemporaryOnlineOrderAsync()
         {
-            // 1. Lấy UserId từ token (bắt buộc phải có, nếu không thì ném lỗi)
-            int userId=5;
+            // 1. Lấy CustomerId từ token
+            int customerId;
             try
             {
-                userId = GetCurrentUserId();
+                customerId = GetCurrentCustomerId();
             }
             catch
             {
-                throw new UnauthorizedAccessException("Không thể xác định người dùng hiện tại. Vui lòng đăng nhập lại.");
+                throw new UnauthorizedAccessException("Không thể xác định khách hàng. Vui lòng đăng nhập lại.");
             }
 
-            var customer = (await _customerRepo.GetByUserIdAsync(userId))
-               ?? throw new InvalidOperationException($"Không tìm thấy thông tin khách hàng cho userId {userId}");
+            var customer = (await _customerRepo.GetByIdAsync(customerId))
+               ?? throw new InvalidOperationException($"Không tìm thấy thông tin khách hàng cho customerId {customerId}");
 
 
             if (!customer.IsActive)
@@ -178,7 +193,7 @@ namespace StoreApp.Services
                 Id = newId,
                 OrderNumber = orderNumber,
                 CustomerId = customer.Id,                   
-                UserId = staffId,                            
+                StaffId = staffId,                            
                 Status = "pending",
                 Subtotal = 0m,
                 Discount = 0m,
@@ -195,7 +210,7 @@ namespace StoreApp.Services
                 DiaChiKhachHang = customer.Address,
 
                 // Thông tin nhân viên
-                UserName = staffName,
+                StaffName = staffName,
 
                 PromotionCode = null,
                 PaymentMethod = "cash",          
@@ -215,7 +230,7 @@ namespace StoreApp.Services
                 Id           = dto.Id,
                 OrderNumber  = dto.OrderNumber,
                 CustomerId   = dto.CustomerId,
-                UserId       = dto.UserId,
+                StaffId      = dto.StaffId,
                 Status       = dto.Status,
                 Subtotal     = dto.Subtotal,
                 Discount     = dto.Discount,
@@ -242,7 +257,7 @@ namespace StoreApp.Services
                 Id = order.Id,
                 OrderNumber = order.OrderNumber,
                 CustomerId = order.CustomerId ?? 0,
-                UserId = order.UserId,
+                StaffId = order.StaffId,
                 Status = order.Status,
                 Subtotal = order.Subtotal,
                 Discount = order.Discount,
@@ -252,7 +267,7 @@ namespace StoreApp.Services
                 CreatedAt = order.CreatedAt,
                 UpdatedAt = order.UpdatedAt,
                 CustomerName = order.Customer?.FullName,
-                UserName = order.User?.FullName,
+                StaffName = order.Staff?.FullName,
                 PromotionCode = order.Promotion?.Code
             };
         }
@@ -396,8 +411,8 @@ namespace StoreApp.Services
             if (existingOrder == null)
                 return false;
 
-            // 3. Ghi lại UserId vào order
-            await _orderRepo.UpdateOrderUserAsync(order.Id, currentUserId);
+            // 3. Ghi lại StaffId vào order
+            await _orderRepo.UpdateOrderStaffAsync(order.Id, currentUserId);
 
             // 4. Xử lý theo phương thức thanh toán
             string method = order.PaymentMethod?.ToLower();
@@ -442,8 +457,8 @@ namespace StoreApp.Services
             if (order == null)
                 return false;
 
-            // 3. Ghi lại ai là người hủy đơn
-            await _orderRepo.UpdateOrderUserAsync(orderId, currentUserId);
+            // 3. Ghi lại ai là người hủy đơn (staff)
+            await _orderRepo.UpdateOrderStaffAsync(orderId, currentUserId);
 
             // 4. Tiến hành hủy đơn
             return await _orderRepo.CancelOrderAsync(orderId);
