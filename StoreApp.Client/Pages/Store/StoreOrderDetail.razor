@@ -1,82 +1,179 @@
 @page "/store/orders/{OrderId:int}"
 @layout StoreLayout
 @using StoreApp.Shared
+@inject IOrdersClientService OrdersClientService
 
-<PageTitle>Chi tiết đơn hàng - Cửa Hàng Tiện Lợi</PageTitle>
+<PageTitle>Chi tiết đơn hàng - Cửa hàng tiện lợi</PageTitle>
 
-<div class="store-order-detail">
-    <div class="container">
-        <!-- Breadcrumb -->
-        <nav class="breadcrumb">
-            <a href="/store">Trang chủ</a> / 
-            <a href="/store/orders">Đơn hàng của tôi</a> / 
-            <span>Chi tiết</span>
-        </nav>
+<div class="max-w-5xl mx-auto px-4 py-8 space-y-4">
+    <nav class="text-sm text-gray-500">
+        <a class="hover:text-primary" href="/store">Trang chủ</a> /
+        <a class="hover:text-primary" href="/store/orders">Đơn hàng của tôi</a> /
+        <span>Chi tiết</span>
+    </nav>
 
-        <h1>Chi tiết đơn hàng #@OrderId</h1>
-
-        @if (order == null)
-        {
-            <div class="loading">
-                <p>Đang tải thông tin đơn hàng...</p>
-            </div>
-        }
-        else
-        {
-            <!-- Order Info -->
-            <div class="order-info-section">
-                <h2>Thông tin đơn hàng</h2>
-                <div class="info-grid">
-                    <div>
-                        <label>Mã đơn hàng:</label>
-                        <span>#@order.Id</span>
-                    </div>
-                    <div>
-                        <label>Ngày đặt:</label>
-                        <span>@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-                    </div>
-                    <div>
-                        <label>Trạng thái:</label>
-                        <span class="badge">@order.Status</span>
-                    </div>
-                    <div>
-                        <label>Tổng tiền:</label>
-                        <span class="total-amount">@order.TotalAmount.ToString("N0") đ</span>
-                    </div>
+    @if (isLoading)
+    {
+        <div class="bg-white rounded-xl shadow p-6 text-gray-500">Đang tải đơn hàng...</div>
+    }
+    else if (!string.IsNullOrEmpty(error))
+    {
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">@error</div>
+    }
+    else if (order == null)
+    {
+        <div class="bg-white rounded-xl shadow p-6 text-gray-600">Không tìm thấy đơn hàng.</div>
+    }
+    else
+    {
+        <div class="bg-white rounded-xl shadow p-6 space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                    <p class="text-sm text-gray-500">Mã đơn</p>
+                    <h1 class="text-2xl font-bold text-gray-800">#@order.OrderNumber</h1>
+                    <p class="text-gray-500 text-sm">@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold text-white @(GetStatusColor(order.Status))">
+                        @DisplayStatus(order.Status)
+                    </span>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold text-white @(GetPaymentColor(order.PaymentStatus))">
+                        @(string.IsNullOrWhiteSpace(order.PaymentStatus) ? "Chưa rõ" : order.PaymentStatus)
+                    </span>
                 </div>
             </div>
 
-            <!-- Shipping Info -->
-            <div class="shipping-info-section">
-                <h2>Thông tin giao hàng</h2>
-                <!-- Địa chỉ giao hàng -->
-            </div>
-
-            <!-- Order Items -->
-            <div class="order-items-section">
-                <h2>Sản phẩm đã đặt</h2>
-                <div class="items-table">
-                    <!-- Bảng sản phẩm -->
+            <div class="grid md:grid-cols-2 gap-4 text-sm text-gray-700">
+                <div class="space-y-2">
+                    <p class="font-semibold">Người nhận</p>
+                    <p>@(string.IsNullOrWhiteSpace(order.CustomerName) ? "Bạn" : order.CustomerName)</p>
+                    <p>@(string.IsNullOrWhiteSpace(order.SoDienThoai) ? "—" : order.SoDienThoai)</p>
+                    <p>@(string.IsNullOrWhiteSpace(order.DiaChiKhachHang) ? "—" : order.DiaChiKhachHang)</p>
+                </div>
+                <div class="space-y-2">
+                    <p class="font-semibold">Thanh toán</p>
+                    <p>Phương thức: @(string.IsNullOrWhiteSpace(order.PaymentMethod) ? "—" : order.PaymentMethod)</p>
+                    <p>Trạng thái: @(string.IsNullOrWhiteSpace(order.PaymentStatus) ? "—" : order.PaymentStatus)</p>
                 </div>
             </div>
 
-            <!-- Payment Info -->
-            <div class="payment-info-section">
-                <h2>Thông tin thanh toán</h2>
-                <!-- Phương thức thanh toán -->
+            <div class="border-t pt-4">
+                <p class="font-semibold mb-2">Sản phẩm</p>
+                @if (items.Count == 0)
+                {
+                    <p class="text-gray-500 text-sm">Không có sản phẩm.</p>
+                }
+                else
+                {
+                    <div class="divide-y">
+                        @foreach (var i in items)
+                        {
+                            <div class="py-3 flex items-center justify-between text-sm">
+                                <div class="space-y-1">
+                                    <p class="font-medium text-gray-800">@i.product</p>
+                                    <p class="text-gray-500">SL: @i.qty x @i.price.ToString("N0") đ</p>
+                                </div>
+                                <div class="font-semibold text-gray-800">@i.total.ToString("N0") đ</div>
+                            </div>
+                        }
+                    </div>
+                }
             </div>
-        }
-    </div>
+
+            <div class="border-t pt-4 space-y-1 text-sm text-gray-700">
+                <div class="flex justify-between">
+                    <span>Tạm tính</span>
+                    <span>@order.Subtotal.ToString("N0") đ</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Giảm giá</span>
+                    <span>-@order.Discount.ToString("N0") đ</span>
+                </div>
+                <div class="flex justify-between font-bold text-lg text-green-700">
+                    <span>Thành tiền</span>
+                    <span>@order.TotalAmount.ToString("N0") đ</span>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
     [Parameter] public int OrderId { get; set; }
-    
-    private OrderDTO? order = null;
+
+    private OrderDTO? order;
+    private List<OrderItemReponse> items = new();
+    private bool isLoading = true;
+    private string? error;
 
     protected override async Task OnInitializedAsync()
     {
-        // Load chi tiết đơn hàng theo OrderId
-        await Task.CompletedTask;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        error = null;
+        order = null;
+        items.Clear();
+
+        try
+        {
+            order = await OrdersClientService.GetOrderDTOAsync(OrderId);
+            if (order == null)
+            {
+                error = "Không tìm thấy đơn hàng.";
+                return;
+            }
+
+            items = await OrdersClientService.GetOrderItemsByOrderIdAsync(OrderId) ?? new List<OrderItemReponse>();
+        }
+        catch (HttpRequestException ex)
+        {
+            error = $"Không tải được đơn hàng: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetStatusColor(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "paid" or "completed" => "bg-green-500",
+            "cancelled" => "bg-red-500",
+            "pending" => "bg-amber-500",
+            _ => "bg-gray-500"
+        };
+    }
+
+    private string GetPaymentColor(string? paymentStatus)
+    {
+        return paymentStatus?.ToLower() switch
+        {
+            "completed" or "paid" => "bg-green-500",
+            "pending" => "bg-amber-500",
+            "failed" => "bg-red-500",
+            _ => "bg-gray-500"
+        };
+    }
+
+    private string DisplayStatus(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "paid" => "Đã thanh toán",
+            "completed" => "Hoàn tất",
+            "pending" => "Đang xử lý",
+            "cancelled" => "Đã hủy",
+            _ => status ?? "Không rõ"
+        };
     }
 }

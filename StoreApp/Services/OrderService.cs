@@ -226,11 +226,6 @@ namespace StoreApp.Services
         public async Task<OrderDTO?> CreateOrderAsync(OrderDTO dto)
         {
                         // generate id/order number if missing
-            if (dto.Id == 0)
-            {
-                int maxId = await _orderRepo.GetMaxIdAsync();
-                dto.Id = maxId + 1;
-            }
             if (string.IsNullOrWhiteSpace(dto.OrderNumber))
             {
                 dto.OrderNumber = Guid.NewGuid().ToString();
@@ -239,10 +234,23 @@ namespace StoreApp.Services
             {
                 try { dto.CustomerId = GetCurrentCustomerId(); } catch { }
             }
-            if (dto.StaffId == null || dto.StaffId == 0)
+
+            // StaffId: only set when admin/staff creates the order; customer orders keep StaffId null
+            var role = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Role)?.Value;
+            bool isStaff = string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(role, "staff", StringComparison.OrdinalIgnoreCase);
+            if (isStaff)
             {
-                try { dto.StaffId = GetCurrentUserId(); } catch { dto.StaffId = null; }
+                if (dto.StaffId == null || dto.StaffId == 0)
+                {
+                    try { dto.StaffId = GetCurrentUserId(); } catch { dto.StaffId = null; }
+                }
             }
+            else
+            {
+                dto.StaffId = null;
+            }
+
             dto.CreatedAt = dto.CreatedAt == default ? DateTime.UtcNow : dto.CreatedAt;
             dto.UpdatedAt = DateTime.UtcNow;
 
@@ -263,7 +271,11 @@ namespace StoreApp.Services
             };
 
             var saved = await _orderRepo.SaveOrderAsync(order);
-            return saved ? dto : null;
+            if (!saved) return null;
+
+            // EF will populate identity Id on the tracked entity
+            dto.Id = order.Id;
+            return dto;
         }
 
 
@@ -497,6 +509,11 @@ namespace StoreApp.Services
             return order;
         }
 
+        public async Task<List<OrderDTO>> GetOrdersForCustomerAsync(int customerId)
+        {
+            return await _orderRepo.GetOrdersByCustomerAsync(customerId);
+        }
+
 
 
 
@@ -506,7 +523,4 @@ namespace StoreApp.Services
 
     }
 }
-
-
-
 

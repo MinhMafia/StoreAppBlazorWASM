@@ -1,259 +1,142 @@
 @page "/store/orders"
 @layout StoreLayout
 @using StoreApp.Shared
+@inject IOrdersClientService OrdersClientService
 
-<PageTitle>Đơn hàng của tôi - Cửa Hàng Tiện Lợi</PageTitle>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          primary: '#4ade80',
-          primaryDark: '#22c55e',
-          success: '#10b981',
-          warning: '#f59e0b',
-          danger: '#ef4444',
-          paid: '#059669',
-          unpaid: '#dc2626',
-        }
-      }
+<PageTitle>Đơn hàng của tôi - Cửa hàng tiện lợi</PageTitle>
+
+<div class="max-w-6xl mx-auto px-4 py-10 space-y-6">
+    <div class="flex items-center justify-between gap-3">
+        <div>
+            <p class="text-sm text-gray-500 uppercase">Tài khoản</p>
+            <h1 class="text-2xl font-bold text-gray-800">Lịch sử mua hàng</h1>
+        </div>
+        <a class="text-primary font-semibold hover:text-green-700" href="/store">Tiếp tục mua sắm</a>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="bg-white rounded-xl shadow p-6 text-gray-500">Đang tải đơn hàng...</div>
     }
-  }
-</script>
-
-<style>
-  .shadow-soft {
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  }
-
-  .shadow-strong {
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  }
-</style>
-
-<div class="max-w-7xl mx-auto px-4 py-12">
-  <h1 class="text-4xl font-bold text-center text-gray-800 mb-10">Lịch sử mua hàng</h1>
-
-  <!-- Bộ lọc -->
-  <div class="bg-white rounded-2xl shadow-md p-6 mb-8">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
-        <input type="date" id="filter-start-date"
-          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
-        <input type="date" id="filter-end-date"
-          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái đơn</label>
-        <select id="filter-status"
-          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-          <option value="all">Tất cả trạng thái</option>
-          <option value="delivered">Đã giao hàng</option>
-          <option value="shipping">Đang giao</option>
-          <option value="cancelled">Đã hủy</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Thanh toán</label>
-        <select id="filter-payment"
-          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-          <option value="all">Tất cả thanh toán</option>
-          <option value="paid">Đã thanh toán</option>
-          <option value="unpaid">Chưa thanh toán</option>
-          <option value="refunded">Đã hoàn tiền</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <!-- Danh sách đơn hàng (tĩnh) -->
-  <div class="space-y-6">
-    <!-- Đơn 1 -->
-    <div
-      class="bg-white rounded-2xl shadow-soft hover:shadow-xl hover:-translate-y-2 transition-all duration-300 overflow-hidden border border-gray-100">
-      <div class="p-6 border-b border-gray-100">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div>
-            <div class="flex flex-wrap items-center gap-3">
-              <span class="text-lg font-semibold text-gray-800">#ORD-20251205-0987</span>
-              <span class="px-4 py-1.5 bg-success text-white text-sm font-medium rounded-full">Đã giao thành công</span>
-              <span class="px-4 py-1.5 bg-paid text-white text-sm font-medium rounded-full">Đã thanh toán</span>
-            </div>
-            <p class="text-gray-500 text-sm mt-1">05/12/2025</p>
-          </div>
-          <div class="text-right">
-            <p class="text-sm text-gray-500">Tổng thanh toán</p>
-            <p class="text-3xl font-bold text-primaryDark">652.000₫</p>
-          </div>
+    else if (!string.IsNullOrEmpty(error))
+    {
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">@error</div>
+    }
+    else if (orders.Count == 0)
+    {
+        <div class="bg-white rounded-xl shadow p-6 text-gray-600">
+            <p>Bạn chưa có đơn hàng nào.</p>
+            <a class="text-primary font-semibold hover:text-green-700" href="/store">Mua sắm ngay</a>
         </div>
-      </div>
-      <div class="p-6 bg-gray-50/50">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-gray-700">
-          <div class="flex items-center gap-3">
-            <i class="fas fa-box text-primary"></i>
-            <div>
-              <p class="text-sm text-gray-500">Sản phẩm</p>
-              <p class="font-semibold">20 món</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <i class="fas fa-truck text-primary"></i>
-            <div>
-              <p class="text-sm text-gray-500">Giao hàng</p>
-              <p class="font-semibold">Đã nhận</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <i class="fas fa-credit-card text-primary"></i>
-            <div>
-              <p class="text-sm text-gray-500">Thanh toán</p>
-              <p class="font-semibold">Ví Momo</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <i class="fas fa-tag text-primary"></i>
-            <div>
-              <p class="text-sm text-gray-500">Giảm giá</p>
-              <p class="font-semibold text-primary">-50.000₫</p>
-            </div>
-          </div>
+    }
+    else
+    {
+        <div class="space-y-4">
+            @foreach (var o in orders.OrderByDescending(x => x.CreatedAt))
+            {
+                <div class="bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-100">
+                    <div class="p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-gray-100">
+                        <div class="space-y-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-lg font-semibold text-gray-800">#@o.OrderNumber</span>
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold text-white @(GetStatusColor(o.Status))">
+                                    @DisplayStatus(o.Status)
+                                </span>
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold text-white @(GetPaymentColor(o.PaymentStatus))">
+                                    @(string.IsNullOrWhiteSpace(o.PaymentStatus) ? "Chưa rõ" : o.PaymentStatus)
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-500">@o.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-500">Tổng thanh toán</p>
+                            <p class="text-2xl font-bold text-green-600">@o.TotalAmount.ToString("N0") đ</p>
+                        </div>
+                    </div>
+                    <div class="px-5 py-4 flex items-center justify-between text-sm text-gray-600">
+                        <div class="flex flex-wrap gap-4">
+                            <div class="flex items-center gap-2">
+                                <i class="bi bi-person"></i>
+                                <span>@(string.IsNullOrWhiteSpace(o.CustomerName) ? "Bạn" : o.CustomerName)</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="bi bi-telephone"></i>
+                                <span>@(string.IsNullOrWhiteSpace(o.SoDienThoai) ? "—" : o.SoDienThoai)</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="bi bi-geo-alt"></i>
+                                <span>@(string.IsNullOrWhiteSpace(o.DiaChiKhachHang) ? "—" : o.DiaChiKhachHang)</span>
+                            </div>
+                        </div>
+                        <a class="text-primary font-semibold hover:text-green-700 flex items-center gap-1" href="@($"/store/orders/{o.Id}")">
+                            Xem chi tiết <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+            }
         </div>
-      </div>
-      <div class="px-6 py-4 bg-white flex justify-end">
-        <a href="/store/detailorder" class="text-primary font-semibold hover:text-primaryDark flex items-center gap-2 transition">
-          Xem chi tiết <i class="fas fa-chevron-right"></i>
-        </a>
-      </div>
-    </div>
-
-    <!-- Đơn 2 -->
-    <div
-      class="bg-white rounded-2xl shadow-soft hover:shadow-xl hover:-translate-y-2 transition-all duration-300 overflow-hidden border border-gray-100">
-      <div class="p-6 border-b border-gray-100">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div>
-            <div class="flex flex-wrap items-center gap-3">
-              <span class="text-lg font-semibold text-gray-800">#ORD-20251203-0541</span>
-              <span class="px-4 py-1.5 bg-warning text-white text-sm font-medium rounded-full">Đang giao hàng</span>
-              <span class="px-4 py-1.5 bg-unpaid text-white text-sm font-medium rounded-full">Chưa thanh toán</span>
-            </div>
-            <p class="text-gray-500 text-sm mt-1">03/12/2025</p>
-          </div>
-          <div class="text-right">
-            <p class="text-sm text-gray-500">Tổng thanh toán</p>
-            <p class="text-3xl font-bold text-primaryDark">298.000₫</p>
-          </div>
-        </div>
-      </div>
-      <div class="p-6 bg-gray-50/50">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-gray-700">
-          <div class="flex items-center gap-3"><i class="fas fa-box text-primary"></i>
-            <div>
-              <p class="text-sm text-gray-500">Sản phẩm</p>
-              <p class="font-semibold">8 món</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3"><i class="fas fa-truck text-primary"></i>
-            <div>
-              <p class="text-sm text-gray-500">Giao hàng</p>
-              <p class="font-semibold">Chưa nhận</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3"><i class="fas fa-credit-card text-primary"></i>
-            <div>
-              <p class="text-sm text-gray-500">Thanh toán</p>
-              <p class="font-semibold">COD</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3"><i class="fas fa-tag text-primary"></i>
-            <div>
-              <p class="text-sm text-gray-500">Giảm giá</p>
-              <p class="font-semibold text-primary">-20.000₫</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="px-6 py-4 bg-white flex justify-end">
-        <a href="/store/detailorder" class="text-primary font-semibold hover:text-primaryDark flex items-center gap-2 transition">
-          Xem chi tiết <i class="fas fa-chevron-right"></i>
-        </a>
-      </div>
-    </div>
-
-    <!-- Đơn 3 -->
-    <div
-      class="bg-white rounded-2xl shadow-soft hover:shadow-xl hover:-translate-y-2 transition-all duration-300 overflow-hidden border border-gray-100">
-      <div class="p-6 border-b border-gray-100">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div>
-            <div class="flex flex-wrap items-center gap-3">
-              <span class="text-lg font-semibold text-gray-800">#ORD-20251128-0333</span>
-              <span class="px-4 py-1.5 bg-danger text-white text-sm font-medium rounded-full">Đã hủy</span>
-              <span class="px-4 py-1.5 bg-paid text-white text-sm font-medium rounded-full">Đã hoàn tiền</span>
-            </div>
-            <p class="text-gray-500 text-sm mt-1">28/11/2025</p>
-          </div>
-          <div class="text-right">
-            <p class="text-sm text-gray-500">Tổng thanh toán</p>
-            <p class="text-3xl font-bold text-primaryDark">175.000₫</p>
-          </div>
-        </div>
-      </div>
-      <div class="p-6 bg-gray-50/50">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-gray-700">
-          <div class="flex items-center gap-3"><i class="fas fa-box text-primary"></i>
-            <div>
-              <p class="text-sm text-gray-500">Sản phẩm</p>
-              <p class="font-semibold">5 món</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3"><i class="fas fa-truck text-primary"></i>
-            <div>
-              <p class="text-sm text-gray-500">Giao hàng</p>
-              <p class="font-semibold">Đã hủy</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3"><i class="fas fa-credit-card text-primary"></i>
-            <div>
-              <p class="text-sm text-gray-500">Thanh toán</p>
-              <p class="font-semibold">Ví Momo</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3"><i class="fas fa-tag text-primary"></i>
-            <div>
-              <p class="text-sm text-gray-500">Giảm giá</p>
-              <p class="font-semibold text-primary">0₫</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="px-6 py-4 bg-white flex justify-end">
-        <a href="/store/detailorder" class="text-primary font-semibold hover:text-primaryDark flex items-center gap-2 transition">
-          Xem chi tiết <i class="fas fa-chevron-right"></i>
-        </a>
-      </div>
-    </div>
-
-    <!-- Thêm 2-3 đơn nữa nếu muốn dài hơn, copy paste thoải mái -->
-  </div>
-
-  <!-- Phân trang (chỉ để trang trí) -->
-  <div class="flex justify-center items-center gap-3 mt-12">
-    <button class="px-6 py-3 bg-white border border-gray-300 rounded-xl opacity-50 cursor-not-allowed flex items-center"
-      disabled>
-      <i class="fas fa-chevron-left mr-2"></i>Trước
-    </button>
-    <button class="w-12 h-12 rounded-xl font-bold bg-primary text-white shadow-lg">1</button>
-    <button class="w-12 h-12 h-12 rounded-xl font-bold border border-gray-300 hover:bg-gray-100">2</button>
-    <button class="w-12 h-12 rounded-xl font-bold border border-gray-300 hover:bg-gray-100">3</button>
-    <span class="px-3">...</span>
-    <button class="w-12 h-12 rounded-xl font-bold border border-gray-300 hover:bg-gray-100">10</button>
-    <button class="px-6 py-3 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 flex items-center">
-      Sau <i class="fas fa-chevron-right ml-2"></i>
-    </button>
-  </div>
+    }
 </div>
+
+@code {
+    private List<OrderDTO> orders = new();
+    private bool isLoading = true;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrdersAsync();
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        isLoading = true;
+        error = null;
+        try
+        {
+            orders = await OrdersClientService.GetMyOrdersAsync();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetStatusColor(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "paid" or "completed" => "bg-green-500",
+            "cancelled" => "bg-red-500",
+            "pending" => "bg-amber-500",
+            _ => "bg-gray-500"
+        };
+    }
+
+    private string GetPaymentColor(string? paymentStatus)
+    {
+        return paymentStatus?.ToLower() switch
+        {
+            "completed" or "paid" => "bg-green-500",
+            "pending" => "bg-amber-500",
+            "failed" => "bg-red-500",
+            _ => "bg-gray-500"
+        };
+    }
+
+    private string DisplayStatus(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "paid" => "Đã thanh toán",
+            "completed" => "Hoàn tất",
+            "pending" => "Đang xử lý",
+            "cancelled" => "Đã hủy",
+            _ => status ?? "Không rõ"
+        };
+    }
+}

@@ -1,19 +1,19 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
 using System.Net.Http.Json;
 using StoreApp.Shared;
-using Microsoft.JSInterop; 
+using Microsoft.JSInterop;
 
 public interface IOrdersClientService
 {
-    Task<OrderDTO> CreateTemporaryOrderAsync();                           
-    Task<OrderDTO?> SaveFinalOrderAsync(OrderDTO orderDto);                            
+    Task<OrderDTO> CreateTemporaryOrderAsync();
+    Task<OrderDTO?> SaveFinalOrderAsync(OrderDTO orderDto);
     Task<ResultPaginatedDTO<OrderDTO>> LoadOrdersAdvanced(
         int pageNumber, int pageSize,
         string? status = null,
         DateTime? startDate = null,
         DateTime? endDate = null,
-        string? search = null);  
-    Task<List<OrderItemReponse>> GetOrderItemsByOrderIdAsync(int orderId); 
+        string? search = null);
+    Task<List<OrderItemReponse>> GetOrderItemsByOrderIdAsync(int orderId);
     Task<PromotionDTO?> GetPromotionByIdAsync(int orderId);
     Task<PaginationResult<ProductDTO>> GetProductsPagedAndSearchedAsync(
         int pageNumber,
@@ -29,7 +29,7 @@ public interface IOrdersClientService
     Task<List<PromotionDTO>> GetListActivePromotion();
     Task<bool> ReduceMultipleAsync(List<ReduceInventoryDto> items);
     Task<bool> ApplyPromotionAsync(ApplyPromotionRequest req);
-    Task<bool> SaveListOrderItem (List<OrderItemReponse> items);
+    Task<bool> SaveListOrderItem(List<OrderItemReponse> items);
     Task<PaymentResult> PayWithMomoAsync(int orderId, decimal amount);
     Task<PaymentResult> PayOfflineAsync(int orderId, decimal amount);
     Task<bool> HandleCancelClick(int orderId);
@@ -37,13 +37,14 @@ public interface IOrdersClientService
     Task<PaymentResult> PayCashInOnlineOrderAsync(int orderId, decimal amount);
     Task<PaymentResult> PayWithMomoWitOnlineOrderAsync(int orderId, decimal amount);
     Task<OrderDTO?> GetOrderDTOAsync(int orderId);
-    
-   
-    
-    
+    Task<List<OrderDTO>> GetMyOrdersAsync();
 
-        
-                                                  
+
+
+
+
+
+
 }
 
 public class OrdersClientService : IOrdersClientService
@@ -51,12 +52,12 @@ public class OrdersClientService : IOrdersClientService
     private readonly HttpClient _http;
     private readonly IJSRuntime _js;
 
-    public OrdersClientService(HttpClient http,IJSRuntime js)
+    public OrdersClientService(HttpClient http, IJSRuntime js)
     {
-         _http = http;
-         _js = js;
+        _http = http;
+        _js = js;
     }
-        // 1. Táº¡o Ä‘Æ¡n táº¡m cho Ä‘Æ°Æ¡n hÃ ng online(draft) â†’ tráº£ vá» OrderDTO cÃ³ Id + OrderNumber
+    // 1. Táº¡o Ä‘Æ¡n táº¡m cho Ä‘Æ°Æ¡n hÃ ng online(draft) â†’ tráº£ vá» OrderDTO cÃ³ Id + OrderNumber
     public async Task<OrderDTO> CreateTemporaryOnlineOrderAsync()
     {
         var response = await _http.PostAsync("api/orders/createonlineordertemp", null);
@@ -67,7 +68,7 @@ public class OrdersClientService : IOrdersClientService
         var order = await response.Content.ReadFromJsonAsync<OrderDTO>();
         return order ?? new OrderDTO();
     }
-  
+
 
 
     // 1. Táº¡o Ä‘Æ¡n táº¡m (draft) â†’ tráº£ vá» OrderDTO cÃ³ Id + OrderNumber
@@ -146,7 +147,7 @@ public class OrdersClientService : IOrdersClientService
         {
             // GIáº¢ Sá»¬ PromotionsController cÃ³ route lÃ  "api/promotions"
             return await _http.GetFromJsonAsync<PromotionDTO?>(
-                $"api/promotions/{Id}" 
+                $"api/promotions/{Id}"
             );
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -274,7 +275,7 @@ public class OrdersClientService : IOrdersClientService
         }
         catch
         {
-            
+
             return false;
         }
     }
@@ -301,7 +302,7 @@ public class OrdersClientService : IOrdersClientService
     {
         try
         {
-            
+
             var body = new MomoPaymentRequestDTO
             {
                 OrderId = orderId,
@@ -322,7 +323,7 @@ public class OrdersClientService : IOrdersClientService
 
             string payUrl = json["payUrl"].ToString()!;
 
-            
+
             await _js.InvokeVoidAsync("openMoMoPayment", payUrl);
 
             // 4) Polling â†’ giá»‘ng JS
@@ -374,12 +375,12 @@ public class OrdersClientService : IOrdersClientService
         }
     }
 
-    
+
     public async Task<PaymentResult> PayWithMomoWitOnlineOrderAsync(int orderId, decimal amount)
     {
         try
         {
-            
+
             var body = new MomoPaymentRequestDTO
             {
                 OrderId = orderId,
@@ -400,7 +401,7 @@ public class OrdersClientService : IOrdersClientService
 
             string payUrl = json["payUrl"].ToString()!;
 
-            
+
             await _js.InvokeVoidAsync("openMoMoPayment", payUrl);
 
             // 4) Polling â†’ giá»‘ng JS
@@ -456,7 +457,7 @@ public class OrdersClientService : IOrdersClientService
     {
         try
         {
-            var body = new 
+            var body = new
             {
                 OrderId = orderId,
                 Amount = amount,
@@ -489,7 +490,7 @@ public class OrdersClientService : IOrdersClientService
     {
         try
         {
-            var body = new 
+            var body = new
             {
                 OrderId = orderId,
                 Amount = amount,
@@ -532,7 +533,7 @@ public class OrdersClientService : IOrdersClientService
         return false;
     }
 
-        // Huy don
+    // Huy don
     public async Task<bool> HandleCancelClick(int orderId)
     {
         try
@@ -554,7 +555,7 @@ public class OrdersClientService : IOrdersClientService
         }
     }
 
-// Láº¥y Ä‘Æ¡n hÃ ng theo orderId
+    // Láº¥y Ä‘Æ¡n hÃ ng theo orderId
     public async Task<OrderDTO?> GetOrderDTOAsync(int orderId)
     {
         try
@@ -571,6 +572,18 @@ public class OrdersClientService : IOrdersClientService
         }
     }
 
+    public async Task<List<OrderDTO>> GetMyOrdersAsync()
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<OrderDTO>>("api/orders/my");
+            return result ?? new List<OrderDTO>();
+        }
+        catch
+        {
+            return new List<OrderDTO>();
+        }
+    }
 
 
 
@@ -580,8 +593,6 @@ public class OrdersClientService : IOrdersClientService
 
 
 }
-
-
 
 
 

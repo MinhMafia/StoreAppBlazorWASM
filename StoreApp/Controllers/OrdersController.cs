@@ -143,5 +143,22 @@ namespace StoreApp.Controllers
 
             return Ok(order);
         }
+
+        // Customer: get own order history
+        [Authorize(Roles = "customer")]
+        [HttpGet("my")]
+        public async Task<IActionResult> GetMyOrders()
+        {
+            var customerIdClaim = User?.FindFirst("customerId")?.Value
+                ?? User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(customerIdClaim, out var customerId))
+            {
+                return Forbid();
+            }
+
+            var orders = await _orderService.GetOrdersForCustomerAsync(customerId);
+            return Ok(orders);
+        }
     }
 }

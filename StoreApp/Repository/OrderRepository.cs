@@ -303,6 +303,39 @@ namespace StoreApp.Repository
             return order;
         }
 
+        /// <summary>
+        /// Lấy danh sách đơn hàng theo customer
+        /// </summary>
+        public async Task<List<OrderDTO>> GetOrdersByCustomerAsync(int customerId)
+        {
+            return await _context.Orders
+                .Include(o => o.Promotion)
+                .Include(o => o.Payments)
+                .Where(o => o.CustomerId == customerId)
+                .OrderByDescending(o => o.CreatedAt)
+                .Select(o => new OrderDTO
+                {
+                    Id = o.Id,
+                    OrderNumber = o.OrderNumber,
+                    CustomerId = o.CustomerId,
+                    StaffId = o.StaffId,
+                    Status = o.Status,
+                    Subtotal = o.Subtotal,
+                    Discount = o.Discount,
+                    TotalAmount = o.TotalAmount,
+                    PromotionId = o.PromotionId,
+                    PromotionCode = o.Promotion != null ? o.Promotion.Code : null,
+                    CreatedAt = o.CreatedAt,
+                    UpdatedAt = o.UpdatedAt,
+                    PaymentMethod = o.Payments.OrderByDescending(p => p.Id).Select(p => p.Method).FirstOrDefault(),
+                    PaymentStatus = o.Payments.OrderByDescending(p => p.Id).Select(p => p.Status).FirstOrDefault(),
+                    CustomerName = o.Customer != null ? o.Customer.FullName : null,
+                    SoDienThoai = o.Customer != null ? o.Customer.Phone : null,
+                    DiaChiKhachHang = o.Customer != null ? o.Customer.Address : null
+                })
+                .ToListAsync();
+        }
+
 
 
 
