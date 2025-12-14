@@ -142,6 +142,7 @@ namespace StoreApp.Repository
                     ShippingAddress = o.ShippingAddress,
                     CreatedAt = o.CreatedAt,
                     UpdatedAt = o.UpdatedAt,
+                   
 
                     CustomerName = o.Customer != null ? o.Customer.FullName : null,
                     StaffName = o.Staff != null ? o.Staff.FullName : null,

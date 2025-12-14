@@ -57,7 +57,7 @@ namespace StoreApp.Services
             throw new InvalidOperationException("Không tìm thấy user_id trong token");
         }
 
-        // Láº¥y CustomerId tá»« token (cho customer Ä‘Ã£ Ä‘Äƒng nháº­p)
+        // 
         private int GetCurrentCustomerId()
         {
             var context = _httpContextAccessor.HttpContext;
@@ -74,10 +74,11 @@ namespace StoreApp.Services
 
         public async Task<OrderDTO> CreateTemporaryOrderAsync()
         {
-            int maxId = await _orderRepo.GetMaxIdAsync();
-            int newId = maxId + 1;
+            // int maxId = await _orderRepo.GetMaxIdAsync();
+            // int newId = maxId + 1;
             string orderCode = Guid.NewGuid().ToString();
 
+            
             int staffId = 2;
             try
             {
@@ -92,11 +93,11 @@ namespace StoreApp.Services
 
             int customerId = 0;
             var customer = await _customerRepo.GetByIdAsync(customerId);
-            string customerName = customer?.FullName ?? "Khách vãng lai";
+            string customerName = customer?.FullName ?? "KhÃ¡ch vÃ£ng lai";
 
             var tempOrder = new OrderDTO
             {
-                Id = newId,
+                // Id = newId,
                 OrderNumber = orderCode,
                 CustomerId = customerId,
                 StaffId = staffId,
@@ -109,7 +110,7 @@ namespace StoreApp.Services
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CustomerName = customerName,
-                StaffName = staffName,
+                StaffName =  staffName,
                 PromotionCode = null,
                 PaymentMethod = "cash",
                 PaymentStatus = "pending",
@@ -137,22 +138,22 @@ namespace StoreApp.Services
 
             if (!customer.IsActive)
                 throw new InvalidOperationException("Tài khoản khách hàng đã bị khóa.");
-            int staffId = 0;
-            var staff = await _userRepo.GetByIdAsync(staffId);
-            string staffName = staff?.FullName ?? "Hệ thống Online";
+            // int staffId = 0;
+            // var staff = await _userRepo.GetByIdAsync(staffId);
+            // string staffName = staff?.FullName ?? "Hệ thống Online";
 
-            // 4. Tạo mã đơn và Id mới
-            int maxId = await _orderRepo.GetMaxIdAsync();
-            int newId = maxId + 1;
+            // // 4. Tạo mã đơn và Id mới
+            // int maxId = await _orderRepo.GetMaxIdAsync();
+            // int newId = maxId + 1;
             string orderNumber = Guid.NewGuid().ToString();
 
             // 5. Tạo OrderDTO với đầy đủ thông tin khách hàng
             var onlineOrder = new OrderDTO
             {
-                Id = newId,
+                // Id = newId,
                 OrderNumber = orderNumber,
                 CustomerId = customer.Id,
-                StaffId = staffId,
+                StaffId = null,
                 Status = "pending",
                 Subtotal = 0m,
                 Discount = 0m,
@@ -168,7 +169,7 @@ namespace StoreApp.Services
                 Email = customer.Email,
                 DiaChiKhachHang = customer.Address,
 
-                StaffName = staffName,
+                StaffName = null,
 
                 PromotionCode = null,
                 PaymentMethod = "cash",
@@ -213,7 +214,7 @@ namespace StoreApp.Services
 
             var order = new Order
             {
-                Id = dto.Id,
+                // Id = dto.Id, 
                 OrderNumber = dto.OrderNumber,
                 CustomerId = dto.CustomerId,
                 StaffId = dto.StaffId,

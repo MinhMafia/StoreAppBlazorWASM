@@ -505,7 +505,7 @@ public class OrdersClientService : IOrdersClientService
         if (response.IsSuccessStatusCode)
         {
             bool result = await response.Content.ReadFromJsonAsync<bool>();
-            return result; // true / false
+            return result; 
         }
 
         return false;
