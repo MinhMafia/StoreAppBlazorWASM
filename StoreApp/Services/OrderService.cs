@@ -54,7 +54,7 @@ namespace StoreApp.Services
             if (!string.IsNullOrEmpty(headerUid) && int.TryParse(headerUid, out int headerId))
                 return headerId;
 
-            throw new InvalidOperationException("KhÃ´ng tÃ¬m tháº¥y user_id trong token");
+            throw new InvalidOperationException("Không tìm thấy user_id trong token");
         }
 
         // Láº¥y CustomerId tá»« token (cho customer Ä‘Ã£ Ä‘Äƒng nháº­p)
@@ -69,7 +69,7 @@ namespace StoreApp.Services
                     return id;
             }
 
-            throw new InvalidOperationException("KhÃ´ng tÃ¬m tháº¥y customerId trong token");
+            throw new InvalidOperationException("Không tìm thấy customerId trong token");
         }
 
         public async Task<OrderDTO> CreateTemporaryOrderAsync()
@@ -88,11 +88,11 @@ namespace StoreApp.Services
 
             }
             var staff = await _userRepo.GetByIdAsync(staffId);
-            string staffName = staff?.FullName ?? $"NhÃ¢n viÃªn #{staffId}";
+            string staffName = staff?.FullName ?? $"Nhân viên #{staffId}";
 
             int customerId = 0;
             var customer = await _customerRepo.GetByIdAsync(customerId);
-            string customerName = customer?.FullName ?? "KhÃ¡ch vÃ£ng lai";
+            string customerName = customer?.FullName ?? "Khách vãng lai";
 
             var tempOrder = new OrderDTO
             {
