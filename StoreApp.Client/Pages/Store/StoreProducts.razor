@@ -15,18 +15,30 @@
 <div class="breadcrumb-bar">
     <div class="container">
         <nav class="breadcrumb-nav">
-            <a href="/api/store">TRANG CHỦ</a>
+            <a href="/store" class="breadcrumb-link">
+                <i class="bi bi-house-door"></i>
+                <span>Trang chủ</span>
+            </a>
             @if (selectedCategory != null)
             {
-                <text> / </text>
-                <a href="/store/products">SẢN PHẨM</a>
-                <text> / </text>
-                <span>@selectedCategory.Name</span>
+                <span class="breadcrumb-separator">/</span>
+                <a href="/store/products" class="breadcrumb-link">
+                    <i class="bi bi-grid"></i>
+                    <span>Sản phẩm</span>
+                </a>
+                <span class="breadcrumb-separator">/</span>
+                <span class="breadcrumb-current">
+                    <i class="bi bi-tag"></i>
+                    <span>@selectedCategory.Name</span>
+                </span>
             }
             else
             {
-                <text> / </text>
-                <span>SẢN PHẨM</span>
+                <span class="breadcrumb-separator">/</span>
+                <span class="breadcrumb-current">
+                    <i class="bi bi-grid"></i>
+                    <span>Sản phẩm</span>
+                </span>
             }
         </nav>
     </div>
@@ -581,7 +593,12 @@
                 maxPrice, 
                 serverSortBy,
                 selectedCategoryId,
+                null, // supplierId
                 1); // status = 1 để chỉ lấy sản phẩm active
+            
+            // Debug logging
+            Console.WriteLine($"LoadProducts - Page: {currentPage}, PageSize: {pageSize}, CategoryId: {selectedCategoryId}, Status: 1");
+            Console.WriteLine($"Result - TotalItems: {result?.TotalItems}, TotalPages: {result?.TotalPages}, ItemsCount: {result?.Items?.Count ?? 0}");
             
             if (result != null)
             {
@@ -611,7 +628,7 @@
                     if (totalPages > 0 && currentPage > totalPages)
                     {
                         currentPage = 1;
-                        var retryResult = await ProductService.GetProducts(1, pageSize, string.IsNullOrWhiteSpace(searchKeyword) ? null : searchKeyword, minPrice, maxPrice, serverSortBy, selectedCategoryId);
+                        var retryResult = await ProductService.GetProducts(1, pageSize, string.IsNullOrWhiteSpace(searchKeyword) ? null : searchKeyword, minPrice, maxPrice, serverSortBy, selectedCategoryId, null, 1);
                         if (retryResult != null && retryResult.Items != null && retryResult.Items.Any())
                         {
                             products = retryResult.Items.ToList();

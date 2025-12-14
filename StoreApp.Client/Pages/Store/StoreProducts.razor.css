@@ -1,3 +1,60 @@
+/* Breadcrumb Styles */
+.breadcrumb-bar {
+    background-color: #f8f9fa;
+    padding: 0.875rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #6c757d;
+    flex-wrap: wrap;
+}
+
+.breadcrumb-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.breadcrumb-link:hover {
+    color: #0056b3;
+    background-color: #e7f3ff;
+    text-decoration: none;
+}
+
+.breadcrumb-link i {
+    font-size: 1rem;
+}
+
+.breadcrumb-separator {
+    color: #adb5bd;
+    font-weight: 300;
+    margin: 0 0.25rem;
+}
+
+.breadcrumb-current {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #495057;
+    font-weight: 600;
+}
+
+.breadcrumb-current i {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
 /* Store Products Page */
 .store-products-page {
     padding: 2rem 0;
