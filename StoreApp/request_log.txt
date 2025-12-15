@@ -11,3 +11,9 @@
 2025-12-15 13:31:04 | User:anonymous | Action:CREATE_Inventory | Entity:Inventory#reduce-multiple | IP:::1 | Payload:[{"productId":3,"quantity":1}]
 2025-12-15 13:31:04 | User:anonymous | Action:CREATE_Payment | Entity:Payment#offlinepayment | IP:::1 | Payload:{"orderId":12,"amount":12000.00,"method":"cash","status":"pending"}
 2025-12-15 13:31:06 | User:anonymous | Action:CREATE_Cart | Entity:Cart#sync | IP:::1 | Payload:[]
+2025-12-15 13:48:49 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-15 13:48:57 | User:admin | Action:CREATE_Orders | Entity:Orders#create-temp | IP:::1 | Payload:{"raw":"[Empty Body]"}
+2025-12-15 13:49:27 | User:admin | Action:CREATE_Orders | Entity:Orders#create | IP:::1 | Payload:{"id":0,"orderNumber":"9ff4871e-f016-4cc5-a7e7-dee0f80c2e07","customerId":0,"staffId":1,"status":"completed","subtotal":5000.00,"discount":0,"totalAmount":5000.00,"promotionId":null,"note":null,"shippingAddress":null,"createdAt":"2025-12-15T06:48:58.0039801Z","updatedAt":"2025-12-15T06:48:58.0039804Z","diaChiKhachHang":null,"soDienThoai":null,"email":null,"customerName":"Kh\u00E1ch v\u00E3ng lai","staffName":"Qu\u1EA3n tr\u1ECB vi\u00EAn","promotionCode":null,"paymentMethod":"cash","paymentStatus":"pending","transactionRef":null}
+2025-12-15 13:49:28 | User:admin | Action:CREATE_Orderitem | Entity:Orderitem#create | IP:::1 | Payload:[{"id":75,"orderid":13,"product":"B\u00FAt bi xanh","qty":1,"price":5000.00,"total":5000.00,"inventoryQuantity":240,"img":""}]
+2025-12-15 13:49:28 | User:admin | Action:CREATE_Inventory | Entity:Inventory#reduce-multiple | IP:::1 | Payload:[{"productId":75,"quantity":1}]
+2025-12-15 13:49:28 | User:admin | Action:CREATE_Payment | Entity:Payment#offlinepayment | IP:::1 | Payload:{"orderId":13,"amount":5000.00,"method":"cash","status":"completed"}
