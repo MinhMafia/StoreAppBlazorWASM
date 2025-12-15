@@ -50,7 +50,47 @@ namespace StoreApp.Repository
         }
 
         // 3️⃣ Hàm lọc có phân trang + join user
-        public async Task<(List<ActivityLogCreateDTO> Logs, int TotalCount)> GetFilteredLogsAsync(
+        // public async Task<(List<ActivityLogCreateDTO> Logs, int TotalCount)> GetFilteredLogsAsync(
+        //     int pageNumber,
+        //     int pageSize,
+        //     int? userId = null,
+        //     DateTime? startDate = null,
+        //     DateTime? endDate = null)
+        // {
+        //     var query = _context.ActivityLogs.AsQueryable();
+
+        //     if (userId.HasValue)
+        //         query = query.Where(l => l.UserId == userId);
+
+        //     if (startDate.HasValue)
+        //         query = query.Where(l => l.CreatedAt >= startDate.Value);
+
+        //     if (endDate.HasValue)
+        //         query = query.Where(l => l.CreatedAt <= endDate.Value);
+
+        //     int totalCount = await query.CountAsync();
+
+        //     var logs = await query
+        //         .OrderByDescending(l => l.CreatedAt)
+        //         .Skip((pageNumber - 1) * pageSize)
+        //         .Take(pageSize)
+        //         .Select(l => new ActivityLogCreateDTO
+        //         {
+        //             UserId = l.UserId ?? 0,
+        //             Username = l.User != null ? l.User.FullName : "Unknown",
+        //             Action = l.Action,
+        //             EntityType = l.EntityType,
+        //             EntityId = l.EntityId,
+        //             Payload = l.Payload,
+        //             IpAddress = l.IpAddress,
+        //             CreatedAt = l.CreatedAt
+        //         })
+        //         .ToListAsync();
+
+        //     return (logs, totalCount);
+        // }
+
+        public async Task<ResultPaginatedDTO<ActivityLogCreateDTO>> GetFilteredLogsAsync(
             int pageNumber,
             int pageSize,
             int? userId = null,
@@ -68,9 +108,9 @@ namespace StoreApp.Repository
             if (endDate.HasValue)
                 query = query.Where(l => l.CreatedAt <= endDate.Value);
 
-            int totalCount = await query.CountAsync();
+            int totalItems = await query.CountAsync();
 
-            var logs = await query
+            var items = await query
                 .OrderByDescending(l => l.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
@@ -87,7 +127,14 @@ namespace StoreApp.Repository
                 })
                 .ToListAsync();
 
-            return (logs, totalCount);
+            return new ResultPaginatedDTO<ActivityLogCreateDTO>
+            {
+                Items = items,
+                CurrentPage = pageNumber,
+                TotalItems = totalItems,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
+            };
         }
+
     }
 }

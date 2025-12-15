@@ -368,8 +368,6 @@
     {
         decimal tongTien = checkoutItems.Sum(item => item.Total);
 
-
-
         // Cập nhật Subtotal (chỉ tiền hàng)
         currentOrder.Subtotal = tongTien;
         currentOrder.TotalAmount = tongTien;

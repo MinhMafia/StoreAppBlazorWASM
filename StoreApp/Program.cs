@@ -198,7 +198,7 @@ app.UseHttpsRedirection();
 
 // --- Middleware của bạn ---
 // Đặt trước StaticFiles để log mọi thứ, hoặc sau StaticFiles để chỉ log API
-// app.UseMiddleware<RequestLoggingMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.UseStaticFiles(); // Serve file trong wwwroot (bao gồm ảnh sản phẩm)
 app.UseAntiforgery(); // Bảo mật CSRF của Blazor
