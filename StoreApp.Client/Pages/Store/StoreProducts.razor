@@ -523,10 +523,15 @@
         // Đọc query parameters từ URL
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         var queryParams = QueryHelpers.ParseQuery(uri.Query);
-        
+
         if (queryParams.TryGetValue("category", out var categoryParam) && int.TryParse(categoryParam, out var categoryId))
         {
             selectedCategoryId = categoryId;
+        }
+
+        if (queryParams.TryGetValue("search", out var searchParam))
+        {
+            searchKeyword = searchParam.ToString();
         }
 
         await Task.WhenAll(
@@ -538,22 +543,31 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        // Khi URL thay đổi (ví dụ click vào category), reload dữ liệu
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         var queryParams = QueryHelpers.ParseQuery(uri.Query);
-        
+
         int? newCategoryId = null;
         if (queryParams.TryGetValue("category", out var categoryParam) && int.TryParse(categoryParam, out var categoryId))
         {
             newCategoryId = categoryId;
         }
 
-        if (newCategoryId != selectedCategoryId)
+        string? newSearch = null;
+        if (queryParams.TryGetValue("search", out var searchParam))
+        {
+            newSearch = searchParam.ToString();
+        }
+
+        var categoryChanged = newCategoryId != selectedCategoryId;
+        var searchChanged = newSearch != searchKeyword;
+
+        if (categoryChanged || searchChanged)
         {
             selectedCategoryId = newCategoryId;
-            currentPage = 1; // Reset về trang đầu khi đổi category
+            searchKeyword = newSearch ?? string.Empty;
+            currentPage = 1;
             await LoadProducts();
-            await LoadCategories(); // Reload để lấy tên category
+            await LoadCategories();
         }
     }
 

@@ -18,3 +18,7 @@
 2025-12-15 13:49:28 | User:admin | Action:CREATE_Inventory | Entity:Inventory#reduce-multiple | IP:::1 | Payload:[{"productId":75,"quantity":1}]
 2025-12-15 13:49:28 | User:admin | Action:CREATE_Payment | Entity:Payment#offlinepayment | IP:::1 | Payload:{"orderId":13,"amount":5000.00,"method":"cash","status":"completed"}
 2025-12-15 15:08:31 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-15 17:41:01 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-15 18:56:50 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-15 19:01:33 | User:admin | Action:CREATE_Inventory | Entity:Inventory#adjust | IP:::1 | Payload:{"inventoryId":1,"newQuantity":26,"reason":null}
+2025-12-15 19:10:24 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login-customer | IP:::1 | Payload:{"username":"quyen@gmail.com","password":"[REDACTED]"}

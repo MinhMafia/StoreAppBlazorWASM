@@ -1,5 +1,6 @@
 @using Blazored.LocalStorage
 @using StoreApp.Client.Services
+@using Microsoft.AspNetCore.Components.Web
 @inject ILocalStorageService LocalStorage
 @inject IStoreCartService CartService
 @inject NavigationManager Nav
@@ -14,8 +15,13 @@
             </div>
             <div class="top-bar-right">
                 <div class="search-box">
-                    <input type="text" placeholder="Bạn muốn mua gì?" class="search-input" />
-                    <button class="search-btn">
+                    <input type="text"
+                           placeholder="Bạn muốn mua gì?"
+                           class="search-input"
+                           @bind="topSearch"
+                           @bind:event="oninput"
+                           @onkeypress="HandleTopSearchKeyPress" />
+                    <button class="search-btn" @onclick="PerformTopSearch">
                         <i class="bi bi-search"></i>
                     </button>
                 </div>
@@ -135,6 +141,7 @@
     private decimal cartTotalAmount = 0;
     private bool IsLoggedIn;
     private bool IsCustomer;
+    private string? topSearch;
 
     protected override async Task OnInitializedAsync()
     {
@@ -206,6 +213,30 @@
         await LocalStorage.RemoveItemAsync("userName");
         await LocalStorage.RemoveItemAsync("userRole");
         Nav.NavigateTo("/store", forceLoad: true);
+    }
+
+    private void PerformTopSearch()
+    {
+        var keyword = topSearch?.Trim();
+
+        if (string.IsNullOrWhiteSpace(keyword))
+        {
+            Nav.NavigateTo("/store/products");
+            return;
+        }
+
+        var encoded = Uri.EscapeDataString(keyword);
+        Nav.NavigateTo($"/store/products?search={encoded}");
+    }
+
+    private Task HandleTopSearchKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            PerformTopSearch();
+        }
+
+        return Task.CompletedTask;
     }
 
     public void Dispose()

@@ -1,16 +1,21 @@
 using StoreApp.Models;
-using StoreApp.Shared;
 using StoreApp.Repository;
+using StoreApp.Shared;
+using StoreApp.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace StoreApp.Services
 {
     public class InventoryService
     {
         private readonly InventoryRepository _inventoryRepo;
+        private readonly AppDbContext _context;
 
-        public InventoryService(InventoryRepository inventoryRepo)
+        public InventoryService(InventoryRepository inventoryRepo, AppDbContext context)
         {
             _inventoryRepo = inventoryRepo;
+            _context = context;
         }
 
         public async Task<bool> ReduceInventoryAsync(List<ReduceInventoryDto> items)
@@ -20,7 +25,7 @@ namespace StoreApp.Services
             foreach (var item in items)
             {
                 var inventory = await _inventoryRepo.GetByProductIdAsync(item.ProductId);
-                
+
                 if (inventory == null)
                 {
                     // Nếu không tìm thấy inventory, bỏ qua hoặc tạo mới
@@ -29,7 +34,7 @@ namespace StoreApp.Services
                 }
 
                 inventory.Quantity = inventory.Quantity - item.Quantity;
-                inventory.UpdatedAt = DateTime.Now;
+                inventory.UpdatedAt = DateTime.UtcNow;
                 inventoriesToUpdate.Add(inventory);
             }
 
@@ -37,5 +42,75 @@ namespace StoreApp.Services
             await _inventoryRepo.UpdateRangeAsync(inventoriesToUpdate);
             return true;
         }
+
+        public Task<PaginationResult<InventoryListItemDTO>> GetInventoryPagedAsync(
+            int page,
+            int pageSize,
+            string? search,
+            string? sortBy,
+            string? stockStatus)
+        {
+            return _inventoryRepo.GetInventoryPagedAsync(page, pageSize, search, sortBy, stockStatus);
+        }
+
+        public Task<InventoryStatsDTO> GetInventoryStatsAsync(int lowStockThreshold = 10)
+        {
+            return _inventoryRepo.GetInventoryStatsAsync(lowStockThreshold);
+        }
+
+        /// <summary>
+        /// Điều chỉnh tồn kho thủ công (set quantity mới) và ghi log inventory_adjustments.
+        /// </summary>
+        public async Task AdjustInventoryAsync(int inventoryId, int newQuantity, string? reason, ClaimsPrincipal? user)
+        {
+            if (newQuantity < 0)
+                throw new ArgumentException("Số lượng phải >= 0", nameof(newQuantity));
+
+            var inventory = await _context.Inventory
+                .Include(i => i.Product)
+                .FirstOrDefaultAsync(i => i.Id == inventoryId);
+
+            if (inventory == null)
+                throw new InvalidOperationException("Không tìm thấy bản ghi tồn kho.");
+
+            var oldQuantity = inventory.Quantity;
+            if (oldQuantity == newQuantity)
+            {
+                // Không có thay đổi, bỏ qua
+                return;
+            }
+
+            var changeAmount = newQuantity - oldQuantity;
+
+            inventory.Quantity = newQuantity;
+            inventory.UpdatedAt = DateTime.UtcNow;
+
+            var userId = GetUserId(user);
+
+            var adjustment = new InventoryAdjustment
+            {
+                ProductId = inventory.ProductId,
+                ChangeAmount = changeAmount,
+                Reason = string.IsNullOrWhiteSpace(reason)
+                    ? $"Điều chỉnh thủ công từ {oldQuantity} -> {newQuantity}"
+                    : reason,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.InventoryAdjustments.Add(adjustment);
+            await _context.SaveChangesAsync();
+        }
+
+        private int? GetUserId(ClaimsPrincipal? user)
+        {
+            if (user == null) return null;
+
+            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? user.FindFirst("id");
+            if (idClaim == null) return null;
+
+            return int.TryParse(idClaim.Value, out var id) ? id : null;
+        }
     }
 }
+

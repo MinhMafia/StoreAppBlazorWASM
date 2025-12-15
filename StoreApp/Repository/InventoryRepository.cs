@@ -1,7 +1,7 @@
 using StoreApp.Data;
 using StoreApp.Models;
+using StoreApp.Shared;
 using Microsoft.EntityFrameworkCore;
-
 
 namespace StoreApp.Repository
 {
@@ -17,9 +17,10 @@ namespace StoreApp.Repository
         public async Task<Inventory?> GetByProductIdAsync(int productId)
         {
             return await _context.Inventory
-                                .Include(i => i.Product)
-                                .FirstOrDefaultAsync(i => i.ProductId == productId);
+                .Include(i => i.Product)
+                .FirstOrDefaultAsync(i => i.ProductId == productId);
         }
+
         //Tạo mới inventory mới khi tạo mới product
         public async Task<Inventory> CreateAsync(Inventory inventory)
         {
@@ -35,7 +36,7 @@ namespace StoreApp.Repository
             await _context.SaveChangesAsync();
         }
 
-        // Tùy chọn: Cập nhật nhiều inventory cùng lúc
+        // Cập nhật nhiều inventory cùng lúc
         public async Task UpdateRangeAsync(List<Inventory> inventories)
         {
             foreach (var inv in inventories)
@@ -47,7 +48,116 @@ namespace StoreApp.Repository
             await _context.SaveChangesAsync();
         }
 
+        /// <summary>
+        /// Lấy danh sách tồn kho kèm thông tin sản phẩm, có phân trang + tìm kiếm + lọc theo trạng thái + sắp xếp.
+        /// </summary>
+        public async Task<PaginationResult<InventoryListItemDTO>> GetInventoryPagedAsync(
+            int page = 1,
+            int pageSize = 10,
+            string? search = null,
+            string? sortBy = "id",
+            string? stockStatus = null)
+        {
+            if (page < 1) page = 1;
+            if (pageSize <= 0) pageSize = 10;
 
+            var query = _context.Inventory
+                .Include(i => i.Product)!.ThenInclude(p => p!.Category)
+                .Include(i => i.Product)!.ThenInclude(p => p!.Unit)
+                .AsQueryable();
+
+            // Tìm kiếm theo tên SP, SKU
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var s = search.Trim();
+                query = query.Where(i =>
+                    i.Product != null &&
+                    (i.Product.ProductName.Contains(s) ||
+                     (i.Product.Sku != null && i.Product.Sku.Contains(s))));
+            }
+
+            // Lọc theo trạng thái tồn kho
+            stockStatus = stockStatus?.ToLowerInvariant();
+            if (!string.IsNullOrEmpty(stockStatus))
+            {
+                query = stockStatus switch
+                {
+                    "out_of_stock" => query.Where(i => i.Quantity == 0),
+                    "low_stock" => query.Where(i => i.Quantity > 0 && i.Quantity < 10),
+                    "in_stock" => query.Where(i => i.Quantity >= 10),
+                    _ => query
+                };
+            }
+
+            // Sắp xếp
+            sortBy = sortBy?.ToLowerInvariant() ?? "id";
+            query = sortBy switch
+            {
+                "quantity_desc" => query.OrderByDescending(i => i.Quantity),
+                "quantity_asc" => query.OrderBy(i => i.Quantity),
+                "price_desc" => query.OrderByDescending(i => i.Product!.Price),
+                "price_asc" => query.OrderBy(i => i.Product!.Price),
+                "product_name_asc" => query.OrderBy(i => i.Product!.ProductName),
+                "product_name_desc" => query.OrderByDescending(i => i.Product!.ProductName),
+                "updated_at_desc" => query.OrderByDescending(i => i.UpdatedAt),
+                "updated_at_asc" => query.OrderBy(i => i.UpdatedAt),
+                "id_desc" => query.OrderByDescending(i => i.Id),
+                _ => query.OrderBy(i => i.Id),
+            };
+
+            var totalItems = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var dtoItems = items.Select(i => new InventoryListItemDTO
+            {
+                Id = i.Id,
+                ProductId = i.ProductId,
+                ProductName = i.Product?.ProductName ?? string.Empty,
+                Sku = i.Product?.Sku,
+                CategoryName = i.Product?.Category?.Name,
+                Price = i.Product?.Price ?? 0,
+                Unit = i.Product?.Unit?.Name,
+                Quantity = i.Quantity,
+                UpdatedAt = i.UpdatedAt
+            }).ToList();
+
+            return new PaginationResult<InventoryListItemDTO>
+            {
+                Items = dtoItems,
+                TotalItems = totalItems,
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                HasPrevious = page > 1,
+                HasNext = page < totalPages
+            };
+        }
+
+        /// <summary>
+        /// Thống kê nhanh số lượng sản phẩm theo trạng thái tồn kho.
+        /// </summary>
+        public async Task<InventoryStatsDTO> GetInventoryStatsAsync(int lowStockThreshold = 10)
+        {
+            var total = await _context.Inventory.CountAsync();
+            var outOfStock = await _context.Inventory.CountAsync(i => i.Quantity == 0);
+            var lowStock = await _context.Inventory.CountAsync(i => i.Quantity > 0 && i.Quantity < lowStockThreshold);
+            var inStock = await _context.Inventory.CountAsync(i => i.Quantity >= lowStockThreshold);
+
+            return new InventoryStatsDTO
+            {
+                Total = total,
+                OutOfStock = outOfStock,
+                LowStock = lowStock,
+                InStock = inStock
+            };
+        }
     }
 
 }
+
