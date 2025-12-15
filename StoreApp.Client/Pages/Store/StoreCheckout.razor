@@ -419,7 +419,8 @@
             currentOrder.DiaChiKhachHang = profile.Address ?? currentOrder.DiaChiKhachHang;
             currentOrder.ShippingAddress = profile.Address ?? currentOrder.ShippingAddress;
         }
-        else
+
+        else 
         {
             // If profile cannot be loaded (likely 401), redirect to login with return url
             var returnUrl = Navigation.ToBaseRelativePath(Navigation.Uri);

@@ -120,7 +120,7 @@
                                     @if (order.Status == "pending"
                                         && (
                                             (order.PaymentStatus == "pending" && order.PaymentMethod?.ToLower() == "cash")
-                                            || order.PaymentStatus == "failed"
+                                            || (order.PaymentStatus == "failed")||(order.PaymentStatus == "pending" && order.PaymentMethod?.ToLower() == "other")
                                         ))
                                     {
                                         <button

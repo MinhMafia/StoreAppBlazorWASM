@@ -379,7 +379,7 @@ Khuyáº¿n mÃ£i ({order.PromotionCode}): -{fmt(order.Discount)}
 
         string paymentHtml = order.PaymentMethod?.ToLower() switch
         {
-            "cash" => "TIá»€N Máº¶T",
+            "cash" => "tiền mặt",
             "momo" => "MOMO",
             _ => (order.PaymentMethod ?? "cash").ToUpper()
         };
