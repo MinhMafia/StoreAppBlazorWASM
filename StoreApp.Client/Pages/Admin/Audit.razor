@@ -77,6 +77,12 @@
         </div>
 
     </div>
+    @if(showDetail){
+        <AuditDetail
+        currentLog="@currentLog" 
+        onClose="@OnClose"
+        />
+    }
 
     <AuditTable 
         ViewDetail="@ViewDetail"
@@ -85,12 +91,7 @@
         listLog="@listLog"
         ChangePage="@ChangePage"
     />
-    @if(showDetail){
-        <AuditDetail
-        currentLog="@currentLog" 
-        onClose="@OnClose"
-        />
-    }
+   
     
 
 </div>
