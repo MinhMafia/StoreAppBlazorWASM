@@ -24,8 +24,15 @@ namespace StoreApp.Controllers
         [HttpPost("momo/create")]
         public async Task<IActionResult> CreatePayment([FromBody] MomoPaymentRequestDTO req)
         {
-            int userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
-            if(userId == 0) return Unauthorized(new { message = "User not authenticated" });
+            // int userId = int.Parse(User.FindFirst("uid")?.Value ?? "0");
+            // if(userId == 0) return Unauthorized(new { message = "User not authenticated" });
+            
+             // Lấy userId nếu có xác thực, nếu không thì cho phép userId = 0
+            int userId = 0;
+            if (User?.Identity?.IsAuthenticated == true)
+            {
+                int.TryParse(User.FindFirst("uid")?.Value, out userId);
+            }
 
             var result = await _paymentService.CreatePaymentAsync(req, userId);
             if (!result.Success) return BadRequest(new { message = "Tạo payment MoMo thất bại" });
