@@ -24,6 +24,7 @@ namespace StoreApp.Data
         public DbSet<AiConversation> AiConversations { get; set; }
         public DbSet<AiMessage> AiMessages { get; set; }
         public DbSet<UserCart> UserCarts { get; set; }
+        public DbSet<CustomerCart> CustomerCarts { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -231,6 +232,31 @@ namespace StoreApp.Data
             modelBuilder.Entity<UserCart>()
                 .Property(c => c.UpdatedAt)
                 .HasColumnName("updated_at");
+
+            // CustomerCart configuration
+            modelBuilder.Entity<CustomerCart>()
+                .ToTable("customer_carts")
+                .HasIndex(c => c.CustomerId)
+                .IsUnique()
+                .HasDatabaseName("ux_customercart_customer");
+
+            modelBuilder.Entity<CustomerCart>()
+                .Property(c => c.CustomerId)
+                .HasColumnName("customer_id");
+
+            modelBuilder.Entity<CustomerCart>()
+                .Property(c => c.CartJson)
+                .HasColumnName("cart_json");
+
+            modelBuilder.Entity<CustomerCart>()
+                .Property(c => c.UpdatedAt)
+                .HasColumnName("updated_at");
+
+            modelBuilder.Entity<CustomerCart>()
+                .HasOne(c => c.Customer)
+                .WithMany()
+                .HasForeignKey(c => c.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

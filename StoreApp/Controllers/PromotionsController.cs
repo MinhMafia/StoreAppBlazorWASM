@@ -38,6 +38,7 @@ namespace StoreApp.Controllers
 
         // GET api/promotions/paginated
         [HttpGet("paginated")]
+        [AllowAnonymous] 
         public async Task<ActionResult<PaginationResult<PromotionDTO>>> GetPaginatedPromotions(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 12,

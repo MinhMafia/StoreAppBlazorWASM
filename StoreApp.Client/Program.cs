@@ -43,6 +43,7 @@ AddHttpClientWithAuth<IPromotionService, PromotionService>();
 AddHttpClientWithAuth<ICustomerAuthService, CustomerAuthService>();
 AddHttpClientWithAuth<IOrdersClientService, OrdersClientService>(); 
 AddHttpClientWithAuth<IMeClientService, MeClientService>();
+AddHttpClientWithAuth<IReportsService, ReportsService>();
 
 // Giữ nguyên vì không cần gắn header
 // AI Chat Service

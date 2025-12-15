@@ -1,0 +1,827 @@
+@page "/admin/reports"
+@using StoreApp.Client.Services
+@using StoreApp.Shared.DTO
+@using StoreApp.Client.Utils
+@using ApexCharts
+@inject IReportsService ReportsService
+@inject IJSRuntime JS
+
+<div class="p-6 bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                Báo cáo & Thống kê
+            </h1>
+            <p class="text-gray-600">
+                Theo dõi hiệu suất bán hàng, tồn kho và xuất file CSV/XLSX.
+            </p>
+        </div>
+
+        <!-- Date Range and Export Controls -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <div class="flex flex-wrap items-end gap-4 mb-4">
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Từ ngày
+                    </label>
+                    <input
+                        type="date"
+                        @bind="fromDate"
+                        @bind:format="yyyy-MM-dd"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Đến ngày
+                    </label>
+                    <input
+                        type="date"
+                        @bind="toDate"
+                        @bind:format="yyyy-MM-dd"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <button
+                    @onclick="HandleApply"
+                    disabled="@loading"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
+                    Áp dụng
+                </button>
+            </div>
+
+            <!-- Export Buttons -->
+            <div class="flex flex-wrap gap-3 mb-4">
+                <button
+                    @onclick="@(() => HandleExportSales("csv"))"
+                    disabled="@exporting"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2">
+                    <i class="bi bi-file-earmark-text"></i>
+                    Xuất bán hàng CSV
+                </button>
+                <button
+                    @onclick="@(() => HandleExportSales("xlsx"))"
+                    disabled="@exporting"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50 flex items-center gap-2">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>
+                    Xuất bán hàng XLSX
+                </button>
+                <button
+                    @onclick="@(() => HandleExportInventory("csv"))"
+                    disabled="@exporting"
+                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 flex items-center gap-2">
+                    <i class="bi bi-file-earmark-text"></i>
+                    Xuất tồn kho CSV
+                </button>
+                <button
+                    @onclick="@(() => HandleExportInventory("xlsx"))"
+                    disabled="@exporting"
+                    class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition disabled:opacity-50 flex items-center gap-2">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>
+                    Xuất tồn kho XLSX
+                </button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(dateRangeText))
+            {
+                <p class="text-sm text-gray-600">@dateRangeText</p>
+            }
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <p class="text-sm text-gray-600 mb-2">Doanh thu thuần</p>
+                <p class="text-2xl font-bold text-gray-800">
+                    @FormatCurrency(summary?.NetRevenue ?? 0)
+                </p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <p class="text-sm text-gray-600 mb-2">Tổng chiết khấu</p>
+                <p class="text-2xl font-bold text-gray-800">
+                    @FormatCurrency(summary?.TotalDiscount ?? 0)
+                </p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <p class="text-sm text-gray-600 mb-2">Đơn hàng</p>
+                <p class="text-2xl font-bold text-gray-800">
+                    @(summary?.TotalOrders ?? 0)
+                </p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <p class="text-sm text-gray-600 mb-2">Sản phẩm bán ra</p>
+                <p class="text-2xl font-bold text-gray-800">
+                    @(summary?.ProductsSold ?? 0)
+                </p>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Revenue by Day Chart -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-bold mb-4">Doanh thu theo ngày</h2>
+                @if (loading)
+                {
+                    <div class="h-[300px] flex items-center justify-center">
+                        <p class="text-gray-500">Đang tải...</p>
+                    </div>
+                }
+                else if (chartData.Any())
+                {
+                    <ApexChart TItem="ChartDataItem"
+                               Title=""
+                               Height="300"
+                               Options="revenueChartOptions">
+                        <ApexPointSeries TItem="ChartDataItem"
+                                         Items="chartData"
+                                         Name="Doanh thu"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Date)"
+                                         YValue="@(e => e.Revenue)" />
+                        <ApexPointSeries TItem="ChartDataItem"
+                                         Items="chartData"
+                                         Name="Đơn hàng"
+                                         SeriesType="SeriesType.Line"
+                                         XValue="@(e => e.Date)"
+                                         YValue="@(e => (decimal)e.Orders)" />
+                    </ApexChart>
+                }
+                else
+                {
+                    <div class="h-[300px] flex items-center justify-center">
+                        <p class="text-gray-500">Không có dữ liệu</p>
+                    </div>
+                }
+            </div>
+
+            <!-- High Value Inventory Chart -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-bold mb-4">Tồn kho giá trị cao</h2>
+                <p class="text-sm text-gray-600 mb-4">
+                    Tổng giá trị @FormatCurrency(totalInventoryValue)
+                </p>
+                @if (loading)
+                {
+                    <div class="h-[300px] flex items-center justify-center">
+                        <p class="text-gray-500">Đang tải...</p>
+                    </div>
+                }
+                else if (inventoryChartData.Any())
+                {
+                    <ApexChart TItem="InventoryChartItem"
+                               Title=""
+                               Height="300"
+                               Options="inventoryChartOptions">
+                        <ApexPointSeries TItem="InventoryChartItem"
+                                         Items="inventoryChartData"
+                                         Name="Giá trị"
+                                         SeriesType="SeriesType.Bar"
+                                         XValue="@(e => e.Name)"
+                                         YValue="@(e => e.Value)" />
+                    </ApexChart>
+                }
+                else
+                {
+                    <div class="h-[300px] flex items-center justify-center">
+                        <p class="text-gray-500">Không có dữ liệu</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Tables -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Sales Details -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-bold mb-4">Chi tiết bán hàng</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left">Ngày</th>
+                                <th class="px-4 py-2 text-right">Doanh thu</th>
+                                <th class="px-4 py-2 text-right">Đơn hàng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (loading)
+                            {
+                                <tr>
+                                    <td colspan="3" class="px-4 py-8 text-center text-gray-500">
+                                        Đang tải...
+                                    </td>
+                                </tr>
+                            }
+                            else if (revenueByDay.Any())
+                            {
+                                @foreach (var item in revenueByDay.OrderByDescending(x => x.Date))
+                                {
+                                    <tr class="border-b hover:bg-gray-50">
+                                        <td class="px-4 py-2">@item.Date.ToString("dd/MM/yyyy")</td>
+                                        <td class="px-4 py-2 text-right">
+                                            @FormatCurrency(item.Revenue)
+                                        </td>
+                                        <td class="px-4 py-2 text-right">@item.OrderCount</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="3" class="px-4 py-8 text-center text-gray-500">
+                                        Không có dữ liệu
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Top Inventory -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold">
+                        Top tồn kho (@highValueInventory.Count sản phẩm)
+                    </h2>
+                    @if (highValueInventory.Count > 0)
+                    {
+                        <p class="text-sm text-gray-600">
+                            Trang @inventoryPage / @inventoryTotalPages
+                        </p>
+                    }
+                </div>
+                <div class="overflow-x-auto">
+                    <div class="max-h-[500px] overflow-y-auto border border-gray-200 rounded-lg">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-100 sticky top-0 z-10">
+                                <tr>
+                                    <th class="px-4 py-3 text-left font-semibold">Sản phẩm</th>
+                                    <th class="px-4 py-3 text-right font-semibold">Số lượng</th>
+                                    <th class="px-4 py-3 text-right font-semibold">Giá trị</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (loading)
+                                {
+                                    <tr>
+                                        <td colspan="3" class="px-4 py-8 text-center text-gray-500">
+                                            Đang tải...
+                                        </td>
+                                    </tr>
+                                }
+                                else if (paginatedInventory.Any())
+                                {
+                                    @foreach (var (item, idx) in paginatedInventory.Select((item, idx) => (item, idx)))
+                                    {
+                                        <tr class="border-b hover:bg-gray-50">
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center">
+                                                    <span class="text-gray-400 mr-2 text-xs">
+                                                        #@(inventoryStartIndex + idx + 1)
+                                                    </span>
+                                                    <span class="font-medium">
+                                                        @(item.ProductName.Length > 35 ? item.ProductName.Substring(0, 35) + "..." : item.ProductName)
+                                                    </span>
+                                                </div>
+                                                @if (!string.IsNullOrEmpty(item.Sku))
+                                                {
+                                                    <p class="text-xs text-gray-500 mt-1">SKU: @item.Sku</p>
+                                                }
+                                            </td>
+                                            <td class="px-4 py-3 text-right">
+                                                <span class="font-semibold">@item.Quantity</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-right">
+                                                <span class="font-semibold @(item.TotalValue > 0 ? "text-gray-800" : "text-gray-400")">
+                                                    @FormatCurrency(item.TotalValue)
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="3" class="px-4 py-8 text-center text-gray-500">
+                                            Không có dữ liệu
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                @if (highValueInventory.Count > inventoryPageSize)
+                {
+                    <div class="mt-4 flex justify-center gap-2">
+                        <button
+                            @onclick="() => SetInventoryPage(inventoryPage - 1)"
+                            disabled="@(inventoryPage <= 1)"
+                            class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                            Trước
+                        </button>
+                        <span class="px-4 py-2">Trang @inventoryPage / @inventoryTotalPages</span>
+                        <button
+                            @onclick="() => SetInventoryPage(inventoryPage + 1)"
+                            disabled="@(inventoryPage >= inventoryTotalPages)"
+                            class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                            Sau
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Period Comparison -->
+        @if (periodComparison != null)
+        {
+            <div class="bg-white p-6 rounded-lg shadow mb-6">
+                <h2 class="text-xl font-bold mb-4">So sánh với kỳ trước</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="p-4 bg-blue-50 rounded-lg">
+                        <p class="text-sm text-gray-600 mb-2">Doanh thu</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-2xl font-bold text-gray-800">
+                                @FormatCurrency(periodComparison.CurrentPeriod.NetRevenue)
+                            </p>
+                            <span class="text-sm font-semibold @(periodComparison.RevenueChangePercent >= 0 ? "text-green-600" : "text-red-600")">
+                                @(periodComparison.RevenueChangePercent >= 0 ? "↑" : "↓") @Math.Abs(periodComparison.RevenueChangePercent).ToString("F1")%
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Kỳ trước: @FormatCurrency(periodComparison.PreviousPeriod.NetRevenue)
+                        </p>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-lg">
+                        <p class="text-sm text-gray-600 mb-2">Đơn hàng</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-2xl font-bold text-gray-800">
+                                @periodComparison.CurrentPeriod.TotalOrders
+                            </p>
+                            <span class="text-sm font-semibold @(periodComparison.OrdersChangePercent >= 0 ? "text-green-600" : "text-red-600")">
+                                @(periodComparison.OrdersChangePercent >= 0 ? "↑" : "↓") @Math.Abs(periodComparison.OrdersChangePercent).ToString("F1")%
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Kỳ trước: @periodComparison.PreviousPeriod.TotalOrders
+                        </p>
+                    </div>
+                    <div class="p-4 bg-purple-50 rounded-lg">
+                        <p class="text-sm text-gray-600 mb-2">Sản phẩm bán ra</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-2xl font-bold text-gray-800">
+                                @periodComparison.CurrentPeriod.ProductsSold
+                            </p>
+                            <span class="text-sm font-semibold @(periodComparison.ProductsSoldChangePercent >= 0 ? "text-green-600" : "text-red-600")">
+                                @(periodComparison.ProductsSoldChangePercent >= 0 ? "↑" : "↓") @Math.Abs(periodComparison.ProductsSoldChangePercent).ToString("F1")%
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Kỳ trước: @periodComparison.PreviousPeriod.ProductsSold
+                        </p>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Additional Reports -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Top Products -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-bold mb-4">Top Sản phẩm bán chạy</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left">Sản phẩm</th>
+                                <th class="px-4 py-2 text-right">SL bán</th>
+                                <th class="px-4 py-2 text-right">Doanh thu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (loading)
+                            {
+                                <tr>
+                                    <td colspan="3" class="px-4 py-8 text-center text-gray-500">
+                                        Đang tải...
+                                    </td>
+                                </tr>
+                            }
+                            else if (topProducts.Any())
+                            {
+                                @foreach (var item in topProducts)
+                                {
+                                    <tr class="border-b hover:bg-gray-50">
+                                        <td class="px-4 py-2">
+                                            <div>
+                                                <p class="font-semibold">
+                                                    @(item.ProductName.Length > 25 ? item.ProductName.Substring(0, 25) + "..." : item.ProductName)
+                                                </p>
+                                                @if (!string.IsNullOrEmpty(item.CategoryName))
+                                                {
+                                                    <p class="text-xs text-gray-500">@item.CategoryName</p>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-2 text-right">@item.QuantitySold</td>
+                                        <td class="px-4 py-2 text-right">
+                                            @FormatCurrency(item.Revenue)
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="3" class="px-4 py-8 text-center text-gray-500">
+                                        Không có dữ liệu
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Top Customers -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-bold mb-4">Top Khách hàng</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left">Khách hàng</th>
+                                <th class="px-4 py-2 text-right">Đơn hàng</th>
+                                <th class="px-4 py-2 text-right">Tổng chi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (loading)
+                            {
+                                <tr>
+                                    <td colspan="3" class="px-4 py-8 text-center text-gray-500">
+                                        Đang tải...
+                                    </td>
+                                </tr>
+                            }
+                            else if (topCustomers.Any())
+                            {
+                                @foreach (var item in topCustomers)
+                                {
+                                    <tr class="border-b hover:bg-gray-50">
+                                        <td class="px-4 py-2">
+                                            <div>
+                                                <p class="font-semibold">@item.CustomerName</p>
+                                                @if (!string.IsNullOrEmpty(item.Phone))
+                                                {
+                                                    <p class="text-xs text-gray-500">@item.Phone</p>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-2 text-right">@item.OrderCount</td>
+                                        <td class="px-4 py-2 text-right">
+                                            @FormatCurrency(item.TotalSpent)
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="3" class="px-4 py-8 text-center text-gray-500">
+                                        Không có dữ liệu
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales by Staff -->
+        @if (salesByStaff.Any())
+        {
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-bold mb-4">Doanh số theo Nhân viên</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left">Nhân viên</th>
+                                <th class="px-4 py-2 text-right">Số đơn</th>
+                                <th class="px-4 py-2 text-right">Tổng doanh thu</th>
+                                <th class="px-4 py-2 text-right">Đơn trung bình</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in salesByStaff)
+                            {
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="px-4 py-2">
+                                        <div>
+                                            <p class="font-semibold">
+                                                @(!string.IsNullOrEmpty(item.FullName) ? item.FullName : item.UserName)
+                                            </p>
+                                            <p class="text-xs text-gray-500">@item.UserName</p>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-2 text-right">@item.OrderCount</td>
+                                    <td class="px-4 py-2 text-right">
+                                        @FormatCurrency(item.TotalRevenue)
+                                    </td>
+                                    <td class="px-4 py-2 text-right">
+                                        @FormatCurrency(item.AverageOrderValue)
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private DateTime fromDate = DateTime.Now.AddDays(-12);
+    private DateTime toDate = DateTime.Now;
+    private bool loading = false;
+    private bool exporting = false;
+    private SalesSummaryDTO? summary;
+    private List<RevenueByDayDTO> revenueByDay = new();
+    private List<HighValueInventoryDTO> highValueInventory = new();
+    private PeriodComparisonDTO? periodComparison;
+    private List<TopProductReportDTO> topProducts = new();
+    private List<TopCustomerReportDTO> topCustomers = new();
+    private List<SalesByStaffDTO> salesByStaff = new();
+
+    // Pagination cho tồn kho
+    private int inventoryPage = 1;
+    private const int inventoryPageSize = 10;
+
+    private string dateRangeText => FormatDateRange();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        loading = true;
+        try
+        {
+            var from = fromDate;
+            var to = toDate;
+
+            var summaryTask = ReportsService.GetSalesSummary(from, to);
+            var revenueTask = ReportsService.GetRevenueByDay(from, to);
+            var inventoryTask = ReportsService.GetHighValueInventory(100);
+            var comparisonTask = ReportsService.GetPeriodComparison(from, to);
+            var productsTask = ReportsService.GetTopProducts(from, to, 10);
+            var customersTask = ReportsService.GetTopCustomers(from, to, 10);
+            var staffTask = ReportsService.GetSalesByStaff(from, to);
+
+            await Task.WhenAll(summaryTask, revenueTask, inventoryTask, comparisonTask, productsTask, customersTask, staffTask);
+
+            summary = await summaryTask;
+            revenueByDay = await revenueTask ?? new List<RevenueByDayDTO>();
+            highValueInventory = await inventoryTask ?? new List<HighValueInventoryDTO>();
+            periodComparison = await comparisonTask;
+            topProducts = await productsTask ?? new List<TopProductReportDTO>();
+            topCustomers = await customersTask ?? new List<TopCustomerReportDTO>();
+            salesByStaff = await staffTask ?? new List<SalesByStaffDTO>();
+
+            inventoryPage = 1;
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Lỗi tải dữ liệu: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task HandleApply()
+    {
+        await LoadData();
+    }
+
+    private async Task HandleExportSales(string format)
+    {
+        exporting = true;
+        try
+        {
+            await ReportsService.ExportSalesReport(fromDate, toDate, format);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Lỗi khi xuất báo cáo: {ex.Message}");
+        }
+        finally
+        {
+            exporting = false;
+        }
+    }
+
+    private async Task HandleExportInventory(string format)
+    {
+        exporting = true;
+        try
+        {
+            await ReportsService.ExportInventoryReport(format);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Lỗi khi xuất báo cáo: {ex.Message}");
+        }
+        finally
+        {
+            exporting = false;
+        }
+    }
+
+    private string FormatDateRange()
+    {
+        if (fromDate == default || toDate == default) return "";
+        return $"Dữ liệu hiển thị cho khoảng thời gian {fromDate:yyyy-MM-dd} – {toDate:yyyy-MM-dd}";
+    }
+
+    private string FormatCurrency(decimal value)
+    {
+        return Formatters.FormatCurrency(value);
+    }
+
+    // Chart data
+    private List<ChartDataItem> chartData => revenueByDay.Select(item => new ChartDataItem
+    {
+        Date = item.Date.ToString("dd/MM"),
+        Revenue = item.Revenue,
+        Orders = item.OrderCount
+    }).ToList();
+
+    private List<InventoryChartItem> inventoryChartData => highValueInventory
+        .Where(item => item != null && !string.IsNullOrEmpty(item.ProductName))
+        .Take(8)
+        .Select((item, index) => new InventoryChartItem
+        {
+            Name = item.ProductName.Length > 20 ? item.ProductName.Substring(0, 20) + "..." : item.ProductName,
+            Value = item.TotalValue,
+            Index = index
+        }).ToList();
+
+    private decimal totalInventoryValue => highValueInventory.Sum(item => item.TotalValue);
+
+    // Pagination
+    private int inventoryTotalPages => (int)Math.Ceiling(highValueInventory.Count / (double)inventoryPageSize);
+    private int inventoryStartIndex => (inventoryPage - 1) * inventoryPageSize;
+    private int inventoryEndIndex => inventoryStartIndex + inventoryPageSize;
+    private List<HighValueInventoryDTO> paginatedInventory => highValueInventory
+        .Skip(inventoryStartIndex)
+        .Take(inventoryPageSize)
+        .ToList();
+
+    private void SetInventoryPage(int page)
+    {
+        inventoryPage = Math.Max(1, Math.Min(page, inventoryTotalPages));
+    }
+
+    // Chart options
+    private ApexChartOptions<ChartDataItem> revenueChartOptions => new()
+    {
+        Yaxis = new List<YAxis>
+        {
+            new YAxis
+            {
+                Title = new AxisTitle { Text = "Doanh thu" },
+                Min = 0,
+                Labels = new YAxisLabels
+                {
+                    Formatter = "function(value) { return (value / 1000000).toFixed(1) + 'M'; }"
+                }
+            },
+            new YAxis
+            {
+                Opposite = true,
+                Title = new AxisTitle { Text = "Đơn hàng" },
+                Min = 0,
+                Labels = new YAxisLabels
+                {
+                    Formatter = "function(value) { return Math.round(value); }"
+                }
+            }
+        },
+        Tooltip = new Tooltip
+        {
+            Shared = true
+        },
+        Chart = new Chart
+        {
+            Toolbar = new Toolbar { Show = false },
+            Zoom = new Zoom { Enabled = false }
+        },
+        Colors = new List<string> { "#3b82f6", "#f97316" },
+        Stroke = new Stroke { Width = 3, Curve = Curve.Smooth },
+        Xaxis = new XAxis
+        {
+            Labels = new XAxisLabels { Rotate = -45 }
+        }
+    };
+
+    private ApexChartOptions<InventoryChartItem> inventoryChartOptions => new()
+    {
+        Chart = new Chart
+        {
+            Type = ChartType.Bar,
+            Toolbar = new Toolbar { Show = false }
+        },
+        Xaxis = new XAxis
+        {
+            Labels = new XAxisLabels
+            {
+                Rotate = -45,
+                MaxHeight = 100
+            }
+        },
+        Yaxis = new List<YAxis>
+        {
+            new YAxis
+            {
+                Title = new AxisTitle { Text = "Giá trị (VNĐ)" },
+                Labels = new YAxisLabels
+                {
+                    Formatter = "function(value) { if (value >= 1000000000) return (value / 1000000000).toFixed(1) + 'B'; if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'; if (value >= 1000) return (value / 1000).toFixed(0) + 'K'; return value.toLocaleString('vi-VN'); }"
+                }
+            }
+        },
+        Colors = new List<string> { "#10b981" },
+        DataLabels = new DataLabels
+        {
+            Enabled = true,
+            Formatter = "function(val) { if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'B'; if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M'; if (val >= 1000) return (val / 1000).toFixed(0) + 'K'; return val.toLocaleString('vi-VN'); }",
+            Style = new DataLabelsStyle
+            {
+                FontSize = "11px",
+                FontWeight = "500",
+                Colors = new List<string> { "#fff" }
+            }
+        },
+        Tooltip = new Tooltip
+        {
+            Y = new TooltipY
+            {
+                Formatter = "function(value) { return value.toLocaleString('vi-VN') + ' đ'; }"
+            }
+        }
+    };
+
+    private string GetYAxisFormatter()
+    {
+        if (!inventoryChartData.Any()) return "function(value) { return ''; }";
+        var names = inventoryChartData.Select(item => 
+        {
+            var escaped = item.Name.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"");
+            return $"\"{escaped}\"";
+        }).ToList();
+        return $"function(value) {{ var names = [{string.Join(", ", names)}]; var idx = Math.round(value); if (idx >= 0 && idx < names.length) {{ var name = names[idx]; return name.length > 25 ? name.substring(0, 22) + '...' : name; }} return ''; }}";
+    }
+
+    private string GetDataLabelsFormatter()
+    {
+        if (!inventoryChartData.Any()) return "function(val) { return ''; }";
+        var values = inventoryChartData.Select(item => item.Value.ToString("F2")).ToList();
+        return $"function(val, opts) {{ var values = [{string.Join(", ", values)}]; var idx = opts.dataPointIndex; if (idx >= 0 && idx < values.length) {{ var v = values[idx]; if (v >= 1000000000) return (v / 1000000000).toFixed(1) + 'B'; if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M'; if (v >= 1000) return (v / 1000).toFixed(0) + 'K'; return v.toLocaleString('vi-VN'); }} return ''; }}";
+    }
+
+    private string GetTooltipFormatter()
+    {
+        if (!inventoryChartData.Any()) return "function(value) { return ''; }";
+        var names = inventoryChartData.Select(item => 
+        {
+            var escaped = item.Name.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"");
+            return $"\"{escaped}\"";
+        }).ToList();
+        var values = inventoryChartData.Select(item => item.Value.ToString("F2")).ToList();
+        return $"function(value, opts) {{ var names = [{string.Join(", ", names)}]; var values = [{string.Join(", ", values)}]; var idx = opts.dataPointIndex; if (idx >= 0 && idx < names.length && idx < values.length) {{ return names[idx] + ': ' + values[idx].toLocaleString('vi-VN') + ' đ'; }} return ''; }}";
+    }
+
+    // Data classes for charts
+    private class ChartDataItem
+    {
+        public string Date { get; set; } = "";
+        public decimal Revenue { get; set; }
+        public int Orders { get; set; }
+    }
+
+    private class InventoryChartItem
+    {
+        public string Name { get; set; } = "";
+        public decimal Value { get; set; }
+        public int Index { get; set; }
+    }
+}
+

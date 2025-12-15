@@ -89,95 +89,113 @@
             </div>
         </div>
 
-        <!-- Filter Bar -->
-        <div class="filter-bar">
-            <div class="filter-group">
-                <label class="filter-label">Danh mục:</label>
-                <div class="category-filters">
-                    <button class="filter-chip @(selectedCategoryId == null ? "active" : "")" 
-                            @onclick="() => SelectCategory(null)">
-                        Tất cả
-                    </button>
-                    @if (categories != null && categories.Any())
-                    {
-                        @foreach (var category in categories)
-                        {
-                            <button class="filter-chip @(selectedCategoryId == category.Id ? "active" : "")" 
-                                    @onclick="() => SelectCategory(category.Id)">
-                                @category.Name
-                            </button>
-                        }
-                    }
-                </div>
+        <!-- Filter Section with Toggle -->
+        <div class="filter-section-collapsible">
+            <div class="filter-section-header" @onclick="ToggleFilters">
+                <h3 class="filter-section-title">
+                    <i class="bi bi-funnel"></i>
+                    Bộ lọc & Sắp xếp
+                </h3>
+                <button class="filter-toggle-btn" type="button">
+                    <i class="bi bi-chevron-@(isFilterExpanded ? "up" : "down")"></i>
+                </button>
             </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Giá:</label>
-                <div class="price-filter-inputs">
-                    <input type="number" 
-                           class="form-control price-input" 
-                           @bind="minPrice" 
-                           placeholder="Từ" />
-                    <span class="price-separator">-</span>
-                    <input type="number" 
-                           class="form-control price-input" 
-                           @bind="maxPrice" 
-                           placeholder="Đến" />
-                    <button class="btn-filter-apply" @onclick="ApplyPriceFilter">
-                        Áp dụng
-                    </button>
-                </div>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Sắp xếp:</label>
-                <select class="form-select sort-select" 
-                        @bind="sortOrder" 
-                        @bind:event="onchange"
-                        @bind:after="OnSortOrderChanged">
-                    <option value="default">Thứ tự mặc định</option>
-                    <option value="price-asc">Giá: Thấp đến Cao</option>
-                    <option value="price-desc">Giá: Cao đến Thấp</option>
-                    <option value="name-asc">Tên: A-Z</option>
-                    <option value="name-desc">Tên: Z-A</option>
-                </select>
-            </div>
-
-            @if (HasActiveFilters())
+            
+            @if (isFilterExpanded)
             {
-                <div class="filter-group">
-                    <button class="btn-clear-filters" @onclick="ClearFilters">
-                        <i class="bi bi-x-circle"></i> Xóa bộ lọc
-                    </button>
+                <div class="filter-section-content">
+                    <!-- Filter Bar -->
+                    <div class="filter-bar">
+                        <div class="filter-group">
+                            <label class="filter-label">Danh mục:</label>
+                            <div class="category-filters">
+                                <button class="filter-chip @(selectedCategoryId == null ? "active" : "")" 
+                                        @onclick="() => SelectCategory(null)">
+                                    Tất cả
+                                </button>
+                                @if (categories != null && categories.Any())
+                                {
+                                    @foreach (var category in categories)
+                                    {
+                                        <button class="filter-chip @(selectedCategoryId == category.Id ? "active" : "")" 
+                                                @onclick="() => SelectCategory(category.Id)">
+                                            @category.Name
+                                        </button>
+                                    }
+                                }
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <label class="filter-label">Giá:</label>
+                            <div class="price-filter-inputs">
+                                <input type="number" 
+                                       class="form-control price-input" 
+                                       @bind="minPrice" 
+                                       placeholder="Từ" />
+                                <span class="price-separator">-</span>
+                                <input type="number" 
+                                       class="form-control price-input" 
+                                       @bind="maxPrice" 
+                                       placeholder="Đến" />
+                                <button class="btn-filter-apply" @onclick="ApplyPriceFilter">
+                                    Áp dụng
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <label class="filter-label">Sắp xếp:</label>
+                            <select class="form-select sort-select" 
+                                    @bind="sortOrder" 
+                                    @bind:event="onchange"
+                                    @bind:after="OnSortOrderChanged">
+                                <option value="default">Thứ tự mặc định</option>
+                                <option value="price-asc">Giá: Thấp đến Cao</option>
+                                <option value="price-desc">Giá: Cao đến Thấp</option>
+                                <option value="name-asc">Tên: A-Z</option>
+                                <option value="name-desc">Tên: Z-A</option>
+                            </select>
+                        </div>
+
+                        @if (HasActiveFilters())
+                        {
+                            <div class="filter-group">
+                                <button class="btn-clear-filters" @onclick="ClearFilters">
+                                    <i class="bi bi-x-circle"></i> Xóa bộ lọc
+                                </button>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Quick Price Filters -->
+                    <div class="quick-price-filters">
+                        <label class="filter-label">Khoảng giá nhanh:</label>
+                        <div class="quick-price-buttons">
+                            <button class="quick-price-btn @(IsQuickPriceActive(0, 100000) ? "active" : "")" 
+                                    @onclick="() => ApplyQuickPrice(0, 100000)">
+                                Dưới 100k
+                            </button>
+                            <button class="quick-price-btn @(IsQuickPriceActive(100000, 300000) ? "active" : "")" 
+                                    @onclick="() => ApplyQuickPrice(100000, 300000)">
+                                100k - 300k
+                            </button>
+                            <button class="quick-price-btn @(IsQuickPriceActive(300000, 500000) ? "active" : "")" 
+                                    @onclick="() => ApplyQuickPrice(300000, 500000)">
+                                300k - 500k
+                            </button>
+                            <button class="quick-price-btn @(IsQuickPriceActive(500000, 1000000) ? "active" : "")" 
+                                    @onclick="() => ApplyQuickPrice(500000, 1000000)">
+                                500k - 1M
+                            </button>
+                            <button class="quick-price-btn @(IsQuickPriceActive(1000000, null) ? "active" : "")" 
+                                    @onclick="() => ApplyQuickPrice(1000000, null)">
+                                Trên 1M
+                            </button>
+                        </div>
+                    </div>
                 </div>
             }
-        </div>
-
-        <!-- Quick Price Filters -->
-        <div class="quick-price-filters">
-            <label class="filter-label">Khoảng giá nhanh:</label>
-            <div class="quick-price-buttons">
-                <button class="quick-price-btn @(IsQuickPriceActive(0, 100000) ? "active" : "")" 
-                        @onclick="() => ApplyQuickPrice(0, 100000)">
-                    Dưới 100k
-                </button>
-                <button class="quick-price-btn @(IsQuickPriceActive(100000, 300000) ? "active" : "")" 
-                        @onclick="() => ApplyQuickPrice(100000, 300000)">
-                    100k - 300k
-                </button>
-                <button class="quick-price-btn @(IsQuickPriceActive(300000, 500000) ? "active" : "")" 
-                        @onclick="() => ApplyQuickPrice(300000, 500000)">
-                    300k - 500k
-                </button>
-                <button class="quick-price-btn @(IsQuickPriceActive(500000, 1000000) ? "active" : "")" 
-                        @onclick="() => ApplyQuickPrice(500000, 1000000)">
-                    500k - 1M
-                </button>
-                <button class="quick-price-btn @(IsQuickPriceActive(1000000, null) ? "active" : "")" 
-                        @onclick="() => ApplyQuickPrice(1000000, null)">
-                    Trên 1M
-                </button>
-            </div>
         </div>
 
         <!-- Active Filters Display -->
@@ -326,9 +344,6 @@
                                 <div class="product-list-actions">
                                     <button class="btn btn-primary btn-add-to-cart" @onclick="async () => await AddToCart(product)">
                                         <i class="bi bi-cart-plus"></i> Thêm vào giỏ
-                                    </button>
-                                    <button class="btn btn-outline-secondary btn-quick-view" @onclick="() => NavigateToProduct(product.Id)">
-                                        <i class="bi bi-eye"></i> Xem nhanh
                                     </button>
                                 </div>
                             </div>
@@ -501,6 +516,7 @@
     private bool isLoading = false;
     private string viewMode = "grid"; // "grid" or "list"
     private List<PromotionDTO>? promotions;
+    private bool isFilterExpanded = false; // Mặc định đóng để tiết kiệm diện tích
 
     protected override async Task OnInitializedAsync()
     {
@@ -761,11 +777,6 @@
         StateHasChanged();
     }
 
-    private void NavigateToProduct(int productId)
-    {
-        Navigation.NavigateTo($"/store/products/{productId}");
-    }
-
     private bool IsQuickPriceActive(decimal? min, decimal? max)
     {
         if (minPrice == min && maxPrice == max)
@@ -830,5 +841,11 @@
         var imageUrl = string.IsNullOrEmpty(product.ImageUrl) ? "/assets/images/products/product.jpg" : product.ImageUrl;
         var availableQuantity = product.Inventory?.Quantity;
         await CartService.AddToCart(product.Id, product.ProductName, imageUrl, product.Price, 1, availableQuantity);
+    }
+
+    private void ToggleFilters()
+    {
+        isFilterExpanded = !isFilterExpanded;
+        StateHasChanged();
     }
 }

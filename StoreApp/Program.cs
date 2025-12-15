@@ -99,7 +99,7 @@ builder.Services.AddScoped<ImportService>(sp =>
     );
 });
 builder.Services.AddScoped<SupplierService>();
-builder.Services.AddScoped<ReportsService>();
+builder.Services.AddScoped<StoreApp.Services.ReportsService>();
 builder.Services.AddScoped<JwtService>();
 
 // 👇👈 ADD THIS — để fix lỗi IHttpContextAccessor

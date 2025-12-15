@@ -86,42 +86,43 @@
 <nav class="store-navbar">
     <div class="container">
         <div class="navbar-content">
-            <button class="categories-btn">
-                <i class="bi bi-list"></i>
-                DANH MỤC SẢN PHẨM
-            </button>
-
             <div class="navbar-menu">
                 <NavLink href="/store" Match="NavLinkMatch.All" class="nav-link">
-                    TRANG CHỦ
+                    <i class="bi bi-house-door"></i>
+                    <span>TRANG CHỦ</span>
                 </NavLink>
                 <NavLink href="/store/products" class="nav-link">
-                    SẢN PHẨM
+                    <i class="bi bi-grid"></i>
+                    <span>SẢN PHẨM</span>
                 </NavLink>
                 <NavLink href="/store/cart" class="nav-link">
-                    GIỎ HÀNG
+                    <i class="bi bi-cart3"></i>
+                    <span>GIỎ HÀNG</span>
                 </NavLink>
                 @if (IsCustomer)
                 {
                     <NavLink href="/store/orders" class="nav-link">
-                        ĐƠN HÀNG CỦA TÔI
+                        <i class="bi bi-receipt"></i>
+                        <span>ĐƠN HÀNG CỦA TÔI</span>
                     </NavLink>
                     <NavLink href="/store/profile" class="nav-link">
-                        HỒ SƠ
+                        <i class="bi bi-person-circle"></i>
+                        <span>HỒ SƠ</span>
                     </NavLink>
-                    <div class="nav-item px-3">
-                        <button class="btn btn-danger w-100" @onclick="HandleLogout">
-                            <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
-                        </button>
-                    </div>
+                    <button class="nav-link logout-btn" @onclick="HandleLogout">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>ĐĂNG XUẤT</span>
+                    </button>
                 }
                 else
                 {
                     <NavLink href="/login" class="nav-link">
-                        ĐĂNG NHẬP
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span>ĐĂNG NHẬP</span>
                     </NavLink>
                     <NavLink href="/register" class="nav-link">
-                        ĐĂNG KÝ
+                        <i class="bi bi-person-plus"></i>
+                        <span>ĐĂNG KÝ</span>
                     </NavLink>
                 }
             </div>

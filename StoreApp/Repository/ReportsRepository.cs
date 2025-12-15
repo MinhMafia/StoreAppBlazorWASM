@@ -20,7 +20,7 @@ namespace StoreApp.Repository
                 .Include(oi => oi.Order)
                     .ThenInclude(o => o!.Customer)
                 .Include(oi => oi.Product)
-                .Where(oi => oi.Order != null && oi.Order.Status == "completed") // Chỉ lấy orders đã hoàn thành
+                .Where(oi => oi.Order != null && (oi.Order.Status == "completed" || oi.Order.Status == "paid")) // Lấy orders đã thanh toán hoặc hoàn thành
                 .AsQueryable();
 
             if (fromDate.HasValue)
@@ -99,18 +99,18 @@ namespace StoreApp.Repository
                 query = query.Where(o => o.CreatedAt <= endDate);
             }
 
-            // Chỉ tính các orders đã hoàn thành
-            var paidOrders = query.Where(o => o.Status == "completed");
+            // Tính các orders đã thanh toán hoặc hoàn thành (paid hoặc completed)
+            var paidOrders = query.Where(o => o.Status == "completed" || o.Status == "paid");
 
             var netRevenue = await paidOrders.SumAsync(o => o.TotalAmount);
             // TotalDiscount: Tính tổng discount của các orders đã thanh toán (để khớp với NetRevenue)
             var totalDiscount = await paidOrders.SumAsync(o => o.Discount);
             var totalOrders = await paidOrders.CountAsync();
 
-            // ProductsSold: Chỉ tính sản phẩm từ orders đã hoàn thành
+            // ProductsSold: Tính sản phẩm từ orders đã thanh toán hoặc hoàn thành
             var productsSoldQuery = _context.OrderItems
                 .Include(oi => oi.Order)
-                .Where(oi => oi.Order != null && oi.Order.Status == "completed");
+                .Where(oi => oi.Order != null && (oi.Order.Status == "completed" || oi.Order.Status == "paid"));
 
             if (fromDate.HasValue)
             {
@@ -138,7 +138,7 @@ namespace StoreApp.Repository
         public async Task<List<RevenueByDayDTO>> GetRevenueByDayAsync(DateTime? fromDate, DateTime? toDate)
         {
             var query = _context.Orders
-                .Where(o => o.Status == "completed")
+                .Where(o => o.Status == "completed" || o.Status == "paid")
                 .AsQueryable();
 
             if (fromDate.HasValue)
@@ -173,28 +173,31 @@ namespace StoreApp.Repository
         {
             var results = await _context.Inventory
                 .Include(i => i.Product)
-                .Where(i => i.Product != null) 
+                .Where(i => i.Product != null && i.Quantity > 0) 
                 .Select(i => new HighValueInventoryDTO
                 {
                     ProductId = i.ProductId,
                     ProductName = i.Product!.ProductName,
                     Sku = i.Product.Sku,
                     Quantity = i.Quantity,
-                    TotalValue = i.Quantity * (i.Product.Cost ?? (i.Product.Price > 0 ? i.Product.Price : 0)) // Dùng Price nếu Cost = null, nếu cả 2 = 0 thì = 0
+                    // Dùng Cost nếu có, nếu không thì dùng Price, nếu cả 2 đều 0 thì dùng 0
+                    TotalValue = i.Quantity * (i.Product.Cost.HasValue && i.Product.Cost.Value > 0 
+                        ? i.Product.Cost.Value 
+                        : (i.Product.Price > 0 ? i.Product.Price : 0))
                 })
-                .OrderByDescending(i => i.TotalValue)
-                .ThenByDescending(i => i.Quantity) // Sắp xếp theo số lượng nếu giá trị bằng nhau
+                .OrderByDescending(i => i.Quantity) // Sắp xếp theo số lượng
+                .ThenByDescending(i => i.TotalValue) // Sắp xếp theo giá trị nếu số lượng bằng nhau
                 .Take(limit)
                 .ToListAsync();
 
             return results;
         }
 
-        public async Task<PeriodComparisonDTO> GetPeriodComparisonAsync(DateTime? fromDate, DateTime? toDate)
+        public async Task<PeriodComparisonDTO?> GetPeriodComparisonAsync(DateTime? fromDate, DateTime? toDate)
         {
             if (!fromDate.HasValue || !toDate.HasValue)
             {
-                throw new ArgumentException("FromDate and ToDate are required for period comparison");
+                return null; // Trả về null thay vì throw exception
             }
 
             var periodDays = (toDate.Value.Date - fromDate.Value.Date).Days + 1;
