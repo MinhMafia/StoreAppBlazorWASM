@@ -1,6 +1,7 @@
 @using StoreApp.Shared
 @using Microsoft.AspNetCore.Components.Forms
-@inject HttpClient Http
+@using System.Net.Http
+@inject IHttpClientFactory HttpClientFactory
 @inject IJSRuntime JS
 
 <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
@@ -183,8 +184,9 @@
         downloadingTemplate = true;
         try
         {
+            var httpClient = HttpClientFactory.CreateClient("ApiWithAuth");
             var formatParam = format.ToLowerInvariant();
-            var response = await Http.GetAsync($"api/import/template/products?format={formatParam}");
+            var response = await httpClient.GetAsync($"api/import/template/products?format={formatParam}");
             
             if (response.IsSuccessStatusCode)
             {
@@ -229,7 +231,8 @@
             streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(selectedFile.ContentType);
             content.Add(streamContent, "file", selectedFile.Name);
 
-            var response = await Http.PostAsync("api/import/products", content);
+            var httpClient = HttpClientFactory.CreateClient("ApiWithAuth");
+            var response = await httpClient.PostAsync("api/import/products", content);
 
             if (response.IsSuccessStatusCode)
             {
