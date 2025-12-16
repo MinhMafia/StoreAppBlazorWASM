@@ -71,6 +71,14 @@ namespace StoreApp.Middlewares
 
                     // Lấy UserId từ JWT
                     int? userId = GetUserId(context);
+                    string role = GetUserRole(context);
+
+                    // Không log nếu là customer
+                    if (string.Equals(role, "customer", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await _next(context);
+                        return;
+                    }
 
                     // Lấy Username từ JWT nếu có
                     string userName =
@@ -91,7 +99,7 @@ namespace StoreApp.Middlewares
                         var logService = scope.ServiceProvider.GetRequiredService<ActivityLogService>();
 
                         await logService.LogAsync(
-                            userId ?? 0,
+                            userId ,
                             action,
                             entityName,
                             entityId,
@@ -154,15 +162,29 @@ namespace StoreApp.Middlewares
 
         private int? GetUserId(HttpContext context)
         {
+            if (context?.User?.Identity?.IsAuthenticated == true)
+            {
+                var claim = context.User.FindFirst("uid")
+                            ?? context.User.FindFirst(ClaimTypes.NameIdentifier);
+
+                if (int.TryParse(claim?.Value, out int id))
+                    return id;
+            }
+
+            return null;
+        }
+
+
+        // Lấy role
+        private string? GetUserRole(HttpContext context)
+        {
             if (context.User?.Identity?.IsAuthenticated != true)
                 return null;
 
-            var claim =
-                context.User.FindFirst("uid") ??
-                context.User.FindFirst(ClaimTypes.NameIdentifier);
-
-            return int.TryParse(claim?.Value, out int id) ? id : null;
+            return context.User.FindFirst(ClaimTypes.Role)?.Value;
         }
+
+
 
         private string PreparePayload(string text)
         {

@@ -168,7 +168,7 @@
         if (selectedStartDate != null && selectedEndDate != null && selectedStartDate > selectedEndDate)
         {
 
-            await JS.InvokeVoidAsync("alert", "NgÃ y báº¯t Ä‘áº§u pháº£i nhá» hÆ¡n hoáº·c báº±ng ngÃ y káº¿t thÃºc. Vui lÃ²ng chá»n láº¡i.");
+            await JS.InvokeVoidAsync("alert", "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.");
             return;
         }
 
@@ -379,7 +379,7 @@ Khuyáº¿n mÃ£i ({order.PromotionCode}): -{fmt(order.Discount)}
 
         string paymentHtml = order.PaymentMethod?.ToLower() switch
         {
-            "cash" => "TIá»€N Máº¶T",
+            "cash" => "tiền mặt",
             "momo" => "MOMO",
             _ => (order.PaymentMethod ?? "cash").ToUpper()
         };

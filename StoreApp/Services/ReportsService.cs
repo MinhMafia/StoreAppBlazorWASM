@@ -38,7 +38,7 @@ namespace StoreApp.Services
             return _repository.GetHighValueInventoryAsync(limit);
         }
 
-        public Task<PeriodComparisonDTO> GetPeriodComparisonAsync(DateTime? fromDate, DateTime? toDate)
+        public Task<PeriodComparisonDTO?> GetPeriodComparisonAsync(DateTime? fromDate, DateTime? toDate)
         {
             return _repository.GetPeriodComparisonAsync(fromDate, toDate);
         }

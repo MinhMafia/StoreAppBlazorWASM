@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using StoreApp.Data;
 using StoreApp.Models;
 using StoreApp.Shared;
@@ -23,10 +24,10 @@ namespace StoreApp.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<CartItemDTO>> GetCart()
         {
-            var userId = ResolveUserId();
-            if (userId == null) return Unauthorized();
+            var customerId = ResolveCustomerId();
+            if (customerId == null) return Unauthorized();
 
-            var cart = _context.UserCarts.FirstOrDefault(c => c.UserId == userId.Value);
+            var cart = _context.CustomerCarts.FirstOrDefault(c => c.CustomerId == customerId.Value);
             if (cart == null || string.IsNullOrWhiteSpace(cart.CartJson))
                 return Ok(new List<CartItemDTO>());
 
@@ -44,36 +45,45 @@ namespace StoreApp.Controllers
         [HttpPost("sync")]
         public async Task<ActionResult> SyncCart([FromBody] List<CartItemDTO> items)
         {
-            var userId = ResolveUserId();
-            if (userId == null) return Unauthorized();
+            var customerId = ResolveCustomerId();
+            if (customerId == null) return Unauthorized();
 
-            var cart = _context.UserCarts.FirstOrDefault(c => c.UserId == userId.Value);
-            var payload = JsonSerializer.Serialize(items ?? new List<CartItemDTO>());
-
-            if (cart == null)
+            try
             {
-                cart = new UserCart
+                var cart = _context.CustomerCarts.FirstOrDefault(c => c.CustomerId == customerId.Value);
+                var payload = JsonSerializer.Serialize(items ?? new List<CartItemDTO>());
+
+                if (cart == null)
                 {
-                    UserId = userId.Value,
-                    CartJson = payload,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                _context.UserCarts.Add(cart);
-            }
-            else
-            {
-                cart.CartJson = payload;
-                cart.UpdatedAt = DateTime.UtcNow;
-                _context.UserCarts.Update(cart);
-            }
+                    cart = new CustomerCart
+                    {
+                        CustomerId = customerId.Value,
+                        CartJson = payload,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _context.CustomerCarts.Add(cart);
+                }
+                else
+                {
+                    cart.CartJson = payload;
+                    cart.UpdatedAt = DateTime.UtcNow;
+                    _context.CustomerCarts.Update(cart);
+                }
 
-            await _context.SaveChangesAsync();
-            return NoContent();
+                await _context.SaveChangesAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Cart sync error: {ex.Message}");
+                Console.WriteLine($"❌ Inner exception: {ex.InnerException?.Message}");
+                return StatusCode(500, new { message = "Lỗi khi lưu giỏ hàng" });
+            }
         }
 
-        private int? ResolveUserId()
+        private int? ResolveCustomerId()
         {
-            // Ưu tiên đọc customerId (cho customer JWT)
+            // Đọc customerId từ JWT token
             var customerIdClaim = User?.FindFirst("customerId")?.Value;
             if (int.TryParse(customerIdClaim, out var customerId))
                 return customerId;

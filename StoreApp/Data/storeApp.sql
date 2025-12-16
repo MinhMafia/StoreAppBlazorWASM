@@ -91,6 +91,15 @@ CREATE TABLE customers (
   UNIQUE KEY ux_customers_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE customer_carts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  customer_id INT NOT NULL,
+  cart_json LONGTEXT NOT NULL,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_customercarts_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  UNIQUE KEY ux_customercart_customer (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE promotions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   code VARCHAR(100) NOT NULL UNIQUE,
@@ -182,6 +191,7 @@ CREATE TABLE `orders` (
   total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
   promotion_id INT DEFAULT NULL,
   note TEXT,
+  shipping_address TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL ON UPDATE CASCADE,

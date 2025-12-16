@@ -37,6 +37,7 @@ namespace StoreApp.Controllers
         /// <summary>
         /// Lọc log theo user và thời gian có phân trang.
         /// </summary>
+        
         [HttpGet("filter")]
         public async Task<IActionResult> GetFilteredLogs(
             [FromQuery] int page = 1,
@@ -47,22 +48,48 @@ namespace StoreApp.Controllers
         {
             try
             {
-                var (logs, total) = await _activityLogService.GetFilteredLogsAsync(page, size, userId, startDate, endDate);
+                var result = await _activityLogService
+                    .GetFilteredLogsAsync(page, size, userId, startDate, endDate);
 
-                return Ok(new
-                {
-                    total,
-                    page,
-                    size,
-                    filters = new { userId, startDate, endDate },
-                    data = logs
-                });
+                return Ok(result);
             }
             catch (ArgumentException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        
+        
+
+        // [HttpGet("filter")]
+        // public async Task<IActionResult> GetFilteredLogs(
+        //     [FromQuery] int page = 1,
+        //     [FromQuery] int size = 10,
+        //     [FromQuery] int? userId = null,
+        //     [FromQuery] DateTime? startDate = null,
+        //     [FromQuery] DateTime? endDate = null)
+        // {
+        //     try
+        //     {
+        //         var (logs, total) = await _activityLogService.GetFilteredLogsAsync(page, size, userId, startDate, endDate);
+
+               
+
+        //         return Ok(new
+        //         {
+        //             total,
+        //             page,
+        //             size,
+        //             filters = new { userId, startDate, endDate },
+        //             data = logs
+        //         });
+        //     }
+        //     catch (ArgumentException ex)
+        //     {
+        //         return BadRequest(new { message = ex.Message });
+        //     }
+        // }
 
 
     }

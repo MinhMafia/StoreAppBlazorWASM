@@ -48,6 +48,9 @@ namespace StoreApp.Models
         [Column("note")]
         public string? Note { get; set; }
 
+        [Column("shipping_address")]
+        public string? ShippingAddress { get; set; }
+
         [Column("created_at")]
         public DateTime CreatedAt { get; set; }
 

@@ -30,7 +30,7 @@ namespace StoreApp.Services
         }
 
         public async Task LogAsync(
-            int userId,
+            int? userId,
             string action,
             string entityType,
             string entityId,
@@ -114,8 +114,24 @@ namespace StoreApp.Services
         public async Task<(List<ActivityLogCreateDTO> Logs, int TotalCount)> GetPagedLogsAsync(int page, int size)
             => await _logRepo.GetPagedLogsAsync(page, size);
 
-        public async Task<(List<ActivityLogCreateDTO> Logs, int TotalCount)> GetFilteredLogsAsync(
-            int page, int size, int? userId, DateTime? startDate, DateTime? endDate)
+        // public async Task<(List<ActivityLogCreateDTO> Logs, int TotalCount)> GetFilteredLogsAsync(
+        //     int page, int size, int? userId, DateTime? startDate, DateTime? endDate)
+        // {
+        //     if (endDate.HasValue && !startDate.HasValue)
+        //         throw new ArgumentException("Bạn cần chọn ngày bắt đầu nếu đã chọn ngày kết thúc.");
+
+        //     if (startDate.HasValue && endDate.HasValue && startDate > endDate)
+        //         throw new ArgumentException("Ngày bắt đầu không được lớn hơn ngày kết thúc.");
+
+        //     return await _logRepo.GetFilteredLogsAsync(page, size, userId, startDate, endDate);
+        // }
+
+        public async Task<ResultPaginatedDTO<ActivityLogCreateDTO>> GetFilteredLogsAsync(
+            int page,
+            int size,
+            int? userId,
+            DateTime? startDate,
+            DateTime? endDate)
         {
             if (endDate.HasValue && !startDate.HasValue)
                 throw new ArgumentException("Bạn cần chọn ngày bắt đầu nếu đã chọn ngày kết thúc.");
@@ -125,5 +141,8 @@ namespace StoreApp.Services
 
             return await _logRepo.GetFilteredLogsAsync(page, size, userId, startDate, endDate);
         }
+
+
+
     }
 }

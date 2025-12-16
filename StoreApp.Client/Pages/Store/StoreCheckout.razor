@@ -1,4 +1,4 @@
-﻿@page "/store/checkout"
+@page "/store/checkout"
 @inject NavigationManager Navigation
 @inject IStoreCartService CartService
 @inject IOrdersClientService _ordersClient
@@ -8,6 +8,7 @@
 @layout StoreLayout
 @using Microsoft.AspNetCore.WebUtilities
 @using StoreApp.Client.Pages.Auth
+@using StoreApp.Shared
 
 <PageTitle>Đặt hàng - FreshMart</PageTitle>
 
@@ -16,7 +17,7 @@
 <div class="max-w-7xl mx-auto px-4 py-10 bg-gray-50 min-h-screen">
     <h2 class="text-3xl lg:text-4xl font-bold text-center text-gray-800 mb-10">Xác nhận & Thanh toán</h2>
 
-    @if (isLoading == true)
+    @if (isLoading == true || currentOrder == null)
     {
         <div class="text-center py-20">
             <p class="text-xl">Đang tải đơn hàng của bạn...</p>
@@ -37,19 +38,19 @@
                     </h3>
 
                     <div class="grid md:grid-cols-2 gap-4"> <!-- giảm gap-6 → gap-4 -->
-                        <input type="text" id="full_name" value="@currentOrder.CustomerName"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base"
+                        <input type="text" id="full_name" value="@currentOrder.CustomerName" disabled
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-600 cursor-not-allowed text-base"
                             required>
 
-                        <input type="tel" id="phone" value="@currentOrder.SoDienThoai"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base"
+                        <input type="tel" id="phone" value="@currentOrder.SoDienThoai" disabled
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-600 cursor-not-allowed text-base"
                             required>
 
-                        <input type="email" id="email" value="@(currentOrder.Email ?? "khachhang@gmail.com")"
-                            class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base">
+                        <input type="email" id="email" value="@(currentOrder.Email ?? "khachhang@gmail.com")" disabled
+                            class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-600 cursor-not-allowed text-base">
 
-                        <textarea id="address" rows="3"
-                        value="@(currentOrder.DiaChiKhachHang ?? "273 An Dương Vương, Phường Chợ Quán, TP. HCM")"
+                        <textarea id="address" rows="3" placeholder="Địa chỉ giao hàng"
+                        @bind="currentOrder.ShippingAddress"
                         class="md:col-span-2 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-4 focus:ring-primary/20 transition text-base resize-none"
                         required></textarea>
 
@@ -120,11 +121,30 @@
 
                             @foreach (var item in promotions)
                             {
+                                var isSelectedPromotion = promotion?.Id == item.Id;
+
                                 <label @onclick="() => HandleSelect(item)"
-                                    class="flex items-center justify-between p-4 border-2 border-orange-300 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition cursor-pointer">
+                                    class="flex items-center justify-between p-4 border-2 rounded-xl transition cursor-pointer @(isSelectedPromotion ? "border-orange-600 bg-orange-50" : "border-orange-300 hover:border-orange-500 hover:bg-orange-50")">
                                     <div class="flex items-center gap-3">
+                                        <div class="w-5 flex justify-center">
+                                            @if (isSelectedPromotion)
+                                            {
+                                                <i class="fas fa-check-circle text-orange-600"></i>
+                                            }
+                                            else
+                                            {
+                                                <span class="inline-block w-4 h-4 rounded-full border-2 border-gray-300"></span>
+                                            }
+                                        </div>
+
                                         <div>
-                                            <div class="font-semibold text-orange-600">@item.Code</div>
+                                            <div class="flex items-center gap-2">
+                                                <div class="font-semibold text-orange-600">@item.Code</div>
+                                                @if (isSelectedPromotion)
+                                                {
+                                                    <span class="text-xs font-semibold text-white bg-orange-600 px-2 py-0.5 rounded-full">Đang chọn</span>
+                                                }
+                                            </div>
                                             <div class="text-xs text-gray-600">
                                                 @if (item.Type == "percent")
                                                 {
@@ -149,7 +169,7 @@
                                         </div>
                                     </div>
 
-                                    <i class="fas fa-gift text-orange-600"></i>
+                                    <i class="fas fa-gift @(isSelectedPromotion ? "text-orange-600" : "text-orange-500")"></i>
                                 </label>
                             }
                         }
@@ -348,8 +368,6 @@
     {
         decimal tongTien = checkoutItems.Sum(item => item.Total);
 
-
-
         // Cập nhật Subtotal (chỉ tiền hàng)
         currentOrder.Subtotal = tongTien;
         currentOrder.TotalAmount = tongTien;
@@ -399,8 +417,10 @@
             currentOrder.Email = profile.Email ?? currentOrder.Email;
             currentOrder.SoDienThoai = profile.Phone ?? currentOrder.SoDienThoai;
             currentOrder.DiaChiKhachHang = profile.Address ?? currentOrder.DiaChiKhachHang;
+            currentOrder.ShippingAddress = profile.Address ?? currentOrder.ShippingAddress;
         }
-        else
+
+        else 
         {
             // If profile cannot be loaded (likely 401), redirect to login with return url
             var returnUrl = Navigation.ToBaseRelativePath(Navigation.Uri);

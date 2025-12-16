@@ -1,4 +1,4 @@
-﻿using StoreApp.Models;
+using StoreApp.Models;
 using StoreApp.Repository;
 using StoreApp.Shared;
 using System;
@@ -54,10 +54,10 @@ namespace StoreApp.Services
             if (!string.IsNullOrEmpty(headerUid) && int.TryParse(headerUid, out int headerId))
                 return headerId;
 
-            throw new InvalidOperationException("KhÃ´ng tÃ¬m tháº¥y user_id trong token");
+            throw new InvalidOperationException("Không tìm thấy user_id trong token");
         }
 
-        // Láº¥y CustomerId tá»« token (cho customer Ä‘Ã£ Ä‘Äƒng nháº­p)
+        // 
         private int GetCurrentCustomerId()
         {
             var context = _httpContextAccessor.HttpContext;
@@ -69,15 +69,16 @@ namespace StoreApp.Services
                     return id;
             }
 
-            throw new InvalidOperationException("KhÃ´ng tÃ¬m tháº¥y customerId trong token");
+            throw new InvalidOperationException("Không tìm thấy customerId trong token");
         }
 
         public async Task<OrderDTO> CreateTemporaryOrderAsync()
         {
-            int maxId = await _orderRepo.GetMaxIdAsync();
-            int newId = maxId + 1;
+            // int maxId = await _orderRepo.GetMaxIdAsync();
+            // int newId = maxId + 1;
             string orderCode = Guid.NewGuid().ToString();
 
+            
             int staffId = 2;
             try
             {
@@ -88,7 +89,7 @@ namespace StoreApp.Services
 
             }
             var staff = await _userRepo.GetByIdAsync(staffId);
-            string staffName = staff?.FullName ?? $"NhÃ¢n viÃªn #{staffId}";
+            string staffName = staff?.FullName ?? $"Nhân viên #{staffId}";
 
             int customerId = 0;
             var customer = await _customerRepo.GetByIdAsync(customerId);
@@ -96,7 +97,7 @@ namespace StoreApp.Services
 
             var tempOrder = new OrderDTO
             {
-                Id = newId,
+                // Id = newId,
                 OrderNumber = orderCode,
                 CustomerId = customerId,
                 StaffId = staffId,
@@ -109,7 +110,7 @@ namespace StoreApp.Services
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CustomerName = customerName,
-                StaffName = staffName,
+                StaffName =  staffName,
                 PromotionCode = null,
                 PaymentMethod = "cash",
                 PaymentStatus = "pending",
@@ -137,28 +138,29 @@ namespace StoreApp.Services
 
             if (!customer.IsActive)
                 throw new InvalidOperationException("Tài khoản khách hàng đã bị khóa.");
-            int staffId = 0;
-            var staff = await _userRepo.GetByIdAsync(staffId);
-            string staffName = staff?.FullName ?? "Hệ thống Online";
+            // int staffId = 0;
+            // var staff = await _userRepo.GetByIdAsync(staffId);
+            // string staffName = staff?.FullName ?? "Hệ thống Online";
 
-            // 4. Tạo mã đơn và Id mới
-            int maxId = await _orderRepo.GetMaxIdAsync();
-            int newId = maxId + 1;
+            // // 4. Tạo mã đơn và Id mới
+            // int maxId = await _orderRepo.GetMaxIdAsync();
+            // int newId = maxId + 1;
             string orderNumber = Guid.NewGuid().ToString();
 
             // 5. Tạo OrderDTO với đầy đủ thông tin khách hàng
             var onlineOrder = new OrderDTO
             {
-                Id = newId,
+                // Id = newId,
                 OrderNumber = orderNumber,
                 CustomerId = customer.Id,
-                StaffId = staffId,
+                StaffId = null,
                 Status = "pending",
                 Subtotal = 0m,
                 Discount = 0m,
                 TotalAmount = 0m,
                 PromotionId = null,
                 Note = null,
+                ShippingAddress = customer.Address,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
 
@@ -167,7 +169,7 @@ namespace StoreApp.Services
                 Email = customer.Email,
                 DiaChiKhachHang = customer.Address,
 
-                StaffName = staffName,
+                StaffName = null,
 
                 PromotionCode = null,
                 PaymentMethod = "cash",
@@ -212,7 +214,7 @@ namespace StoreApp.Services
 
             var order = new Order
             {
-                Id = dto.Id,
+                // Id = dto.Id, 
                 OrderNumber = dto.OrderNumber,
                 CustomerId = dto.CustomerId,
                 StaffId = dto.StaffId,
@@ -222,6 +224,7 @@ namespace StoreApp.Services
                 TotalAmount = dto.TotalAmount,
                 PromotionId = dto.PromotionId,
                 Note = dto.Note,
+                ShippingAddress = dto.ShippingAddress,
                 CreatedAt = dto.CreatedAt,
                 UpdatedAt = dto.UpdatedAt
             };
@@ -253,6 +256,7 @@ namespace StoreApp.Services
                 TotalAmount = order.TotalAmount,
                 PromotionId = order.PromotionId,
                 Note = order.Note,
+                ShippingAddress = order.ShippingAddress,
                 CreatedAt = order.CreatedAt,
                 UpdatedAt = order.UpdatedAt,
                 CustomerName = order.Customer?.FullName,

@@ -99,7 +99,7 @@ builder.Services.AddScoped<ImportService>(sp =>
     );
 });
 builder.Services.AddScoped<SupplierService>();
-builder.Services.AddScoped<ReportsService>();
+builder.Services.AddScoped<StoreApp.Services.ReportsService>();
 builder.Services.AddScoped<JwtService>();
 
 // 👇👈 ADD THIS — để fix lỗi IHttpContextAccessor
@@ -196,9 +196,7 @@ else
 
 app.UseHttpsRedirection();
 
-// --- Middleware của bạn ---
-// Đặt trước StaticFiles để log mọi thứ, hoặc sau StaticFiles để chỉ log API
-// app.UseMiddleware<RequestLoggingMiddleware>();
+
 
 app.UseStaticFiles(); // Serve file trong wwwroot (bao gồm ảnh sản phẩm)
 app.UseAntiforgery(); // Bảo mật CSRF của Blazor
@@ -206,6 +204,10 @@ app.UseAntiforgery(); // Bảo mật CSRF của Blazor
 // --- Auth Middleware ---
 app.UseAuthentication();
 app.UseAuthorization();
+
+// --- Middleware của bạn ---
+// Đặt trước StaticFiles để log mọi thứ, hoặc sau StaticFiles để chỉ log API
+app.UseMiddleware<RequestLoggingMiddleware>();
 
 // --- Map Endpoints ---
 

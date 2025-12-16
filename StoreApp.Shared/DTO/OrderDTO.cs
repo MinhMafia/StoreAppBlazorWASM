@@ -12,6 +12,7 @@ namespace  StoreApp.Shared
         public decimal TotalAmount { get; set; } = 0m;
         public int? PromotionId { get; set; } = null;
         public string? Note { get; set; } = null;
+        public string? ShippingAddress { get; set; } = null;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 

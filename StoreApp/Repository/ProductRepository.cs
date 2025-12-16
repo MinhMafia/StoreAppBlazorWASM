@@ -161,8 +161,12 @@ namespace StoreApp.Repository
             if (maxPrice.HasValue)
                 query = query.Where(p => p.Price <= maxPrice.Value);
 
+            // Filter by status - nếu status = 1 thì lấy sản phẩm active, nếu status = 0 thì lấy sản phẩm inactive
             if (status.HasValue)
-                query = query.Where(p => p.IsActive == (status.Value == 1));
+            {
+                bool isActive = status.Value == 1;
+                query = query.Where(p => p.IsActive == isActive);
+            }
 
             // Search by product name, sku, barcode, supplier name
             if (!string.IsNullOrWhiteSpace(search))

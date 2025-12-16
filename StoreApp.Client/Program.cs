@@ -8,8 +8,10 @@ using System.Net.Http;
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 // LocalStorage (Nên đặt lên đầu vì các service khác cần nó)
 builder.Services.AddBlazoredLocalStorage();
-// --- 1. ĐĂNG KÝ HANDLER ---
-builder.Services.AddScoped<JwtAuthorizationMessageHandler>();
+
+// --- 1. ĐĂNG KÝ HANDLER (Transient is standard for HttpMessageHandlers) ---
+builder.Services.AddTransient<JwtAuthorizationMessageHandler>();
+
 
 // --- 2. CẤU HÌNH HTTP CLIENT CHO TẤT CẢ CÁC SERVICE CLIENT CẦN AUTH ---
 
@@ -44,6 +46,9 @@ AddHttpClientWithAuth<ICustomerAuthService, CustomerAuthService>();
 AddHttpClientWithAuth<IOrdersClientService, OrdersClientService>();
 AddHttpClientWithAuth<IMeClientService, MeClientService>();
 AddHttpClientWithAuth<IUserClientService, UserClientService>();
+AddHttpClientWithAuth<IReportsService, ReportsService>();
+AddHttpClientWithAuth<IAuditClientService, AuditClientService>();
+AddHttpClientWithAuth<IInventoryClientService, InventoryClientService>();
 
 // Giữ nguyên vì không cần gắn header
 // AI Chat Service
