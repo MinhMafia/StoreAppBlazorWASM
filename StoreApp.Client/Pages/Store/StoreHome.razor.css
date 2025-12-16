@@ -36,7 +36,8 @@
     max-width: 1200px;
     padding: 1.5rem 1.75rem;
     border-radius: 18px;
-    background: linear-gradient(120deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%);
+    /* Nền xanh lá đồng bộ với navbar, đậm dần về phía phải */
+    background: linear-gradient(120deg, #1ca91c 0%, #3bac3b 40%, #0f8b0f 70%, #0a700a 100%);
     color: #fff;
     display: flex;
     align-items: center;
@@ -66,7 +67,7 @@
     padding: 0.65rem 1.4rem;
     border-radius: 999px;
     font-weight: 600;
-    box-shadow: none;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
 .store-hero-guest .btn-outline-light {
@@ -75,7 +76,18 @@
 }
 
 .store-hero-guest .btn-outline-light:hover {
-    background: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.18);
+}
+
+/* Nút primary trong hero: xanh đậm hơn để nổi bật */
+.store-hero-guest .btn-primary {
+    background: linear-gradient(135deg, #47ce08 0%, #30be0d 100%);
+    border-color: #76b305;
+}
+
+.store-hero-guest .btn-primary:hover {
+    background: linear-gradient(135deg, #6bb11b 0%, #085608 100%);
+    border-color: #085608;
 }
 
 @media (max-width: 768px) {
@@ -252,6 +264,7 @@
     line-height: 1.3;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -269,42 +282,82 @@
     gap: 2rem;
 }
 
+/* Promotional Banner Container */
+.promo-banner-container {
+    position: relative;
+    width: 100%;
+    height: 450px;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #000;
+}
+
+.promo-banner-slider {
+    display: flex;
+    width: 300%;
+    height: 100%;
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+    position: relative;
+}
+
 /* Promotional Banner */
 .promo-banner {
     position: relative;
-    width: 100%;
-    min-height: 400px;
-    border-radius: 8px;
-    overflow: hidden;
+    width: 33.333333%;
+    min-width: 33.333333%;
+    max-width: 33.333333%;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
+    align-items: flex-start;
     padding: 3rem 2rem;
-    background-image: url('/assets/images/products/banner1.jpg');
     background-size: cover;
-    background-position: center;
+    background-position: center center;
     background-repeat: no-repeat;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.promo-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 40%, transparent 70%);
+    z-index: 1;
 }
 
 .banner-content {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
+    position: relative;
+    z-index: 2;
+    display: flex;
     align-items: center;
+    height: 100%;
+    width: 100%;
+    max-width: 600px;
 }
 
 .banner-text {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    position: relative;
+    z-index: 3;
 }
 
 .banner-title {
     font-size: 2.5rem;
-    color: #fd0000;
+    color: #ffffff;
     font-weight: bold;
     margin: 0;
     font-style: italic;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7),
+                 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .banner-discount {
@@ -312,14 +365,18 @@
     color: #ff6b35;
     font-weight: bold;
     line-height: 1;
+    text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.8),
+                 0 0 15px rgba(0, 0, 0, 0.6);
 }
 
 .banner-subtitle {
     font-size: 1.5rem;
-    color: #700700;
+    color: #ffffff;
     font-weight: 500;
     margin: 0;
     font-style: italic;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7),
+                 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .banner-image {
@@ -336,23 +393,43 @@
 }
 
 .banner-dots {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     justify-content: center;
-    gap: 0.5rem;
-    margin-top: 1rem;
+    align-items: center;
+    gap: 0.75rem;
+    z-index: 10;
+    border-radius: 20px;
+    backdrop-filter: blur(5px);
 }
 
 .dot {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    background-color: #ccc;
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(255, 255, 255, 1);
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.3s ease;
+    display: block;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dot:hover {
+    background-color: rgba(255, 255, 255, 1);
+    transform: scale(1.2);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 .dot.active {
     background-color: #33CC33;
+    border-color: #33CC33;
+    box-shadow: 0 0 12px rgba(51, 204, 51, 0.8), 0 2px 6px rgba(0, 0, 0, 0.3);
+    transform: scale(1.3);
 }
 
 /* Bestselling Section */

@@ -145,54 +145,188 @@
     align-items: center;
 }
 
+.cart-section a,
+.cart-section .cart-link {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+}
+
 .cart-link {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.85rem;
     text-decoration: none;
-    color: #33CC33;
-    padding: 0.5rem 1rem;
-    border: 2px solid #33CC33;
-    border-radius: 8px;
-    transition: all 0.2s;
+    color: #1b5e20;
+    padding: 0.65rem 1.5rem;
+    border-radius: 50px;
     position: relative;
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 50%, #a5d6a7 100%);
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2), 
+                0 2px 8px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.cart-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.cart-link:hover::before {
+    left: 100%;
 }
 
 .cart-link:hover {
-    background-color: #33CC33;
-    color: white;
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.35),
+                0 4px 12px rgba(0, 0, 0, 0.15),
+                0 0 0 3px rgba(76, 175, 80, 0.1);
+    background: linear-gradient(135deg, #66bb6a 0%, #43a047 50%, #2e7d32 100%);
+    color: #ffffff;
 }
 
 .cart-icon-wrapper {
     position: relative;
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+    color: #2e7d32;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+}
+
+.cart-link:hover .cart-icon-wrapper {
+    transform: rotate(-10deg) scale(1.1);
+    background: linear-gradient(135deg, #ffffff 0%, #e8f5e9 100%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .cart-link i {
     font-size: 1.5rem;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+}
+
+.cart-link:hover i {
+    transform: scale(1.15);
 }
 
 .cart-badge {
     position: absolute;
-    top: -8px;
-    right: -12px;
-    background-color: #ff6b35;
+    top: -6px;
+    right: -10px;
+    background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
     color: white;
     border-radius: 50%;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.7rem;
     font-weight: bold;
-    border: 2px solid white;
+    border: 3px solid white;
+    box-shadow: 0 3px 10px rgba(255, 107, 53, 0.4),
+                0 0 0 2px rgba(255, 107, 53, 0.2);
+    animation: pulse 2s ease-in-out infinite;
+    z-index: 2;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 3px 10px rgba(255, 107, 53, 0.4),
+                    0 0 0 2px rgba(255, 107, 53, 0.2);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.6),
+                    0 0 0 3px rgba(255, 107, 53, 0.3);
+    }
+}
+
+.cart-link:hover .cart-badge {
+    animation: bounce 0.5s ease;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-5px) scale(1.15);
+    }
 }
 
 .cart-amount {
-    font-size: 0.9rem;
-    font-weight: bold;
-    margin-top: 0.25rem;
+    display: inline-flex !important;
+    flex-shrink: 0 !important;
+    align-items: center;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1b5e20;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 2px solid rgba(46, 125, 50, 0.25);
+    border-radius: 12px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    min-width: fit-content;
+    line-height: 1;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    vertical-align: middle;
+}
+
+.cart-amount::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.5s ease;
+}
+
+.cart-link:hover .cart-amount::before {
+    left: 100%;
+}
+
+.cart-link:hover .cart-amount {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    transform: scale(1.05);
 }
 
 /* Navigation Bar */
@@ -262,17 +396,18 @@
     width: 80%;
 }
 
-.nav-link.active {
-    background: linear-gradient(135deg, #ff6b35 0%, #ff8c5a 100%);
-    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+/* Style cho menu đang active (dùng ActiveClass="active-nav") */
+.store-navbar .navbar-menu .nav-link.active-nav {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.45);
     transform: translateY(-2px);
     color: #ffffff !important;
 }
 
-.nav-link.active::before {
-    width: 100%;
+.store-navbar .navbar-menu .nav-link.active-nav::before {
+    width: 80%;
     height: 3px;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.6);
 }
 
 .nav-link i {

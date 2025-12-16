@@ -5,18 +5,11 @@
 @inject ICategoryClientService CategoryService
 @inject NavigationManager Navigation
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+@implements IAsyncDisposable
 
 <PageTitle>Cửa Hàng Tiện Lợi</PageTitle>
-
-<!-- Breadcrumb -->
-<div class="breadcrumb-bar">
-    <div class="container">
-        <nav class="breadcrumb-nav">
-            <a href="/store">TRANG CHỦ</a> / 
-            <span>CỬA HÀNG</span>
-        </nav>
-    </div>
-</div>
 
 <div class="store-home">
     @if (!isLoggedIn)
@@ -71,9 +64,9 @@
                                 - @(maxPrice.HasValue ? $"{maxPrice.Value:N0} ₫" : "Không giới hạn")
                             </label>
                             <div class="range-inputs">
-                                <input type="number" class="form-control" @bind="minPrice" placeholder="Từ" />
+                                <input type="number" class="form-control" @bind="minPrice" @bind:event="oninput" placeholder="Từ" min="0" step="1000" />
                                 <span>-</span>
-                                <input type="number" class="form-control" @bind="maxPrice" placeholder="Đến" />
+                                <input type="number" class="form-control" @bind="maxPrice" @bind:event="oninput" placeholder="Đến" min="0" step="1000" />
                             </div>
                         </div>
                         <button class="btn-filter" @onclick="ApplyPriceFilter">
@@ -115,19 +108,48 @@
 
             <!-- Main Content -->
             <main class="store-main-content">
-                <!-- Promotional Banner -->
-                <div class="promo-banner">
-                    <div class="banner-content">
-                        <div class="banner-text">
-                            <h2 class="banner-title">Mừng khai Trương</h2>
-                            <div class="banner-discount">Giảm 50%</div>
-                            <p class="banner-subtitle">Thực phẩm vàng cho sức khỏe</p>
+                <!-- Promotional Banner Slider -->
+                <div class="promo-banner-container">
+                    <div class="promo-banner-slider" style="transform: translateX(calc(-@currentBannerIndex * 100% / 3))">
+                        <!-- Banner 1 -->
+                        <div class="promo-banner" style="background-image: url('/assets/images/products/banner1.jpg');">
+                            <div class="banner-content">
+                                <div class="banner-text">
+                                    <h2 class="banner-title">Mừng khai Trương</h2>
+                                    <div class="banner-discount">Giảm 50%</div>
+                                    <p class="banner-subtitle">Thực phẩm vàng cho sức khỏe</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Banner 1-1 -->
+                        <div class="promo-banner" style="background-image: url('/assets/images/products/banner1-1.jpg');">
+                            <div class="banner-content">
+                                <div class="banner-text">
+                                    <h2 class="banner-title">Ưu đãi đặc biệt</h2>
+                                    <div class="banner-discount">Giảm 30%</div>
+                                    <p class="banner-subtitle">Sản phẩm chất lượng cao</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Banner 1-2 -->
+                        <div class="promo-banner" style="background-image: url('/assets/images/products/banner1-2.jpg');">
+                            <div class="banner-content">
+                                <div class="banner-text">
+                                    <h2 class="banner-title">Khuyến mãi lớn</h2>
+                                    <div class="banner-discount">Giảm 40%</div>
+                                    <p class="banner-subtitle">Mua ngay hôm nay</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    <!-- Banner Dots -->
                     <div class="banner-dots">
-                        <span class="dot active"></span>
-                        <span class="dot"></span>
-                        <span class="dot"></span>
+                        @for (int i = 0; i < 3; i++)
+                        {
+                            var index = i;
+                            <span class="dot @(currentBannerIndex == index ? "active" : "")" 
+                                  @onclick="async () => await GoToBanner(index)"></span>
+                        }
                     </div>
                 </div>
 
@@ -242,6 +264,11 @@
     private string sortOrder = "default";
     private bool isLoading = false;
     private bool isLoggedIn;
+    
+    // Banner slider
+    private int currentBannerIndex = 0;
+    private System.Threading.Timer? bannerTimer;
+    private CancellationTokenSource? cancellationTokenSource;
 
     protected override async Task OnInitializedAsync()
     {
@@ -260,6 +287,60 @@
             LoadRecommendedProducts(),
             LoadCategories()
         );
+        
+        // Start banner auto-slide
+        await StartBannerTimer();
+    }
+    
+    private async Task StartBannerTimer()
+    {
+        // Stop existing timer if any
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
+        
+        cancellationTokenSource = new CancellationTokenSource();
+        var token = cancellationTokenSource.Token;
+        
+        _ = Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await Task.Delay(10000, token); // 10 seconds
+                
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        currentBannerIndex = (currentBannerIndex + 1) % 3;
+                        StateHasChanged();
+                    });
+                }
+            }
+        }, token);
+    }
+    
+    private async Task GoToBanner(int index)
+    {
+        currentBannerIndex = index;
+        StateHasChanged();
+        
+        // Reset timer when manually changing banner
+        await StartBannerTimer();
+    }
+    
+    public void Dispose()
+    {
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
+        bannerTimer?.Dispose();
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
+        bannerTimer?.Dispose();
+        await Task.CompletedTask;
     }
 
     private async Task LoadCategories()
@@ -400,6 +481,25 @@
 
     private async Task ApplyPriceFilter()
     {
+        // Validate giá trị không được âm
+        if (minPrice.HasValue && minPrice.Value < 0)
+        {
+            minPrice = 0;
+        }
+        if (maxPrice.HasValue && maxPrice.Value < 0)
+        {
+            maxPrice = 0;
+        }
+        
+        // Validate minPrice không được lớn hơn maxPrice
+        if (minPrice.HasValue && maxPrice.HasValue && minPrice.Value > maxPrice.Value)
+        {
+            // Nếu minPrice > maxPrice, đổi chỗ chúng
+            var temp = minPrice.Value;
+            minPrice = maxPrice.Value;
+            maxPrice = temp;
+        }
+        
         currentPage = 1;
         await LoadProducts();
     }

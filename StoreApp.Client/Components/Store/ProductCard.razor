@@ -1,7 +1,10 @@
 @* Component hiển thị thẻ sản phẩm trong danh sách *@
+@using Blazored.LocalStorage
 @inject IStoreCartService CartService
 @inject IProductClientService ProductService
 @inject NavigationManager Navigation
+@inject ILocalStorageService LocalStorage
+@inject IJSRuntime JS
 
 <div class="product-card">
     <div class="product-image">
@@ -46,6 +49,16 @@
     private async Task AddToCart()
     {
         if (isAdding) return;
+
+        // Kiểm tra đăng nhập trước khi cho thêm vào giỏ
+        var token = await LocalStorage.GetItemAsStringAsync("authToken");
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            await JS.InvokeVoidAsync("alert", "Vui lòng đăng nhập để mua hàng.");
+            var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+            Navigation.NavigateTo($"/login?returnUrl={returnUrl}");
+            return;
+        }
         
         isAdding = true;
         try

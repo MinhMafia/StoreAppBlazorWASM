@@ -3,46 +3,16 @@
 @using StoreApp.Shared
 @using StoreApp.Client.Services
 @using Microsoft.AspNetCore.WebUtilities
+@using Blazored.LocalStorage
 @inject IProductClientService ProductService
 @inject ICategoryClientService CategoryService
 @inject IPromotionService PromotionService
 @inject IStoreCartService CartService
 @inject NavigationManager Navigation
+@inject ILocalStorageService LocalStorage
+@inject IJSRuntime JS
 
 <PageTitle>Sản phẩm - Cửa Hàng Tiện Lợi</PageTitle>
-
-<!-- Breadcrumb -->
-<div class="breadcrumb-bar">
-    <div class="container">
-        <nav class="breadcrumb-nav">
-            <a href="/store" class="breadcrumb-link">
-                <i class="bi bi-house-door"></i>
-                <span>Trang chủ</span>
-            </a>
-            @if (selectedCategory != null)
-            {
-                <span class="breadcrumb-separator">/</span>
-                <a href="/store/products" class="breadcrumb-link">
-                    <i class="bi bi-grid"></i>
-                    <span>Sản phẩm</span>
-                </a>
-                <span class="breadcrumb-separator">/</span>
-                <span class="breadcrumb-current">
-                    <i class="bi bi-tag"></i>
-                    <span>@selectedCategory.Name</span>
-                </span>
-            }
-            else
-            {
-                <span class="breadcrumb-separator">/</span>
-                <span class="breadcrumb-current">
-                    <i class="bi bi-grid"></i>
-                    <span>Sản phẩm</span>
-                </span>
-            }
-        </nav>
-    </div>
-</div>
 
 <div class="store-products-page">
     <div class="container">
@@ -75,6 +45,7 @@
                            placeholder="Tìm kiếm sản phẩm..." 
                            @bind="searchKeyword"
                            @bind:event="oninput"
+                           @bind:after="OnSearchChanged"
                            @onkeypress="HandleSearchKeyPress" />
                     @if (!string.IsNullOrEmpty(searchKeyword))
                     {
@@ -131,16 +102,19 @@
                             <div class="price-filter-inputs">
                                 <input type="number" 
                                        class="form-control price-input" 
-                                       @bind="minPrice" 
+                                       min="0"
+                                       @bind="minPrice"
+                                       @bind:event="onchange"
+                                       @bind:after="OnMinPriceChanged"
                                        placeholder="Từ" />
                                 <span class="price-separator">-</span>
                                 <input type="number" 
                                        class="form-control price-input" 
+                                       min="0"
                                        @bind="maxPrice" 
+                                       @bind:event="onchange"
+                                       @bind:after="OnMaxPriceChanged"
                                        placeholder="Đến" />
-                                <button class="btn-filter-apply" @onclick="ApplyPriceFilter">
-                                    Áp dụng
-                                </button>
                             </div>
                         </div>
 
@@ -417,16 +391,7 @@
                                 <div class="promotion-card @(isFirst ? "featured" : "")">
                                     <div class="promotion-card-header">
                                         <span class="promotion-type-badge">
-                                            @if (promotion.Type == "percent")
-                                            {
-                                                <i class="bi bi-percent"></i>
-                                                <text>%</text>
-                                            }
-                                            else
-                                            {
-                                                <i class="bi bi-currency-dollar"></i>
-                                                <text>VND</text>
-                                            }
+                                            <i class="bi bi-gift-fill"></i>
                                         </span>
                                         <h4 class="promotion-card-title">@promotion.Description</h4>
                                     </div>
@@ -452,9 +417,6 @@
                                         <div class="promotion-code-display">
                                             <span class="code-label">Mã:</span>
                                             <code class="promotion-code-text">@promotion.Code</code>
-                                            <button class="btn-copy-small" @onclick="() => CopyPromotionCode(promotion.Code)" title="Sao chép">
-                                                <i class="bi bi-clipboard"></i>
-                                            </button>
                                         </div>
                                         @if (promotion.EndDate.HasValue)
                                         {
@@ -539,36 +501,6 @@
             LoadCategories(),
             LoadPromotions()
         );
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
-        var queryParams = QueryHelpers.ParseQuery(uri.Query);
-
-        int? newCategoryId = null;
-        if (queryParams.TryGetValue("category", out var categoryParam) && int.TryParse(categoryParam, out var categoryId))
-        {
-            newCategoryId = categoryId;
-        }
-
-        string? newSearch = null;
-        if (queryParams.TryGetValue("search", out var searchParam))
-        {
-            newSearch = searchParam.ToString();
-        }
-
-        var categoryChanged = newCategoryId != selectedCategoryId;
-        var searchChanged = newSearch != searchKeyword;
-
-        if (categoryChanged || searchChanged)
-        {
-            selectedCategoryId = newCategoryId;
-            searchKeyword = newSearch ?? string.Empty;
-            currentPage = 1;
-            await LoadProducts();
-            await LoadCategories();
-        }
     }
 
     private async Task LoadCategories()
@@ -701,6 +633,12 @@
         await LoadProducts();
     }
 
+    private async Task OnSearchChanged()
+    {
+        currentPage = 1;
+        await LoadProducts();
+    }
+
     private async Task HandleSearchKeyPress(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -720,19 +658,8 @@
     {
         selectedCategoryId = categoryId;
         currentPage = 1;
-        
-        // Update URL
-        if (categoryId.HasValue)
-        {
-            Navigation.NavigateTo($"/store/products?category={categoryId.Value}");
-        }
-        else
-        {
-            Navigation.NavigateTo("/store/products");
-        }
-        
-        // Reload data sẽ được trigger bởi OnParametersSetAsync
-        await Task.CompletedTask;
+        await LoadProducts();
+        await LoadCategories();
     }
 
     private async Task ClearFilters()
@@ -741,11 +668,10 @@
         searchKeyword = "";
         minPrice = null;
         maxPrice = null;
+        sortOrder = "default";
         currentPage = 1;
-        Navigation.NavigateTo("/store/products");
-        
-        // Reload data sẽ được trigger bởi OnParametersSetAsync
-        await Task.CompletedTask;
+        await LoadProducts();
+        await LoadCategories();
     }
 
     private bool HasActiveFilters()
@@ -815,6 +741,26 @@
         await LoadProducts();
     }
 
+    private async Task OnMinPriceChanged()
+    {
+        if (minPrice.HasValue && minPrice.Value < 0)
+        {
+            minPrice = 0;
+        }
+        currentPage = 1;
+        await LoadProducts();
+    }
+
+    private async Task OnMaxPriceChanged()
+    {
+        if (maxPrice.HasValue && maxPrice.Value < 0)
+        {
+            maxPrice = 0;
+        }
+        currentPage = 1;
+        await LoadProducts();
+    }
+
     private async Task LoadPromotions()
     {
         try
@@ -852,6 +798,16 @@
 
     private async Task AddToCart(ProductDTO product)
     {
+        // Kiểm tra đăng nhập trước khi cho thêm vào giỏ
+        var token = await LocalStorage.GetItemAsStringAsync("authToken");
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            await JS.InvokeVoidAsync("alert", "Vui lòng đăng nhập để mua hàng.");
+            var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+            Navigation.NavigateTo($"/login?returnUrl={returnUrl}");
+            return;
+        }
+
         var imageUrl = string.IsNullOrEmpty(product.ImageUrl) ? "/assets/images/products/product.jpg" : product.ImageUrl;
         var availableQuantity = product.Inventory?.Quantity;
         await CartService.AddToCart(product.Id, product.ProductName, imageUrl, product.Price, 1, availableQuantity);
