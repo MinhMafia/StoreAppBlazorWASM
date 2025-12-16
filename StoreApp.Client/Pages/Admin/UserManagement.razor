@@ -1,6 +1,6 @@
 @page "/admin/users"
 @layout Layout.MainLayout
-@inject HttpClient Http
+@inject IUserClientService UserService
 @inject IJSRuntime JS
 
 <PageTitle>Nhân viên</PageTitle>
@@ -64,16 +64,20 @@
                                     </td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm" role="group">
-                                            <button class="btn btn-outline-secondary" title="Chi tiết" @onclick="() => OpenDetail(u)">
+                                            <button class="btn btn-outline-secondary" title="Chi tiết"
+                                                @onclick="() => OpenDetail(u)">
                                                 <i class="bi bi-eye"></i>
                                             </button>
-                                            <button class="btn btn-outline-primary" title="Sửa thông tin" @onclick="() => OpenEditModal(u)">
+                                            <button class="btn btn-outline-primary" title="Sửa thông tin"
+                                                @onclick="() => OpenEditModal(u)">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
-                                            <button class="btn btn-outline-warning" title="Đặt lại mật khẩu" @onclick="() => OpenResetModal(u)">
+                                            <button class="btn btn-outline-warning" title="Đặt lại mật khẩu"
+                                                @onclick="() => OpenResetModal(u)">
                                                 <i class="bi bi-key"></i>
                                             </button>
-                                            <button class="btn btn-outline-secondary" title="Khoá/Mở" @onclick="() => ToggleStatus(u)" disabled="@ToggleLoading">
+                                            <button class="btn btn-outline-secondary" title="Khoá/Mở"
+                                                @onclick="() => ToggleStatus(u)" disabled="@ToggleLoading">
                                                 <i class="@StatusIcon(u.IsActive)"></i>
                                             </button>
                                         </div>
@@ -92,8 +96,10 @@
                         Trang @Meta.CurrentPage / @Meta.TotalPages — @Meta.TotalItems người dùng
                     </span>
                     <div class="btn-group">
-                        <button class="btn btn-outline-secondary btn-sm" @onclick="PrevPage" disabled="@(Meta.CurrentPage <= 1)">Trước</button>
-                        <button class="btn btn-outline-secondary btn-sm" @onclick="NextPage" disabled="@(Meta.CurrentPage >= Meta.TotalPages)">Sau</button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="PrevPage"
+                            disabled="@(Meta.CurrentPage <= 1)">Trước</button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="NextPage"
+                            disabled="@(Meta.CurrentPage >= Meta.TotalPages)">Sau</button>
                     </div>
                 </div>
             }
@@ -178,8 +184,10 @@
                         <div class="col-md-6">
                             <label class="form-label">Mật khẩu mới (tuỳ chọn)</label>
                             <div class="input-group">
-                                <InputText @bind-Value="EditForm.NewPassword" type="@(EditForm.ShowPassword ? "text" : "password")" class="form-control" />
-                                <button class="btn btn-outline-secondary" type="button" @onclick="() => EditForm.ShowPassword = !EditForm.ShowPassword">
+                                <InputText @bind-Value="EditForm.NewPassword"
+                                    type="@(EditForm.ShowPassword ? "text" : "password")" class="form-control" />
+                                <button class="btn btn-outline-secondary" type="button"
+                                    @onclick="() => EditForm.ShowPassword = !EditForm.ShowPassword">
                                     <i class="bi @(EditForm.ShowPassword ? "bi-eye-slash" : "bi-eye")"></i>
                                 </button>
                             </div>
@@ -187,8 +195,10 @@
                         <div class="col-md-6">
                             <label class="form-label">Xác nhận mật khẩu</label>
                             <div class="input-group">
-                                <InputText @bind-Value="EditForm.ConfirmPassword" type="@(EditForm.ShowConfirm ? "text" : "password")" class="form-control" />
-                                <button class="btn btn-outline-secondary" type="button" @onclick="() => EditForm.ShowConfirm = !EditForm.ShowConfirm">
+                                <InputText @bind-Value="EditForm.ConfirmPassword"
+                                    type="@(EditForm.ShowConfirm ? "text" : "password")" class="form-control" />
+                                <button class="btn btn-outline-secondary" type="button"
+                                    @onclick="() => EditForm.ShowConfirm = !EditForm.ShowConfirm">
                                     <i class="bi @(EditForm.ShowConfirm ? "bi-eye-slash" : "bi-eye")"></i>
                                 </button>
                             </div>
@@ -219,8 +229,10 @@
                     <div class="mb-3">
                         <label class="form-label">Mật khẩu mới</label>
                         <div class="input-group">
-                            <InputText @bind-Value="ResetPasswordForm.NewPassword" type="@(ResetPasswordForm.Show ? "text" : "password")" class="form-control" />
-                            <button class="btn btn-outline-secondary" type="button" @onclick="() => ResetPasswordForm.Show = !ResetPasswordForm.Show">
+                            <InputText @bind-Value="ResetPasswordForm.NewPassword"
+                                type="@(ResetPasswordForm.Show ? "text" : "password")" class="form-control" />
+                            <button class="btn btn-outline-secondary" type="button"
+                                @onclick="() => ResetPasswordForm.Show = !ResetPasswordForm.Show">
                                 <i class="bi @(ResetPasswordForm.Show ? "bi-eye-slash" : "bi-eye")"></i>
                             </button>
                         </div>
@@ -228,8 +240,10 @@
                     <div>
                         <label class="form-label">Xác nhận mật khẩu</label>
                         <div class="input-group">
-                            <InputText @bind-Value="ResetPasswordForm.ConfirmPassword" type="@(ResetPasswordForm.ShowConfirm ? "text" : "password")" class="form-control" />
-                            <button class="btn btn-outline-secondary" type="button" @onclick="() => ResetPasswordForm.ShowConfirm = !ResetPasswordForm.ShowConfirm">
+                            <InputText @bind-Value="ResetPasswordForm.ConfirmPassword"
+                                type="@(ResetPasswordForm.ShowConfirm ? "text" : "password")" class="form-control" />
+                            <button class="btn btn-outline-secondary" type="button"
+                                @onclick="() => ResetPasswordForm.ShowConfirm = !ResetPasswordForm.ShowConfirm">
                                 <i class="bi @(ResetPasswordForm.ShowConfirm ? "bi-eye-slash" : "bi-eye")"></i>
                             </button>
                         </div>
@@ -248,7 +262,14 @@
 
 @code {
     private List<UserDTO> Users { get; set; } = new();
-    private PaginationResult<UserDTO> Meta { get; set; } = new() { CurrentPage = 1, TotalPages = 1, TotalItems = 0, PageSize = 10 };
+    private PaginationResult<UserDTO> Meta { get; set; } = new()
+    {
+        CurrentPage = 1,
+        TotalPages = 1,
+        TotalItems = 0,
+        PageSize
+    = 10
+    };
     private bool IsLoading = true;
     private bool ToggleLoading;
     private bool IsSaving;
@@ -278,12 +299,9 @@
 
         try
         {
-            var resp = await Http.GetFromJsonAsync<PaginationResult<UserDTO>>($"api/users/staffs?page={page}&pageSize={Meta.PageSize}");
-            if (resp != null)
-            {
-                Users = resp.Items ?? new List<UserDTO>();
-                Meta = resp;
-            }
+            var resp = await UserService.GetStaffsAsync(page, Meta.PageSize);
+            Users = resp.Items ?? new List<UserDTO>();
+            Meta = resp;
         }
         catch (Exception ex)
         {
@@ -356,10 +374,9 @@
                 Password = string.IsNullOrWhiteSpace(EditForm.NewPassword) ? null : EditForm.NewPassword.Trim()
             };
 
-            var resp = await Http.PutAsJsonAsync($"api/users/{EditingUser.Id}", payload);
-            if (resp.IsSuccessStatusCode)
+            var updated = await UserService.UpdateUserAsync(EditingUser.Id, payload);
+            if (updated != null)
             {
-                var updated = await resp.Content.ReadFromJsonAsync<UserDTO>() ?? payload;
                 var idx = Users.FindIndex(x => x.Id == EditingUser.Id);
                 if (idx >= 0)
                 {
@@ -373,7 +390,7 @@
             else
             {
                 AlertCss = "alert-danger";
-                AlertMessage = $"Không thể cập nhật (mã {resp.StatusCode}).";
+                AlertMessage = "Không thể cập nhật.";
             }
         }
         catch (Exception ex)
@@ -427,18 +444,8 @@
 
         try
         {
-            var payload = new UserDTO
-            {
-                Username = ResetUser.Username,
-                Email = ResetUser.Email ?? string.Empty,
-                FullName = ResetUser.FullName,
-                Role = ResetUser.Role,
-                IsActive = ResetUser.IsActive,
-                Password = newPass
-            };
-
-            var resp = await Http.PutAsJsonAsync($"api/users/{ResetUser.Id}", payload);
-            if (resp.IsSuccessStatusCode)
+            var success = await UserService.ResetPasswordAsync(ResetUser.Id, newPass);
+            if (success)
             {
                 AlertCss = "alert-success";
                 AlertMessage = "Đã đặt lại mật khẩu.";
@@ -469,8 +476,8 @@
         try
         {
             var newStatus = !user.IsActive;
-            var resp = await Http.PatchAsync($"api/users/{user.Id}/status?isActive={newStatus}", null);
-            if (resp.IsSuccessStatusCode)
+            var success = await UserService.ToggleUserStatusAsync(user.Id, newStatus);
+            if (success)
             {
                 user.IsActive = newStatus;
                 AlertCss = "alert-success";
@@ -479,7 +486,7 @@
             else
             {
                 AlertCss = "alert-danger";
-                AlertMessage = $"Không thể cập nhật trạng thái (mã {resp.StatusCode}).";
+                AlertMessage = "Không thể cập nhật trạng thái.";
             }
         }
         catch (Exception ex)
@@ -518,16 +525,16 @@
     {
         var normalized = role?.ToLowerInvariant() ?? string.Empty;
         var tone = normalized == "admin"
-            ? "bg-danger-subtle text-danger fw-semibold"
-            : "bg-primary-subtle text-primary fw-semibold";
+        ? "bg-danger-subtle text-danger fw-semibold"
+        : "bg-primary-subtle text-primary fw-semibold";
         return $"badge rounded-pill {tone}";
     }
 
     private static string StatusBadge(bool active)
     {
         return active
-            ? "badge rounded-pill bg-success-subtle text-success fw-semibold"
-            : "badge rounded-pill bg-secondary-subtle text-secondary fw-semibold";
+        ? "badge rounded-pill bg-success-subtle text-success fw-semibold"
+        : "badge rounded-pill bg-secondary-subtle text-secondary fw-semibold";
     }
 
     private static string StatusIcon(bool active) => active ? "bi bi-lock" : "bi bi-unlock";

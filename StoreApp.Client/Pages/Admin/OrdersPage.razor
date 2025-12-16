@@ -1,7 +1,7 @@
 ﻿@page "/admin/orders"
 @using StoreApp.Shared
 @using System.Net.Http.Json
-@inject HttpClient Http
+@inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 @using StoreApp.Client.Components.OrderPage
 @using System.Text.Json
@@ -92,7 +92,7 @@
 
 </div>
 @code {
-
+    private HttpClient Http => HttpClientFactory.CreateClient("ApiWithAuth");
 
     bool showOrderModel = false;
 

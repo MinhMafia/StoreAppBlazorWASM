@@ -3,7 +3,7 @@
 @using StoreApp.Shared
 @inject ICustomerClientService CustomerService
 @inject IJSRuntime JS
-@inject HttpClient Http
+@inject IHttpClientFactory HttpClientFactory
 
 <div class="container py-4">
 
@@ -279,6 +279,8 @@
 </div>
 
 @code {
+    private HttpClient Http => HttpClientFactory.CreateClient("ApiWithAuth");
+    
     // Modal states
     private bool showAddModal = false;
     private bool showDetailModal = false;

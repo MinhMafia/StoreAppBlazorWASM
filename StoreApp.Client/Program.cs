@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using StoreApp.Client.Services;
 using StoreApp.Client.Middlewares;
 using Blazored.LocalStorage;
-using Microsoft.AspNetCore.Components; 
-using System.Net.Http; 
+using Microsoft.AspNetCore.Components;
+using System.Net.Http;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 // LocalStorage (Nên đặt lên đầu vì các service khác cần nó)
@@ -14,8 +14,8 @@ builder.Services.AddScoped<JwtAuthorizationMessageHandler>();
 // --- 2. CẤU HÌNH HTTP CLIENT CHO TẤT CẢ CÁC SERVICE CLIENT CẦN AUTH ---
 
 // Hàm tiện ích để cấu hình
-void AddHttpClientWithAuth<TInterface, TImplementation>() 
-    where TInterface : class 
+void AddHttpClientWithAuth<TInterface, TImplementation>()
+    where TInterface : class
     where TImplementation : class, TInterface
 {
     builder.Services.AddHttpClient<TInterface, TImplementation>(client =>
@@ -41,8 +41,9 @@ AddHttpClientWithAuth<ICustomerClientService, CustomerClientService>();
 AddHttpClientWithAuth<IStatisticsService, StatisticsService>();
 AddHttpClientWithAuth<IPromotionService, PromotionService>();
 AddHttpClientWithAuth<ICustomerAuthService, CustomerAuthService>();
-AddHttpClientWithAuth<IOrdersClientService, OrdersClientService>(); 
+AddHttpClientWithAuth<IOrdersClientService, OrdersClientService>();
 AddHttpClientWithAuth<IMeClientService, MeClientService>();
+AddHttpClientWithAuth<IUserClientService, UserClientService>();
 
 // Giữ nguyên vì không cần gắn header
 // AI Chat Service
