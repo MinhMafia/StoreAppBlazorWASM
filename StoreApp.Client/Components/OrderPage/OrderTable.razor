@@ -48,8 +48,14 @@
                                 </span>
                             </td>
 
-                            <td class="px-6 py-4">@order.CustomerName</td>
-                            <td class="px-6 py-4">@order.StaffName</td>
+                          <td class="px-6 py-4">
+                            @(string.IsNullOrWhiteSpace(order.CustomerName) ? "Khách vãng lai" : order.CustomerName)
+                        </td>
+
+                        <td class="px-6 py-4">
+                            @(string.IsNullOrWhiteSpace(order.StaffName) ? "Chưa ai nhận xử lí" : order.StaffName)
+                        </td>
+
 
                             <td class="px-6 py-4 text-right font-bold text-green-700">
                                 @order.TotalAmount.ToString("N0")₫

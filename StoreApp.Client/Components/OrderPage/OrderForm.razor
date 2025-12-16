@@ -1,5 +1,5 @@
 <div class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
 
         <!-- Header -->
         <div class="flex justify-between items-center mb-6 border-b pb-4">
@@ -28,8 +28,12 @@
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Khách hàng</label>
                 <div class="flex gap-2">
-                    <input readonly value="@currentOrder.CustomerName (@currentOrder.CustomerId)"
-                        class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium" />
+                    <input readonly
+                        value="@(currentOrder.CustomerId == null
+                                ? "Khách vãng lai"
+                                : $"{currentOrder.CustomerName} ({currentOrder.CustomerId})")"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium" />
+
 
                     @if(ordersFormMode == "create"){
                         <button
@@ -55,8 +59,13 @@
             <!-- Nhân viên -->
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Nhân viên xử lý đơn</label>
-                <input readonly value="@currentOrder.StaffName (@currentOrder.StaffId)"
-                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium" />
+                <input readonly
+                value="@(currentOrder.StaffId == null
+                        ? "Chưa có nhân viên xử lí"
+                        : $"{currentOrder.StaffName} ({currentOrder.StaffId})")"
+                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium" />
+
+
             </div>
 
 
@@ -198,7 +207,7 @@
             @if(ordersFormMode == "create"){
                 <div class="flex justify-end">
                     <button
-                        @onclick="createNewOrder"
+                        @onclick="createNewOrderHandle"
                         class="px-7 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg transition">
                         Tạo Đơn Hàng
                     </button>
@@ -230,7 +239,7 @@
     [Parameter] public PromotionDTO? promotion { get; set; }
 
     [Parameter] public ProductDTO? selectedProduct { get; set;  }
-    [Parameter] public EventCallback createNewOrder { get; set; }
+    [Parameter] public EventCallback createNewOrderHandle { get; set; }
     bool showCustomerModal = false;
     
 

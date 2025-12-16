@@ -79,7 +79,7 @@
     {
         <OrderForm selectedProduct="@selectedProduct" promotion="@promotion" ListOrderProducts="@listOrderProducts"
             currentOrder="@currentOrder" ordersFormMode="@ordersFormMode" OnCloseOrdersForm="() => showOrderModel = false"
-            OnOrderChanged="HandleOrderChanged" createNewOrder="createNewOrder" />
+            OnOrderChanged="HandleOrderChanged" createNewOrderHandle="createNewOrderHandle" />
     }
 
 
@@ -144,7 +144,7 @@
         }
 
         showOrderModel = true;
-        StateHasChanged();
+       
     }
 
 
@@ -228,7 +228,7 @@
     }
 
     // Tạo đơn hàng mới
-    async Task createNewOrder()
+    async Task createNewOrderHandle()
     {
         if (listOrderProducts.Count == 0)
         {
@@ -286,7 +286,7 @@
             paymentResult = await _ordersClient.PayOfflineAsync(currentOrder.Id, currentOrder.TotalAmount);
             if (paymentResult.Success == false)
             {
-
+                JS.InvokeVoidAsync("console.log", "Lỗi thanh toán tiền mặt");
                 return;
             }
             else
@@ -300,7 +300,11 @@
             paymentResult = await _ordersClient.PayWithMomoAsync(currentOrder.Id, currentOrder.TotalAmount);
             if (paymentResult.Success == false)
             {
-                JS.InvokeVoidAsync("console.log", $"Lỗi thanh toán MoMo: {paymentResult.Message}");
+                
+                ShowAlert($"{paymentResult.Message}.");
+                showOrderModel =false;
+                currentPage = 1;
+                await LoadOrdersAdvanced();
                 return;
             }
             else
@@ -317,6 +321,8 @@
         }
 
         showOrderModel = false;
+        currentPage = 1;
+        await LoadOrdersAdvanced();
 
 
     }

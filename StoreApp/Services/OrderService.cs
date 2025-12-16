@@ -91,15 +91,15 @@ namespace StoreApp.Services
             var staff = await _userRepo.GetByIdAsync(staffId);
             string staffName = staff?.FullName ?? $"Nhân viên #{staffId}";
 
-            int customerId = 0;
-            var customer = await _customerRepo.GetByIdAsync(customerId);
-            string customerName = customer?.FullName ?? "KhÃ¡ch vÃ£ng lai";
+            // int customerId = 0;
+            // var customer = await _customerRepo.GetByIdAsync(customerId);
+            // string customerName = customer?.FullName ?? "KhÃ¡ch vÃ£ng lai";
 
             var tempOrder = new OrderDTO
             {
                 // Id = newId,
                 OrderNumber = orderCode,
-                CustomerId = customerId,
+                CustomerId = null,
                 StaffId = staffId,
                 Status = "pending",
                 Subtotal = 0m,
@@ -109,7 +109,7 @@ namespace StoreApp.Services
                 Note = null,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
-                CustomerName = customerName,
+                CustomerName = "Khách hàng vãng lai",
                 StaffName =  staffName,
                 PromotionCode = null,
                 PaymentMethod = "cash",

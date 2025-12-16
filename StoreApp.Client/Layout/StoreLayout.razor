@@ -23,7 +23,17 @@
     <span class="dismiss">🗙</span>
 </div>
 <script>
+    window.momoPopup = {
+        popup: null,
+        closed: false,
+        timer: null
+    };
+
     window.openMoMoPayment = function (payUrl) {
+
+        // reset trạng thái
+        window.momoPopup.closed = false;
+
         const popup = window.open(
             payUrl,
             "_blank",
@@ -32,6 +42,24 @@
 
         if (!popup || popup.closed || typeof popup.closed === "undefined") {
             alert("Trình duyệt đã chặn popup! Vui lòng bật popup để thanh toán MoMo.");
+            window.momoPopup.closed = true;
+            return;
         }
+
+        // ✅ LƯU POPUP
+        window.momoPopup.popup = popup;
+
+        // ✅ THEO DÕI ĐÓNG POPUP
+        window.momoPopup.timer = setInterval(() => {
+            if (window.momoPopup.popup.closed) {
+                window.momoPopup.closed = true;
+                clearInterval(window.momoPopup.timer);
+            }
+        }, 500);
+    };
+
+    window.isMoMoPopupClosed = function () {
+        return window.momoPopup.closed;
     };
 </script>
+

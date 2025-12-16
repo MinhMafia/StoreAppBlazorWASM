@@ -531,7 +531,7 @@
             paymentResult = await _ordersClient.PayCashInOnlineOrderAsync(currentOrder.Id, currentOrder.TotalAmount);
             if (paymentResult.Success == false)
             {
-                JS.InvokeVoidAsync("console.log", "Thanh toán ofline lỗi");
+                ShowAlert($"{paymentResult.Message}.");
                 return;
             }
             else

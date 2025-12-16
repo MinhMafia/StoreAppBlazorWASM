@@ -316,15 +316,24 @@ public class OrdersClientService : IOrdersClientService
                 await Task.Delay(2000);
                 counter++;
 
+                // 🔥 CHECK ĐÓNG POPUP
+                bool popupClosed = await _js.InvokeAsync<bool>("isMoMoPopupClosed");
+                if (popupClosed)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Đóng cửa sổ popup nhưng chưa thanh toán nên thanh toán không thành công."
+                    };
+                }
+
                 var statusRes = await _http.GetAsync($"api/payment/status/{orderId}");
                 if (statusRes.IsSuccessStatusCode)
                 {
                     var data = await statusRes.Content.ReadFromJsonAsync<Dictionary<string, string>>();
 
-                    if (data != null && data.ContainsKey("status"))
+                    if (data != null && data.TryGetValue("status", out var status))
                     {
-                        string status = data["status"];
-
                         if (status == "completed")
                         {
                             return new PaymentResult
@@ -345,6 +354,7 @@ public class OrdersClientService : IOrdersClientService
                     };
                 }
             }
+
         }
         catch (Exception ex)
         {
@@ -391,15 +401,24 @@ public class OrdersClientService : IOrdersClientService
                 await Task.Delay(2000);
                 counter++;
 
+                // 🔥 CHECK ĐÓNG POPUP
+                bool popupClosed = await _js.InvokeAsync<bool>("isMoMoPopupClosed");
+                if (popupClosed)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Đóng cửa sổ popup nhưng chưa thanh toán nên thanh toán không thành công."
+                    };
+                }
+
                 var statusRes = await _http.GetAsync($"api/payment/status/{orderId}");
                 if (statusRes.IsSuccessStatusCode)
                 {
                     var data = await statusRes.Content.ReadFromJsonAsync<Dictionary<string, string>>();
 
-                    if (data != null && data.ContainsKey("status"))
+                    if (data != null && data.TryGetValue("status", out var status))
                     {
-                        string status = data["status"];
-
                         if (status == "completed")
                         {
                             return new PaymentResult
@@ -420,6 +439,7 @@ public class OrdersClientService : IOrdersClientService
                     };
                 }
             }
+
         }
         catch (Exception ex)
         {
