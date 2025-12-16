@@ -100,7 +100,7 @@ namespace StoreApp.Client.Services
         {
             try
             {
-                var response = await _http.PutAsJsonAsync($"api/users/{id}/toggle", new { isActive });
+                var response = await _http.PatchAsync($"api/users/{id}/status?isActive={isActive}", null);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
@@ -114,8 +114,17 @@ namespace StoreApp.Client.Services
         {
             try
             {
-                var response = await _http.PutAsJsonAsync($"api/users/{id}/reset-password",
-                    new { password = newPassword });
+                // Get current user data first
+                var currentUser = await GetUserByIdAsync(id);
+                if (currentUser == null)
+                {
+                    Console.WriteLine($"User {id} not found");
+                    return false;
+                }
+
+                // Update with new password
+                currentUser.Password = newPassword;
+                var response = await _http.PutAsJsonAsync($"api/users/{id}", currentUser);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)

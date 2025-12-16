@@ -14,7 +14,7 @@
         </div>
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(AlertMessage))
+    @if (!string.IsNullOrWhiteSpace(AlertMessage) && !ShowEditModal && !ShowResetModal && !ShowDetailModal)
     {
         <div class="alert @AlertCss" role="alert">@AlertMessage</div>
     }
@@ -154,6 +154,12 @@
                     <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
                 </div>
                 <div class="modal-body">
+                    @if (!string.IsNullOrWhiteSpace(AlertMessage))
+                    {
+                        <div class="alert @AlertCss mb-3" role="alert">
+                            @AlertMessage
+                        </div>
+                    }
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Username</label>
@@ -167,41 +173,12 @@
                             <label class="form-label">Họ tên</label>
                             <InputText class="form-control" @bind-Value="EditForm.FullName" />
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12">
                             <label class="form-label">Vai trò</label>
                             <InputSelect class="form-select" @bind-Value="EditForm.Role">
                                 <option value="staff">Staff</option>
                                 <option value="admin">Admin</option>
                             </InputSelect>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Trạng thái</label>
-                            <InputSelect class="form-select" @bind-Value="EditForm.IsActive">
-                                <option value="true">Đang hoạt động</option>
-                                <option value="false">Đã khoá</option>
-                            </InputSelect>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Mật khẩu mới (tuỳ chọn)</label>
-                            <div class="input-group">
-                                <InputText @bind-Value="EditForm.NewPassword"
-                                    type="@(EditForm.ShowPassword ? "text" : "password")" class="form-control" />
-                                <button class="btn btn-outline-secondary" type="button"
-                                    @onclick="() => EditForm.ShowPassword = !EditForm.ShowPassword">
-                                    <i class="bi @(EditForm.ShowPassword ? "bi-eye-slash" : "bi-eye")"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Xác nhận mật khẩu</label>
-                            <div class="input-group">
-                                <InputText @bind-Value="EditForm.ConfirmPassword"
-                                    type="@(EditForm.ShowConfirm ? "text" : "password")" class="form-control" />
-                                <button class="btn btn-outline-secondary" type="button"
-                                    @onclick="() => EditForm.ShowConfirm = !EditForm.ShowConfirm">
-                                    <i class="bi @(EditForm.ShowConfirm ? "bi-eye-slash" : "bi-eye")"></i>
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -226,6 +203,12 @@
                     <button type="button" class="btn-close" @onclick="CloseResetModal"></button>
                 </div>
                 <div class="modal-body">
+                    @if (!string.IsNullOrWhiteSpace(AlertMessage))
+                    {
+                        <div class="alert @AlertCss mb-3" role="alert">
+                            @AlertMessage
+                        </div>
+                    }
                     <div class="mb-3">
                         <label class="form-label">Mật khẩu mới</label>
                         <div class="input-group">
@@ -267,8 +250,7 @@
         CurrentPage = 1,
         TotalPages = 1,
         TotalItems = 0,
-        PageSize
-    = 10
+        PageSize = 10
     };
     private bool IsLoading = true;
     private bool ToggleLoading;
@@ -334,9 +316,9 @@
             Username = user.Username,
             Email = user.Email ?? string.Empty,
             FullName = user.FullName ?? string.Empty,
-            Role = user.Role ?? "staff",
-            IsActive = user.IsActive
+            Role = user.Role ?? "staff"
         };
+        AlertMessage = string.Empty;
         ShowEditModal = true;
     }
 
@@ -344,6 +326,7 @@
     {
         ShowEditModal = false;
         EditingUser = null;
+        AlertMessage = string.Empty;
         IsSaving = false;
     }
 
@@ -356,22 +339,14 @@
 
         try
         {
-            if (!string.IsNullOrEmpty(EditForm.NewPassword) && EditForm.NewPassword != EditForm.ConfirmPassword)
-            {
-                AlertCss = "alert-danger";
-                AlertMessage = "Mật khẩu xác nhận không khớp.";
-                IsSaving = false;
-                return;
-            }
-
             var payload = new UserDTO
             {
                 Username = EditForm.Username,
                 Email = EditForm.Email,
                 FullName = string.IsNullOrWhiteSpace(EditForm.FullName) ? null : EditForm.FullName.Trim(),
                 Role = EditForm.Role,
-                IsActive = EditForm.IsActive,
-                Password = string.IsNullOrWhiteSpace(EditForm.NewPassword) ? null : EditForm.NewPassword.Trim()
+                IsActive = EditingUser.IsActive, // Giữ nguyên trạng thái hiện tại
+                Password = null // Không thay đổi mật khẩu
             };
 
             var updated = await UserService.UpdateUserAsync(EditingUser.Id, payload);
@@ -383,9 +358,9 @@
                     Users[idx] = updated;
                 }
 
+                ShowEditModal = false;
                 AlertCss = "alert-success";
                 AlertMessage = "Đã cập nhật thông tin.";
-                ShowEditModal = false;
             }
             else
             {
@@ -408,6 +383,7 @@
     {
         ResetUser = user;
         ResetPasswordForm = new ResetModel();
+        AlertMessage = string.Empty;
         ShowResetModal = true;
     }
 
@@ -415,6 +391,7 @@
     {
         ShowResetModal = false;
         ResetUser = null;
+        AlertMessage = string.Empty;
         IsSaving = false;
     }
 
@@ -447,9 +424,9 @@
             var success = await UserService.ResetPasswordAsync(ResetUser.Id, newPass);
             if (success)
             {
+                ShowResetModal = false;
                 AlertCss = "alert-success";
                 AlertMessage = "Đã đặt lại mật khẩu.";
-                ShowResetModal = false;
             }
             else
             {
@@ -545,11 +522,6 @@
         public string Email { get; set; } = string.Empty;
         public string? FullName { get; set; }
         public string Role { get; set; } = "staff";
-        public bool IsActive { get; set; }
-        public string? NewPassword { get; set; }
-        public string? ConfirmPassword { get; set; }
-        public bool ShowPassword { get; set; }
-        public bool ShowConfirm { get; set; }
     }
 
     private sealed class ResetModel
