@@ -5,11 +5,13 @@ using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using StoreApp.Data;
 
 namespace StoreApp.Services
 {
     public class OrderService
     {
+        private readonly AppDbContext _context;
         private readonly OrderRepository _orderRepo;
         private readonly ActivityLogService _logService;
         private readonly UserRepository _userRepo;
@@ -24,8 +26,10 @@ namespace StoreApp.Services
             UserRepository userRepo,
             CustomerRepository customerRepo,
             PaymentRepository paymentRepository,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            AppDbContext context)
         {
+            _context = context;
             _orderRepo = orderRepo;
             _logService = logService;
             _customerRepo = customerRepo;
@@ -55,6 +59,22 @@ namespace StoreApp.Services
                 return headerId;
 
             throw new InvalidOperationException("Không tìm thấy user_id trong token");
+        }
+        
+        //Huy Don
+        public async Task<bool> CancelOrderAsyncCustomer(int orderId)
+        {
+            var order = await _context.Orders.FindAsync(orderId);
+            if (order == null) return false;
+
+            if (order.Status != "pending")
+                return false;
+
+            order.Status = "cancelled";
+            order.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         // 

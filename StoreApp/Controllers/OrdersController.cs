@@ -160,5 +160,16 @@ namespace StoreApp.Controllers
             var orders = await _orderService.GetOrdersForCustomerAsync(customerId);
             return Ok(orders);
         }
+
+        [HttpPut("cancel/{orderId}")]
+        public async Task<IActionResult> CancelOrderCustomer(int orderId)
+        {
+            var result = await _orderService.CancelOrderAsyncCustomer(orderId);
+
+            if (!result)
+                return BadRequest("Không thể hủy đơn");
+
+            return Ok(true);
+        }
     }
 }
