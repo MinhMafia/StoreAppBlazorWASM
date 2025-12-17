@@ -1,6 +1,8 @@
 @page "/admin/profile"
 @layout Layout.MainLayout
 @inject IMeClientService MeClientService
+@using StoreApp.Shared
+@using System.Text.RegularExpressions
 
 <PageTitle>Thông tin cá nhân</PageTitle>
 
@@ -44,7 +46,8 @@
                         </div>
                     </div>
                     <div class="d-flex justify-content-end gap-2 mt-3">
-                        <button type="button" class="btn btn-outline-secondary" @onclick="LoadProfileAsync" disabled="@IsSaving">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="LoadProfileAsync"
+                            disabled="@IsSaving">
                             Tải lại
                         </button>
                         <button type="submit" class="btn btn-primary" disabled="@IsSaving">
@@ -69,8 +72,10 @@
                     <div class="col-md-4">
                         <label class="form-label">Mật khẩu hiện tại</label>
                         <div class="input-group">
-                            <InputText type="@(ShowCurrentPassword ? "text" : "password")" class="form-control" @bind-Value="PasswordForm.CurrentPassword" required minlength="6" />
-                            <button class="btn btn-outline-secondary" type="button" @onclick="() => ShowCurrentPassword = !ShowCurrentPassword">
+                            <InputText type="@(ShowCurrentPassword ? "text" : "password")" class="form-control"
+                                @bind-Value="PasswordForm.CurrentPassword" required minlength="6" />
+                            <button class="btn btn-outline-secondary" type="button"
+                                @onclick="() => ShowCurrentPassword = !ShowCurrentPassword">
                                 <i class="bi @(ShowCurrentPassword ? "bi-eye-slash" : "bi-eye")"></i>
                             </button>
                         </div>
@@ -78,8 +83,10 @@
                     <div class="col-md-4">
                         <label class="form-label">Mật khẩu mới</label>
                         <div class="input-group">
-                            <InputText type="@(ShowNewPassword ? "text" : "password")" class="form-control" @bind-Value="PasswordForm.NewPassword" required minlength="6" />
-                            <button class="btn btn-outline-secondary" type="button" @onclick="() => ShowNewPassword = !ShowNewPassword">
+                            <InputText type="@(ShowNewPassword ? "text" : "password")" class="form-control"
+                                @bind-Value="PasswordForm.NewPassword" required minlength="6" />
+                            <button class="btn btn-outline-secondary" type="button"
+                                @onclick="() => ShowNewPassword = !ShowNewPassword">
                                 <i class="bi @(ShowNewPassword ? "bi-eye-slash" : "bi-eye")"></i>
                             </button>
                         </div>
@@ -87,8 +94,10 @@
                     <div class="col-md-4">
                         <label class="form-label">Xác nhận mật khẩu mới</label>
                         <div class="input-group">
-                            <InputText type="@(ShowConfirmPassword ? "text" : "password")" class="form-control" @bind-Value="PasswordForm.ConfirmNewPassword" required minlength="6" />
-                            <button class="btn btn-outline-secondary" type="button" @onclick="() => ShowConfirmPassword = !ShowConfirmPassword">
+                            <InputText type="@(ShowConfirmPassword ? "text" : "password")" class="form-control"
+                                @bind-Value="PasswordForm.ConfirmNewPassword" required minlength="6" />
+                            <button class="btn btn-outline-secondary" type="button"
+                                @onclick="() => ShowConfirmPassword = !ShowConfirmPassword">
                                 <i class="bi @(ShowConfirmPassword ? "bi-eye-slash" : "bi-eye")"></i>
                             </button>
                         </div>
@@ -158,6 +167,7 @@
     {
         var trimmedUsername = (ProfileForm.Username ?? string.Empty).Trim();
         var trimmedEmail = (ProfileForm.Email ?? string.Empty).Trim();
+        var trimmedFullName = (ProfileForm.FullName ?? string.Empty).Trim();
 
         if (trimmedUsername.Length < 3)
         {
@@ -166,10 +176,19 @@
             return;
         }
 
-        if (!trimmedEmail.Contains("@"))
+        // Validate email với regex
+        var emailRegex = new Regex(@"^[^\s@]+@[^\s@]+\.[^\s@]+$", RegexOptions.Compiled);
+        if (!emailRegex.IsMatch(trimmedEmail))
         {
             AlertCss = "alert-danger";
             AlertMessage = "Email không hợp lệ.";
+            return;
+        }
+
+        if (trimmedFullName.Length < 3)
+        {
+            AlertCss = "alert-danger";
+            AlertMessage = "Họ tên phải có ít nhất 3 ký tự.";
             return;
         }
 
@@ -182,7 +201,7 @@
             {
                 Username = trimmedUsername,
                 Email = trimmedEmail,
-                FullName = string.IsNullOrWhiteSpace(ProfileForm.FullName) ? string.Empty : ProfileForm.FullName.Trim()
+                FullName = trimmedFullName
             };
 
             var updated = await MeClientService.UpdateProfileAsync(payload);

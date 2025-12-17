@@ -44,9 +44,24 @@ namespace StoreApp.Services
             };
         }
 
-        public async Task<PaginationResult<UserDTO>> GetNonAdminPaginatedAsync(int page, int pageSize)
+        public async Task<PaginationResult<UserDTO>> GetNonAdminPaginatedAsync(
+            int page,
+            int pageSize,
+            string? search = null,
+            string? role = null,
+            bool? isActive = null)
         {
-            var result = await _userRepository.GetNonAdminPaginatedAsync(page, pageSize);
+            var normalizedRole = string.IsNullOrWhiteSpace(role)
+                ? null
+                : role.Trim().ToLowerInvariant();
+
+            // Disallow filtering admins in this endpoint
+            if (normalizedRole == "admin")
+            {
+                normalizedRole = null;
+            }
+
+            var result = await _userRepository.GetNonAdminPaginatedAsync(page, pageSize, search, normalizedRole, isActive);
 
             return new PaginationResult<UserDTO>
             {

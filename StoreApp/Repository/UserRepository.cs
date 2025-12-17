@@ -51,7 +51,12 @@ namespace StoreApp.Repository
             };
         }
 
-        public async Task<PaginationResult<User>> GetNonAdminPaginatedAsync(int page, int pageSize)
+        public async Task<PaginationResult<User>> GetNonAdminPaginatedAsync(
+            int page,
+            int pageSize,
+            string? search = null,
+            string? role = null,
+            bool? isActive = null)
         {
             if (page < 1) page = 1;
             if (pageSize <= 0) pageSize = 20;
@@ -59,6 +64,25 @@ namespace StoreApp.Repository
             var query = _context.Users
                 .AsNoTracking()
                 .Where(u => u.Role != "admin");
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var pattern = $"%{search.Trim().ToLowerInvariant()}%";
+                query = query.Where(u =>
+                    EF.Functions.Like(u.Username.ToLower(), pattern) ||
+                    (u.Email != null && EF.Functions.Like(u.Email.ToLower(), pattern)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                var normalizedRole = role.Trim().ToLowerInvariant();
+                query = query.Where(u => u.Role == normalizedRole);
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(u => u.IsActive == isActive.Value);
+            }
 
             var totalItems = await query.CountAsync();
             var items = await query

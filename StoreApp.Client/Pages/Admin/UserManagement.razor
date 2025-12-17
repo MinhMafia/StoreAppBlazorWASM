@@ -21,6 +21,38 @@
 
     <div class="card shadow-sm">
         <div class="card-body">
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-lg-5">
+                    <label class="form-label mb-1">Tìm kiếm</label>
+                    <InputText class="form-control" placeholder="Username hoac email" @bind-Value="SearchTerm" />
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label mb-1">Vai trò</label>
+                    <InputSelect class="form-select" @bind-Value="RoleFilter">
+                        <option value="all">Tất cả</option>
+                        <option value="staff">Staff</option>
+                    </InputSelect>
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <label class="form-label mb-1">Trạng thái</label>
+                    <InputSelect class="form-select" @bind-Value="StatusFilter">
+                        <option value="all">Tất cả</option>
+                        <option value="active">Đang hoạt động</option>
+                        <option value="inactive">Đã khoá</option>
+                    </InputSelect>
+                </div>
+                <div class="col-lg-2 d-flex gap-2">
+                    <button class="btn btn-primary flex-grow-1" type="button" @onclick="ApplyFilters"
+                        disabled="@IsLoading">
+                        Lọc
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" @onclick="ResetFilters"
+                        disabled="@IsLoading">
+                        Đặt lại
+                    </button>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead class="table-light">
@@ -252,6 +284,9 @@
         TotalItems = 0,
         PageSize = 10
     };
+    private string SearchTerm = string.Empty;
+    private string RoleFilter = "all";
+    private string StatusFilter = "all";
     private bool IsLoading = true;
     private bool ToggleLoading;
     private bool IsSaving;
@@ -281,7 +316,12 @@
 
         try
         {
-            var resp = await UserService.GetStaffsAsync(page, Meta.PageSize);
+            var resp = await UserService.GetStaffsAsync(
+            page,
+            Meta.PageSize,
+            SearchTerm,
+            RoleFilter == "all" ? null : RoleFilter,
+            StatusFilterToBool());
             Users = resp.Items ?? new List<UserDTO>();
             Meta = resp;
         }
@@ -294,6 +334,21 @@
         {
             IsLoading = false;
         }
+    }
+
+    private async Task ApplyFilters()
+    {
+        Meta.CurrentPage = 1;
+        await LoadUsers(1);
+    }
+
+    private async Task ResetFilters()
+    {
+        SearchTerm = string.Empty;
+        RoleFilter = "all";
+        StatusFilter = "all";
+        Meta.CurrentPage = 1;
+        await LoadUsers(1);
     }
 
     private void OpenDetail(UserDTO user)
@@ -497,6 +552,13 @@
             await LoadUsers(Meta.CurrentPage + 1);
         }
     }
+
+    private bool? StatusFilterToBool() => StatusFilter switch
+    {
+        "active" => true,
+        "inactive" => false,
+        _ => null
+    };
 
     private static string RoleBadge(string? role)
     {

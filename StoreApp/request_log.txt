@@ -85,3 +85,17 @@
 2025-12-17 12:25:11 | User:anonymous | Action:CREATE_Auth | Entity:Auth#register-customer | IP:::1 | Payload:{"fullName":"Cao Tien Cuong","email":"cuong@gmail.com","phone":"0962385165","address":"sdcvbn","password":"[REDACTED]","confirmPassword":"cuong10a07"}
 2025-12-17 12:25:30 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login-customer | IP:::1 | Payload:{"username":"cuong@gmail.com","password":"[REDACTED]"}
 2025-12-17 12:57:19 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-17 05:13:43 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-17 05:36:12 | User:admin | Action:UPDATE_Users | Entity:Users#2 | IP:::1 | Payload:{"id":0,"username":"staff01","email":"staff01@example.com","fullName":"Nguy\u1EC5n V\u0103n ABC","role":"staff","isActive":true,"isLocked":false,"updatedAt":null,"lastLogin":null}
+2025-12-17 07:11:05 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-17 07:51:52 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-17 07:52:08 | User:admin | Action:UPDATE_Me | Entity:Me#change-password | IP:::1 | Payload:{"username":"","email":"","fullName":null,"phone":null,"address":null,"currentPassword":"mansocho123","newPassword":"mansocho","confirmNewPassword":"mansocho"}
+2025-12-17 07:52:12 | User:admin | Action:UPDATE_Me | Entity:Me#change-password | IP:::1 | Payload:{"username":"","email":"","fullName":null,"phone":null,"address":null,"currentPassword":"admin123","newPassword":"mansocho","confirmNewPassword":"mansocho"}
+2025-12-17 07:52:18 | User:admin | Action:UPDATE_Me | Entity:Me#0 | IP:::1 | Payload:{"username":"admin","email":"admin@example.com","fullName":"Qu\u1EA3n tr\u1ECB vi\u00EAn 123","phone":null,"address":null}
+2025-12-17 07:52:32 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login-customer | IP:::1 | Payload:{"username":"customer01@example.com","password":"[REDACTED]"}
+2025-12-17 07:53:23 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"staff01","password":"[REDACTED]"}
+2025-12-17 07:53:32 | User:staff01 | Action:UPDATE_Me | Entity:Me#0 | IP:::1 | Payload:{"username":"staff01","email":"staff01@example.com","fullName":"Nguy\u1EC5n V\u0103n ABCDE","phone":null,"address":null}
+2025-12-17 07:53:50 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-17 07:53:55 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-17 07:53:58 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}
+2025-12-17 07:54:04 | User:anonymous | Action:CREATE_Auth | Entity:Auth#login | IP:::1 | Payload:{"username":"admin","password":"[REDACTED]"}

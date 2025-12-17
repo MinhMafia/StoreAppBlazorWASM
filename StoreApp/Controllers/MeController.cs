@@ -127,6 +127,31 @@ namespace StoreApp.Controllers
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
+            var role = User?.FindFirst(ClaimTypes.Role)?.Value;
+
+            // Customer password change
+            if (string.Equals(role, "customer", StringComparison.OrdinalIgnoreCase))
+            {
+                var customerResult = await _customerService.ChangePasswordAsync(
+                    userId.Value,
+                    request.CurrentPassword!,
+                    request.NewPassword!
+                );
+
+                if (!customerResult.Success)
+                {
+                    if (customerResult.StatusCode == 404)
+                        return NotFound("Customer not found.");
+                    if (customerResult.StatusCode == 400)
+                        return BadRequest(customerResult.Errors.FirstOrDefault() ?? "Current password is incorrect.");
+
+                    return StatusCode(customerResult.StatusCode, customerResult.Errors.FirstOrDefault() ?? "Change password failed.");
+                }
+
+                return NoContent();
+            }
+
+            // User password change
             var result = await _userService.ChangePasswordAsync(
                 userId.Value,
                 request.CurrentPassword!,
@@ -144,14 +169,14 @@ namespace StoreApp.Controllers
 
         private int? ResolveUserId()
         {
-            // ƒ??u tiA?n lA?y id trong claim
+            // Prefer JWT claim
             var idClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!string.IsNullOrWhiteSpace(idClaim) && int.TryParse(idClaim, out var claimUserId))
             {
                 return claimUserId;
             }
 
-            // fallback header (nA?u front A?t header cA?u hA??i cA? lA?y)
+            // Fallback: X-User-Id header
             if (Request.Headers.TryGetValue("X-User-Id", out var header) &&
                 int.TryParse(header, out var userId))
             {

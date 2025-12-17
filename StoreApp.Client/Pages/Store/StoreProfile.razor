@@ -13,7 +13,7 @@
             <p class="text-sm text-gray-500">Xem thông tin đăng nhập và cập nhật tên hiển thị.</p>
         </div>
         <button class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition"
-                @onclick="OpenPasswordModal">
+            @onclick="OpenPasswordModal">
             Đổi mật khẩu
         </button>
     </div>
@@ -29,60 +29,50 @@
         @if (isLoading)
         {
             <div class="flex items-center gap-2 text-gray-500 text-sm">
-                <span class="inline-block w-4 h-4 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></span>
+                <span
+                    class="inline-block w-4 h-4 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></span>
                 Đang tải thông tin...
             </div>
         }
         else
         {
             <EditForm Model="@profileForm" OnSubmit="@HandleProfileSubmit" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Username</label>
-                        <input class="mt-1 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-700"
-                               value="@profileForm.Username"
-                               readonly />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Email</label>
-                        <input class="mt-1 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-700"
-                               value="@profileForm.Email"
-                               readonly />
-                    </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input class="mt-1 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-700"
+                        value="@profileForm.Email" readonly />
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Họ tên</label>
-                    <input class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                           @bind="profileForm.FullName"
-                           placeholder="Nhập họ tên của bạn" />
+                    <input
+                        class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                        @bind="profileForm.FullName" placeholder="Nhập họ tên của bạn" />
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Số điện thoại</label>
-                        <input class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                               @bind="profileForm.Phone"
-                               placeholder="Ví dụ: 0912345678" />
+                        <input
+                            class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                            @bind="profileForm.Phone" placeholder="Ví dụ: 0912345678" />
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Địa chỉ</label>
-                        <input class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                               @bind="profileForm.Address"
-                               placeholder="Địa chỉ nhận hàng" />
+                        <input
+                            class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                            @bind="profileForm.Address" placeholder="Địa chỉ nhận hàng" />
                     </div>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2">
-                    <button type="button"
-                            class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
-                            @onclick="LoadProfileAsync"
-                            disabled="@isSaving">
+                    <button type="button" class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                        @onclick="LoadProfileAsync" disabled="@isSaving">
                         Tải lại
                     </button>
                     <button type="submit"
-                            class="px-5 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-60"
-                            disabled="@isSaving">
+                        class="px-5 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-60"
+                        disabled="@isSaving">
                         @(isSaving ? "Đang lưu..." : "Lưu thay đổi")
                     </button>
                 </div>
@@ -95,8 +85,7 @@
 {
     <div class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
         <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-gray-100 p-6 relative">
-            <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-                    @onclick="ClosePasswordModal">
+            <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" @onclick="ClosePasswordModal">
                 ✕
             </button>
 
@@ -114,13 +103,12 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Mật khẩu hiện tại</label>
                     <div class="relative">
-                        <input class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 pr-12 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                               type="@(showCurrentPassword ? "text" : "password")"
-                               @bind="passwordForm.CurrentPassword"
-                               required />
-                        <button type="button"
-                                class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
-                                @onclick="() => showCurrentPassword = !showCurrentPassword">
+                        <input
+                            class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 pr-12 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                            type="@(showCurrentPassword ? "text" : "password")" @bind="passwordForm.CurrentPassword"
+                            required />
+                        <button type="button" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
+                            @onclick="() => showCurrentPassword = !showCurrentPassword">
                             <i class="bi @(showCurrentPassword ? "bi-eye-slash" : "bi-eye")"></i>
                         </button>
                     </div>
@@ -129,14 +117,12 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Mật khẩu mới</label>
                     <div class="relative">
-                        <input class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 pr-12 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                               type="@(showNewPassword ? "text" : "password")"
-                               @bind="passwordForm.NewPassword"
-                               minlength="6"
-                               required />
-                        <button type="button"
-                                class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
-                                @onclick="() => showNewPassword = !showNewPassword">
+                        <input
+                            class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 pr-12 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                            type="@(showNewPassword ? "text" : "password")" @bind="passwordForm.NewPassword" minlength="6"
+                            required />
+                        <button type="button" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
+                            @onclick="() => showNewPassword = !showNewPassword">
                             <i class="bi @(showNewPassword ? "bi-eye-slash" : "bi-eye")"></i>
                         </button>
                     </div>
@@ -145,29 +131,25 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Xác nhận mật khẩu mới</label>
                     <div class="relative">
-                        <input class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 pr-12 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                               type="@(showConfirmPassword ? "text" : "password")"
-                               @bind="passwordForm.ConfirmNewPassword"
-                               minlength="6"
-                               required />
-                        <button type="button"
-                                class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
-                                @onclick="() => showConfirmPassword = !showConfirmPassword">
+                        <input
+                            class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 pr-12 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                            type="@(showConfirmPassword ? "text" : "password")" @bind="passwordForm.ConfirmNewPassword"
+                            minlength="6" required />
+                        <button type="button" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
+                            @onclick="() => showConfirmPassword = !showConfirmPassword">
                             <i class="bi @(showConfirmPassword ? "bi-eye-slash" : "bi-eye")"></i>
                         </button>
                     </div>
                 </div>
 
                 <div class="flex justify-end gap-3 pt-2">
-                    <button type="button"
-                            class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
-                            @onclick="ClosePasswordModal"
-                            disabled="@isPasswordSaving">
+                    <button type="button" class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                        @onclick="ClosePasswordModal" disabled="@isPasswordSaving">
                         Hủy
                     </button>
                     <button type="submit"
-                            class="px-5 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-60"
-                            disabled="@isPasswordSaving">
+                        class="px-5 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-60"
+                        disabled="@isPasswordSaving">
                         @(isPasswordSaving ? "Đang lưu..." : "Đổi mật khẩu")
                     </button>
                 </div>
@@ -232,17 +214,10 @@
 
     private async Task HandleProfileSubmit(EditContext _)
     {
-        var trimmedUsername = (profileForm.Username ?? string.Empty).Trim();
         var trimmedEmail = (profileForm.Email ?? string.Empty).Trim();
         var trimmedFullName = (profileForm.FullName ?? string.Empty).Trim();
         var trimmedPhone = (profileForm.Phone ?? string.Empty).Trim();
         var trimmedAddress = (profileForm.Address ?? string.Empty).Trim();
-
-        if (trimmedUsername.Length < 3)
-        {
-            alert = AlertMessage.Error("Username phải có ít nhất 3 ký tự.");
-            return;
-        }
 
         if (!EmailRegex.IsMatch(trimmedEmail))
         {
@@ -275,7 +250,6 @@
         {
             var payload = new MeDTO
             {
-                Username = trimmedUsername,
                 Email = trimmedEmail,
                 FullName = trimmedFullName,
                 Phone = trimmedPhone,
@@ -285,7 +259,7 @@
             var updated = await MeClientService.UpdateProfileAsync(payload);
             profileForm = new ProfileForm
             {
-                Username = updated.Username ?? trimmedUsername,
+                Username = profileForm.Username, // Keep original
                 Email = updated.Email ?? trimmedEmail,
                 FullName = updated.FullName ?? trimmedFullName,
                 Phone = updated.Phone ?? trimmedPhone,
@@ -360,8 +334,8 @@
     private static string GetAlertClass(AlertMessage message)
     {
         var tone = message.Type == "success"
-            ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-            : "bg-red-50 text-red-700 border border-red-100";
+        ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+        : "bg-red-50 text-red-700 border border-red-100";
 
         return $"rounded-lg px-4 py-3 text-sm {tone}";
     }

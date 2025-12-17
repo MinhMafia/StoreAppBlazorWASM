@@ -1,11 +1,17 @@
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.WebUtilities;
 using StoreApp.Shared;
 
 namespace StoreApp.Client.Services
 {
     public interface IUserClientService
     {
-        Task<PaginationResult<UserDTO>> GetStaffsAsync(int page = 1, int pageSize = 10);
+        Task<PaginationResult<UserDTO>> GetStaffsAsync(
+            int page = 1,
+            int pageSize = 10,
+            string? search = null,
+            string? role = null,
+            bool? isActive = null);
         Task<List<UserDTO>> GetAllUsersAsync();
         Task<UserDTO?> GetUserByIdAsync(int id);
         Task<UserDTO?> CreateUserAsync(UserDTO user);
@@ -24,12 +30,33 @@ namespace StoreApp.Client.Services
             _http = http;
         }
 
-        public async Task<PaginationResult<UserDTO>> GetStaffsAsync(int page = 1, int pageSize = 10)
+        public async Task<PaginationResult<UserDTO>> GetStaffsAsync(
+            int page = 1,
+            int pageSize = 10,
+            string? search = null,
+            string? role = null,
+            bool? isActive = null)
         {
             try
             {
-                var response = await _http.GetFromJsonAsync<PaginationResult<UserDTO>>(
-                    $"api/users/staffs?page={page}&pageSize={pageSize}");
+                var queryParams = new Dictionary<string, string?>
+                {
+                    ["page"] = page.ToString(),
+                    ["pageSize"] = pageSize.ToString()
+                };
+
+                if (!string.IsNullOrWhiteSpace(search))
+                    queryParams["search"] = search;
+
+                if (!string.IsNullOrWhiteSpace(role))
+                    queryParams["role"] = role;
+
+                if (isActive.HasValue)
+                    queryParams["isActive"] = isActive.Value.ToString();
+
+                var url = QueryHelpers.AddQueryString("api/users/staffs", queryParams!);
+
+                var response = await _http.GetFromJsonAsync<PaginationResult<UserDTO>>(url);
                 return response ?? new PaginationResult<UserDTO>();
             }
             catch (Exception ex)

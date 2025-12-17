@@ -35,7 +35,7 @@ namespace StoreApp.Services
 
         //     return (dtos, totalPages);
         // }
-                // Phân trang
+        // Phân trang
         public async Task<ResultPaginatedDTO<CustomerDTO>> GetPaginatedAsync(int page, int pageSize, string? search = null)
         {
             if (page < 1) page = 1;
@@ -212,6 +212,33 @@ namespace StoreApp.Services
             return ServiceResultDTO<CustomerResponseDTO>.CreateSuccessResult(MapToCustomerResponseDto(updatedCustomer), 200);
         }
 
+
+        public async Task<ServiceResultDTO<bool>> ChangePasswordAsync(int id, string currentPassword, string newPassword)
+        {
+            var customer = await _repo.GetByIdAsync(id);
+            if (customer == null)
+            {
+                return ServiceResultDTO<bool>.CreateFailureResult(404, "Customer not found.");
+            }
+
+            // Kiểm tra password hiện tại
+            if (string.IsNullOrEmpty(customer.PasswordHash))
+            {
+                return ServiceResultDTO<bool>.CreateFailureResult(400, "Customer has no password set.");
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(currentPassword, customer.PasswordHash))
+            {
+                return ServiceResultDTO<bool>.CreateFailureResult(400, "Current password is incorrect.");
+            }
+
+            // Hash password mới
+            customer.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            customer.UpdatedAt = DateTime.UtcNow;
+
+            await _repo.UpdateAsync(customer);
+            return ServiceResultDTO<bool>.CreateSuccessResult(true, 200);
+        }
 
         public CustomerResponseDTO MapToCustomerResponseDto(Customer customer)
         {

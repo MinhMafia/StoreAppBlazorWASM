@@ -1,0 +1,578 @@
+<!DOCTYPE html><html><head>
+      <title>user_management</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      
+      <link rel="stylesheet" href="file:///c:\Users\mansh\.vscode\extensions\shd101wyy.markdown-preview-enhanced-0.8.20\crossnote\dependencies\katex\katex.min.css">
+      
+      
+      
+      
+      
+      <style>
+      code[class*=language-],pre[class*=language-]{color:#333;background:0 0;font-family:Consolas,"Liberation Mono",Menlo,Courier,monospace;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.4;-moz-tab-size:8;-o-tab-size:8;tab-size:8;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:.8em;overflow:auto;border-radius:3px;background:#f5f5f5}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal;background:#f5f5f5}.token.blockquote,.token.comment{color:#969896}.token.cdata{color:#183691}.token.doctype,.token.macro.property,.token.punctuation,.token.variable{color:#333}.token.builtin,.token.important,.token.keyword,.token.operator,.token.rule{color:#a71d5d}.token.attr-value,.token.regex,.token.string,.token.url{color:#183691}.token.atrule,.token.boolean,.token.code,.token.command,.token.constant,.token.entity,.token.number,.token.property,.token.symbol{color:#0086b3}.token.prolog,.token.selector,.token.tag{color:#63a35c}.token.attr-name,.token.class,.token.class-name,.token.function,.token.id,.token.namespace,.token.pseudo-class,.token.pseudo-element,.token.url-reference .token.variable{color:#795da3}.token.entity{cursor:help}.token.title,.token.title .token.punctuation{font-weight:700;color:#1d3e81}.token.list{color:#ed6a43}.token.inserted{background-color:#eaffea;color:#55a532}.token.deleted{background-color:#ffecec;color:#bd2c00}.token.bold{font-weight:700}.token.italic{font-style:italic}.language-json .token.property{color:#183691}.language-markup .token.tag .token.punctuation{color:#333}.language-css .token.function,code.language-css{color:#0086b3}.language-yaml .token.atrule{color:#63a35c}code.language-yaml{color:#183691}.language-ruby .token.function{color:#333}.language-markdown .token.url{color:#795da3}.language-makefile .token.symbol{color:#795da3}.language-makefile .token.variable{color:#183691}.language-makefile .token.builtin{color:#0086b3}.language-bash .token.keyword{color:#0086b3}pre[data-line]{position:relative;padding:1em 0 1em 3em}pre[data-line] .line-highlight-wrapper{position:absolute;top:0;left:0;background-color:transparent;display:block;width:100%}pre[data-line] .line-highlight{position:absolute;left:0;right:0;padding:inherit 0;margin-top:1em;background:hsla(24,20%,50%,.08);background:linear-gradient(to right,hsla(24,20%,50%,.1) 70%,hsla(24,20%,50%,0));pointer-events:none;line-height:inherit;white-space:pre}pre[data-line] .line-highlight:before,pre[data-line] .line-highlight[data-end]:after{content:attr(data-start);position:absolute;top:.4em;left:.6em;min-width:1em;padding:0 .5em;background-color:hsla(24,20%,50%,.4);color:#f4f1ef;font:bold 65%/1.5 sans-serif;text-align:center;vertical-align:.3em;border-radius:999px;text-shadow:none;box-shadow:0 1px #fff}pre[data-line] .line-highlight[data-end]:after{content:attr(data-end);top:auto;bottom:.4em}html body{font-family:'Helvetica Neue',Helvetica,'Segoe UI',Arial,freesans,sans-serif;font-size:16px;line-height:1.6;color:#333;background-color:#fff;overflow:initial;box-sizing:border-box;word-wrap:break-word}html body>:first-child{margin-top:0}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{line-height:1.2;margin-top:1em;margin-bottom:16px;color:#000}html body h1{font-size:2.25em;font-weight:300;padding-bottom:.3em}html body h2{font-size:1.75em;font-weight:400;padding-bottom:.3em}html body h3{font-size:1.5em;font-weight:500}html body h4{font-size:1.25em;font-weight:600}html body h5{font-size:1.1em;font-weight:600}html body h6{font-size:1em;font-weight:600}html body h1,html body h2,html body h3,html body h4,html body h5{font-weight:600}html body h5{font-size:1em}html body h6{color:#5c5c5c}html body strong{color:#000}html body del{color:#5c5c5c}html body a:not([href]){color:inherit;text-decoration:none}html body a{color:#08c;text-decoration:none}html body a:hover{color:#00a3f5;text-decoration:none}html body img{max-width:100%}html body>p{margin-top:0;margin-bottom:16px;word-wrap:break-word}html body>ol,html body>ul{margin-bottom:16px}html body ol,html body ul{padding-left:2em}html body ol.no-list,html body ul.no-list{padding:0;list-style-type:none}html body ol ol,html body ol ul,html body ul ol,html body ul ul{margin-top:0;margin-bottom:0}html body li{margin-bottom:0}html body li.task-list-item{list-style:none}html body li>p{margin-top:0;margin-bottom:0}html body .task-list-item-checkbox{margin:0 .2em .25em -1.8em;vertical-align:middle}html body .task-list-item-checkbox:hover{cursor:pointer}html body blockquote{margin:16px 0;font-size:inherit;padding:0 15px;color:#5c5c5c;background-color:#f0f0f0;border-left:4px solid #d6d6d6}html body blockquote>:first-child{margin-top:0}html body blockquote>:last-child{margin-bottom:0}html body hr{height:4px;margin:32px 0;background-color:#d6d6d6;border:0 none}html body table{margin:10px 0 15px 0;border-collapse:collapse;border-spacing:0;display:block;width:100%;overflow:auto;word-break:normal;word-break:keep-all}html body table th{font-weight:700;color:#000}html body table td,html body table th{border:1px solid #d6d6d6;padding:6px 13px}html body dl{padding:0}html body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:700}html body dl dd{padding:0 16px;margin-bottom:16px}html body code{font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:.85em;color:#000;background-color:#f0f0f0;border-radius:3px;padding:.2em 0}html body code::after,html body code::before{letter-spacing:-.2em;content:'\00a0'}html body pre>code{padding:0;margin:0;word-break:normal;white-space:pre;background:0 0;border:0}html body .highlight{margin-bottom:16px}html body .highlight pre,html body pre{padding:1em;overflow:auto;line-height:1.45;border:#d6d6d6;border-radius:3px}html body .highlight pre{margin-bottom:0;word-break:normal}html body pre code,html body pre tt{display:inline;max-width:initial;padding:0;margin:0;overflow:initial;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}html body pre code:after,html body pre code:before,html body pre tt:after,html body pre tt:before{content:normal}html body blockquote,html body dl,html body ol,html body p,html body pre,html body ul{margin-top:0;margin-bottom:16px}html body kbd{color:#000;border:1px solid #d6d6d6;border-bottom:2px solid #c7c7c7;padding:2px 4px;background-color:#f0f0f0;border-radius:3px}@media print{html body{background-color:#fff}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{color:#000;page-break-after:avoid}html body blockquote{color:#5c5c5c}html body pre{page-break-inside:avoid}html body table{display:table}html body img{display:block;max-width:100%;max-height:100%}html body code,html body pre{word-wrap:break-word;white-space:pre}}.markdown-preview{width:100%;height:100%;box-sizing:border-box}.markdown-preview ul{list-style:disc}.markdown-preview ul ul{list-style:circle}.markdown-preview ul ul ul{list-style:square}.markdown-preview ol{list-style:decimal}.markdown-preview ol ol,.markdown-preview ul ol{list-style-type:lower-roman}.markdown-preview ol ol ol,.markdown-preview ol ul ol,.markdown-preview ul ol ol,.markdown-preview ul ul ol{list-style-type:lower-alpha}.markdown-preview .newpage,.markdown-preview .pagebreak{page-break-before:always}.markdown-preview pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}.markdown-preview pre.line-numbers>code{position:relative}.markdown-preview pre.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:1em;font-size:100%;left:0;width:3em;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.markdown-preview pre.line-numbers .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber}.markdown-preview pre.line-numbers .line-numbers-rows>span:before{content:counter(linenumber);color:#999;display:block;padding-right:.8em;text-align:right}.markdown-preview .mathjax-exps .MathJax_Display{text-align:center!important}.markdown-preview:not([data-for=preview]) .code-chunk .code-chunk-btn-group{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .status{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .output-div{margin-bottom:16px}.markdown-preview .md-toc{padding:0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link div,.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}.markdown-preview .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}.scrollbar-style::-webkit-scrollbar{width:8px}.scrollbar-style::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}.scrollbar-style::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode]){position:relative;width:100%;height:100%;top:0;left:0;margin:0;padding:0;overflow:auto}html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{position:relative;top:0;min-height:100vh}@media screen and (min-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em calc(50% - 457px + 2em)}}@media screen and (max-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{font-size:14px!important;padding:1em}}@media print{html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{display:none}}html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{position:fixed;bottom:8px;left:8px;font-size:28px;cursor:pointer;color:inherit;z-index:99;width:32px;text-align:center;opacity:.4}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] #sidebar-toc-btn{opacity:1}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc{position:fixed;top:0;left:0;width:300px;height:100%;padding:32px 0 48px 0;font-size:14px;box-shadow:0 0 4px rgba(150,150,150,.33);box-sizing:border-box;overflow:auto;background-color:inherit}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar{width:8px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc a{text-decoration:none}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc{padding:0 16px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link div,html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{left:300px;width:calc(100% - 300px);padding:2em calc(50% - 457px - 300px / 2);margin:0;box-sizing:border-box}@media screen and (max-width:1274px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{width:100%}}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .markdown-preview{left:50%;transform:translateX(-50%)}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .md-sidebar-toc{display:none}
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+
+      </style>
+      <!-- The content below will be included at the end of the <head> element. --><script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    // your code here
+  });
+</script></head><body for="html-export">
+    
+    
+      <div class="crossnote markdown-preview  ">
+      
+<h1 id="chức-năng-quản-lý-nhân-viên">Chức năng Quản lý Nhân viên </h1>
+<h2 id="-tổng-quan">📋 Tổng quan </h2>
+<p>Hệ thống quản lý nhân viên cho phép Admin xem, chỉnh sửa, khóa/mở khóa tài khoản và đặt lại mật khẩu cho nhân viên.</p>
+<hr>
+<h2 id="-các-chức-năng-chính">🎯 Các chức năng chính </h2>
+<h3 id="1-xem-danh-sách-nhân-viên">1. <strong>Xem danh sách nhân viên</strong> </h3>
+<ul>
+<li>Hiển thị danh sách với phân trang</li>
+<li>Thông tin: Email, Username, Vai trò, Trạng thái</li>
+<li>Hỗ trợ phân trang với meta data</li>
+</ul>
+<h3 id="2-xem-chi-tiết-nhân-viên">2. <strong>Xem chi tiết nhân viên</strong> </h3>
+<ul>
+<li>Modal hiển thị đầy đủ thông tin</li>
+<li>Các trường: Họ tên, Email, Username, Vai trò, Trạng thái, Ngày tạo, Đăng nhập cuối</li>
+</ul>
+<h3 id="3-chỉnh-sửa-nhân-viên">3. <strong>Chỉnh sửa nhân viên</strong> </h3>
+<ul>
+<li>Sửa họ tên và vai trò (Staff/Admin)</li>
+<li>Validation form</li>
+<li>Hiển thị lỗi trong modal</li>
+</ul>
+<h3 id="4-đặt-lại-mật-khẩu">4. <strong>Đặt lại mật khẩu</strong> </h3>
+<ul>
+<li>Admin có thể reset password cho nhân viên</li>
+<li>Yêu cầu xác nhận mật khẩu</li>
+<li>Validation: tối thiểu 6 ký tự, khớp nhau</li>
+</ul>
+<h3 id="5-khóamở-khóa-tài-khoản">5. <strong>Khóa/Mở khóa tài khoản</strong> </h3>
+<ul>
+<li>Toggle trạng thái active/inactive</li>
+<li>Xác nhận trước khi thực hiện</li>
+<li>Cập nhật realtime</li>
+</ul>
+<hr>
+<h2 id="️-kiến-trúc">🏗️ Kiến trúc </h2>
+<h3 id="frontend-blazor-webassembly">Frontend (Blazor WebAssembly) </h3>
+<h4 id="1-page-component"><strong>1. Page Component</strong> </h4>
+<pre data-role="codeBlock" data-info="razor" class="language-razor razor"><code>// filepath: StoreApp.Client/Pages/Admin/UserManagement.razor
+<span class="token directive"><span class="token keyword keyword-@page">@page</span> <span class="token csharp language-csharp"><span class="token string">"/admin/users"</span></span></span>
+<span class="token directive"><span class="token keyword keyword-@layout">@layout</span> <span class="token csharp language-csharp">Layout<span class="token punctuation">.</span>MainLayout</span></span>
+<span class="token directive"><span class="token keyword keyword-@inject">@inject</span> <span class="token csharp language-csharp">IUserClientService UserService</span></span>
+<span class="token directive"><span class="token keyword keyword-@inject">@inject</span> <span class="token csharp language-csharp">IJSRuntime JS</span></span>
+
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>container py-4<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+    <span class="token comment">&lt;!-- Header --&gt;</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>d-flex justify-content-between align-items-start mb-3<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span><span class="token punctuation">&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>h1</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>h3 fw-bold<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>Quản lý nhân viên<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>h1</span><span class="token punctuation">&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>text-muted<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>Xem chi tiết, sửa, khóa/mở và đặt lại mật khẩu<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">&gt;</span></span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+
+    <span class="token comment">&lt;!-- Alert --&gt;</span>
+    <span class="token block"><span class="token keyword keyword-@if">@if</span> <span class="token csharp language-csharp"><span class="token punctuation">(</span><span class="token operator">!</span><span class="token keyword keyword-string">string</span><span class="token punctuation">.</span><span class="token function">IsNullOrWhiteSpace</span><span class="token punctuation">(</span>AlertMessage<span class="token punctuation">)</span> <span class="token operator">&amp;&amp;</span> <span class="token operator">!</span>ShowEditModal <span class="token operator">&amp;&amp;</span> <span class="token operator">!</span>ShowResetModal<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>alert <span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp">AlertCss</span></span><span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp">AlertMessage</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span></span>
+    <span class="token punctuation">}</span></span></span>
+
+    <span class="token comment">&lt;!-- Table --&gt;</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>table</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>table<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>thead</span><span class="token punctuation">&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>tr</span><span class="token punctuation">&gt;</span></span>
+                <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>th</span><span class="token punctuation">&gt;</span></span>Email<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>th</span><span class="token punctuation">&gt;</span></span>
+                <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>th</span><span class="token punctuation">&gt;</span></span>Username<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>th</span><span class="token punctuation">&gt;</span></span>
+                <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>th</span><span class="token punctuation">&gt;</span></span>Vai trò<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>th</span><span class="token punctuation">&gt;</span></span>
+                <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>th</span><span class="token punctuation">&gt;</span></span>Trạng thái<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>th</span><span class="token punctuation">&gt;</span></span>
+                <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>th</span><span class="token punctuation">&gt;</span></span>Hành động<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>th</span><span class="token punctuation">&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>tr</span><span class="token punctuation">&gt;</span></span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>thead</span><span class="token punctuation">&gt;</span></span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>tbody</span><span class="token punctuation">&gt;</span></span>
+            <span class="token block"><span class="token keyword keyword-@foreach">@foreach</span> <span class="token csharp language-csharp"><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-var">var</span></span> user <span class="token keyword keyword-in">in</span> Users<span class="token punctuation">)</span>
+            <span class="token punctuation">{</span>
+                <span class="token html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>tr</span><span class="token punctuation">&gt;</span></span>
+                    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">&gt;</span></span><span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp">user<span class="token punctuation">.</span>Email</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">&gt;</span></span>
+                    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">&gt;</span></span><span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp">user<span class="token punctuation">.</span>Username</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">&gt;</span></span>
+                    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>span</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>badge <span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp"><span class="token function">RoleBadge</span><span class="token punctuation">(</span>user<span class="token punctuation">.</span>Role<span class="token punctuation">)</span></span></span><span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp">user<span class="token punctuation">.</span>Role</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>span</span><span class="token punctuation">&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">&gt;</span></span>
+                    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>span</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>badge <span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp"><span class="token function">StatusBadge</span><span class="token punctuation">(</span>user<span class="token punctuation">.</span>Active<span class="token punctuation">)</span></span></span><span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>...<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>span</span><span class="token punctuation">&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">&gt;</span></span>
+                    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">&gt;</span></span>
+                        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span> <span class="token attr-name">@onclick</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>() =&gt; OpenDetail(user)<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>Chi tiết<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">&gt;</span></span>
+                        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span> <span class="token attr-name">@onclick</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>() =&gt; OpenEditModal(user)<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>Sửa<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">&gt;</span></span>
+                        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span> <span class="token attr-name">@onclick</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>() =&gt; OpenResetModal(user)<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>Đặt lại MK<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">&gt;</span></span>
+                        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span> <span class="token attr-name">@onclick</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>() =&gt; ToggleStatus(user)<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>Khóa/Mở<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">&gt;</span></span>
+                    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">&gt;</span></span>
+                <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>tr</span><span class="token punctuation">&gt;</span></span></span>
+            <span class="token punctuation">}</span></span></span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>tbody</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>table</span><span class="token punctuation">&gt;</span></span>
+
+    <span class="token comment">&lt;!-- Pagination --&gt;</span>
+    <span class="token block"><span class="token keyword keyword-@if">@if</span> <span class="token csharp language-csharp"><span class="token punctuation">(</span>Meta<span class="token punctuation">.</span>TotalPages <span class="token operator">&gt;</span> <span class="token number">1</span><span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>nav</span><span class="token punctuation">&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span> <span class="token attr-name">@onclick</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>PrevPage<span class="token punctuation">"</span></span> <span class="token attr-name">disabled</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span><span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp"><span class="token punctuation">(</span>Meta<span class="token punctuation">.</span>CurrentPage <span class="token operator">==</span> <span class="token number">1</span><span class="token punctuation">)</span></span></span><span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>Trước<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>span</span><span class="token punctuation">&gt;</span></span>Trang <span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp">Meta<span class="token punctuation">.</span>CurrentPage</span></span> / <span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp">Meta<span class="token punctuation">.</span>TotalPages</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>span</span><span class="token punctuation">&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span> <span class="token attr-name">@onclick</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>NextPage<span class="token punctuation">"</span></span> <span class="token attr-name">disabled</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span><span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp"><span class="token punctuation">(</span>Meta<span class="token punctuation">.</span>CurrentPage <span class="token operator">&gt;=</span> Meta<span class="token punctuation">.</span>TotalPages<span class="token punctuation">)</span></span></span><span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>Sau<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">&gt;</span></span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>nav</span><span class="token punctuation">&gt;</span></span></span>
+    <span class="token punctuation">}</span></span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+
+<span class="token block"><span class="token keyword keyword-@code">@code</span> <span class="token csharp language-csharp"><span class="token punctuation">{</span>
+    <span class="token keyword keyword-private">private</span> <span class="token class-name">List<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span></span> Users <span class="token operator">=</span> <span class="token keyword keyword-new">new</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword keyword-private">private</span> <span class="token class-name">PaginationResult<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span></span> Meta <span class="token operator">=</span> <span class="token keyword keyword-new">new</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword keyword-private">private</span> <span class="token class-name"><span class="token keyword keyword-bool">bool</span></span> IsLoading <span class="token operator">=</span> <span class="token boolean">true</span><span class="token punctuation">;</span>
+    <span class="token keyword keyword-private">private</span> <span class="token class-name"><span class="token keyword keyword-string">string</span></span> AlertMessage <span class="token operator">=</span> <span class="token keyword keyword-string">string</span><span class="token punctuation">.</span>Empty<span class="token punctuation">;</span>
+    <span class="token keyword keyword-private">private</span> <span class="token class-name"><span class="token keyword keyword-string">string</span></span> AlertCss <span class="token operator">=</span> <span class="token string">"alert-info"</span><span class="token punctuation">;</span>
+
+    <span class="token keyword keyword-protected">protected</span> <span class="token keyword keyword-override">override</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task</span> <span class="token function">OnInitializedAsync</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token keyword keyword-await">await</span> <span class="token function">LoadUsers</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword keyword-private">private</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task</span> <span class="token function">LoadUsers</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> page<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        IsLoading <span class="token operator">=</span> <span class="token boolean">true</span><span class="token punctuation">;</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> result <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> UserService<span class="token punctuation">.</span><span class="token function">GetStaffsAsync</span><span class="token punctuation">(</span>page<span class="token punctuation">,</span> <span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        Users <span class="token operator">=</span> result<span class="token punctuation">.</span>Items<span class="token punctuation">.</span><span class="token function">ToList</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        Meta <span class="token operator">=</span> result<span class="token punctuation">;</span>
+        IsLoading <span class="token operator">=</span> <span class="token boolean">false</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></span></span>
+</code></pre><h4 id="2-service-client"><strong>2. Service Client</strong> </h4>
+<pre data-role="codeBlock" data-info="csharp" class="language-csharp csharp"><code><span class="token comment">// filepath: StoreApp.Client/Services/UserClientService.cs</span>
+<span class="token keyword keyword-public">public</span> <span class="token keyword keyword-interface">interface</span> <span class="token class-name">IUserClientService</span>
+<span class="token punctuation">{</span>
+    <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>PaginationResult<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span><span class="token punctuation">&gt;</span></span> <span class="token function">GetStaffsAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> page<span class="token punctuation">,</span> <span class="token class-name"><span class="token keyword keyword-int">int</span></span> pageSize<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span></span> <span class="token function">GetUserByIdAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span></span> <span class="token function">UpdateUserAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">,</span> <span class="token class-name">UpdateUserDTO</span> dto<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token return-type class-name">Task</span> <span class="token function">ResetPasswordAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">,</span> <span class="token class-name"><span class="token keyword keyword-string">string</span></span> newPassword<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token return-type class-name">Task</span> <span class="token function">ToggleUserStatusAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">,</span> <span class="token class-name"><span class="token keyword keyword-bool">bool</span></span> isActive<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword keyword-public">public</span> <span class="token keyword keyword-class">class</span> <span class="token class-name">UserClientService</span> <span class="token punctuation">:</span> <span class="token type-list"><span class="token class-name">IUserClientService</span></span>
+<span class="token punctuation">{</span>
+    <span class="token keyword keyword-private">private</span> <span class="token keyword keyword-readonly">readonly</span> <span class="token class-name">HttpClient</span> _http<span class="token punctuation">;</span>
+    <span class="token keyword keyword-private">private</span> <span class="token keyword keyword-readonly">readonly</span> <span class="token class-name">ILogger<span class="token punctuation">&lt;</span>UserClientService<span class="token punctuation">&gt;</span></span> _logger<span class="token punctuation">;</span>
+
+    <span class="token keyword keyword-public">public</span> <span class="token function">UserClientService</span><span class="token punctuation">(</span><span class="token class-name">HttpClient</span> http<span class="token punctuation">,</span> <span class="token class-name">ILogger<span class="token punctuation">&lt;</span>UserClientService<span class="token punctuation">&gt;</span></span> logger<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        _http <span class="token operator">=</span> http<span class="token punctuation">;</span>
+        _logger <span class="token operator">=</span> logger<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword keyword-public">public</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>PaginationResult<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span><span class="token punctuation">&gt;</span></span> <span class="token function">GetStaffsAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> page<span class="token punctuation">,</span> <span class="token class-name"><span class="token keyword keyword-int">int</span></span> pageSize<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> url <span class="token operator">=</span> <span class="token interpolation-string"><span class="token string">$"api/users/staffs?page=</span><span class="token interpolation"><span class="token punctuation">{</span><span class="token expression language-csharp">page</span><span class="token punctuation">}</span></span><span class="token string">&amp;pageSize=</span><span class="token interpolation"><span class="token punctuation">{</span><span class="token expression language-csharp">pageSize</span><span class="token punctuation">}</span></span><span class="token string">"</span></span><span class="token punctuation">;</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> response <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> _http<span class="token punctuation">.</span><span class="token generic-method"><span class="token function">GetFromJsonAsync</span><span class="token generic class-name"><span class="token punctuation">&lt;</span>PaginationResult<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span><span class="token punctuation">&gt;</span></span></span><span class="token punctuation">(</span>url<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword keyword-return">return</span> response <span class="token operator">??</span> <span class="token keyword keyword-new">new</span> <span class="token constructor-invocation class-name">PaginationResult<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span></span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword keyword-public">public</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span></span> <span class="token function">UpdateUserAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">,</span> <span class="token class-name">UpdateUserDTO</span> dto<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> response <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> _http<span class="token punctuation">.</span><span class="token function">PutAsJsonAsync</span><span class="token punctuation">(</span><span class="token interpolation-string"><span class="token string">$"api/users/</span><span class="token interpolation"><span class="token punctuation">{</span><span class="token expression language-csharp">id</span><span class="token punctuation">}</span></span><span class="token string">"</span></span><span class="token punctuation">,</span> dto<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        response<span class="token punctuation">.</span><span class="token function">EnsureSuccessStatusCode</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword keyword-return">return</span> <span class="token keyword keyword-await">await</span> response<span class="token punctuation">.</span>Content<span class="token punctuation">.</span><span class="token generic-method"><span class="token function">ReadFromJsonAsync</span><span class="token generic class-name"><span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span></span></span><span class="token punctuation">(</span><span class="token punctuation">)</span> 
+            <span class="token operator">??</span> <span class="token keyword keyword-throw">throw</span> <span class="token keyword keyword-new">new</span> <span class="token constructor-invocation class-name">Exception</span><span class="token punctuation">(</span><span class="token string">"Failed to update user"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword keyword-public">public</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task</span> <span class="token function">ResetPasswordAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">,</span> <span class="token class-name"><span class="token keyword keyword-string">string</span></span> newPassword<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token comment">// Lấy user hiện tại</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> user <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> <span class="token function">GetUserByIdAsync</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        
+        <span class="token comment">// Tạo DTO với password mới</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> updateDto <span class="token operator">=</span> <span class="token keyword keyword-new">new</span> <span class="token constructor-invocation class-name">UpdateUserDTO</span>
+        <span class="token punctuation">{</span>
+            FullName <span class="token operator">=</span> user<span class="token punctuation">.</span>FullName<span class="token punctuation">,</span>
+            Email <span class="token operator">=</span> user<span class="token punctuation">.</span>Email<span class="token punctuation">,</span>
+            Username <span class="token operator">=</span> user<span class="token punctuation">.</span>Username<span class="token punctuation">,</span>
+            Role <span class="token operator">=</span> user<span class="token punctuation">.</span>Role<span class="token punctuation">,</span>
+            Password <span class="token operator">=</span> newPassword<span class="token punctuation">,</span> <span class="token comment">// Password mới</span>
+            Active <span class="token operator">=</span> user<span class="token punctuation">.</span>Active
+        <span class="token punctuation">}</span><span class="token punctuation">;</span>
+        
+        <span class="token keyword keyword-await">await</span> <span class="token function">UpdateUserAsync</span><span class="token punctuation">(</span>id<span class="token punctuation">,</span> updateDto<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword keyword-public">public</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task</span> <span class="token function">ToggleUserStatusAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">,</span> <span class="token class-name"><span class="token keyword keyword-bool">bool</span></span> isActive<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> response <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> _http<span class="token punctuation">.</span><span class="token function">PatchAsync</span><span class="token punctuation">(</span>
+            <span class="token interpolation-string"><span class="token string">$"api/users/</span><span class="token interpolation"><span class="token punctuation">{</span><span class="token expression language-csharp">id</span><span class="token punctuation">}</span></span><span class="token string">/status?isActive=</span><span class="token interpolation"><span class="token punctuation">{</span><span class="token expression language-csharp">isActive</span><span class="token punctuation">}</span></span><span class="token string">"</span></span><span class="token punctuation">,</span> <span class="token keyword keyword-null">null</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        response<span class="token punctuation">.</span><span class="token function">EnsureSuccessStatusCode</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><h4 id="3-đăng-ký-service"><strong>3. Đăng ký Service</strong> </h4>
+<pre data-role="codeBlock" data-info="csharp" class="language-csharp csharp"><code><span class="token comment">// filepath: StoreApp.Client/Program.cs</span>
+<span class="token comment">// ...existing code...</span>
+
+<span class="token return-type class-name"><span class="token keyword keyword-void">void</span></span> <span class="token generic-method"><span class="token function">AddHttpClientWithAuth</span><span class="token generic class-name"><span class="token punctuation">&lt;</span>TInterface<span class="token punctuation">,</span> TImplementation<span class="token punctuation">&gt;</span></span></span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token keyword keyword-where">where</span> <span class="token class-name">TInterface</span> <span class="token punctuation">:</span> <span class="token type-list"><span class="token keyword keyword-class">class</span></span>
+    <span class="token keyword keyword-where">where</span> <span class="token class-name">TImplementation</span> <span class="token punctuation">:</span> <span class="token type-list"><span class="token keyword keyword-class">class</span><span class="token punctuation">,</span> <span class="token class-name">TInterface</span></span>
+<span class="token punctuation">{</span>
+    builder<span class="token punctuation">.</span>Services<span class="token punctuation">.</span><span class="token generic-method"><span class="token function">AddHttpClient</span><span class="token generic class-name"><span class="token punctuation">&lt;</span>TInterface<span class="token punctuation">,</span> TImplementation<span class="token punctuation">&gt;</span></span></span><span class="token punctuation">(</span>client <span class="token operator">=&gt;</span>
+    <span class="token punctuation">{</span>
+        client<span class="token punctuation">.</span>BaseAddress <span class="token operator">=</span> <span class="token keyword keyword-new">new</span> <span class="token constructor-invocation class-name">Uri</span><span class="token punctuation">(</span>builder<span class="token punctuation">.</span>HostEnvironment<span class="token punctuation">.</span>BaseAddress<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token generic-method"><span class="token function">AddHttpMessageHandler</span><span class="token generic class-name"><span class="token punctuation">&lt;</span>JwtAuthorizationMessageHandler<span class="token punctuation">&gt;</span></span></span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// ← Tự động gắn JWT</span>
+<span class="token punctuation">}</span>
+
+<span class="token comment">// Đăng ký UserClientService</span>
+<span class="token generic-method"><span class="token function">AddHttpClientWithAuth</span><span class="token generic class-name"><span class="token punctuation">&lt;</span>IUserClientService<span class="token punctuation">,</span> UserClientService<span class="token punctuation">&gt;</span></span></span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// ...existing code...</span>
+</code></pre><hr>
+<h3 id="backend-aspnet-core-web-api">Backend (<a href="http://ASP.NET">ASP.NET</a> Core Web API) </h3>
+<h4 id="1-controller"><strong>1. Controller</strong> </h4>
+<pre data-role="codeBlock" data-info="csharp" class="language-csharp csharp"><code><span class="token comment">// filepath: StoreApp/Controllers/UsersController.cs</span>
+<span class="token punctuation">[</span>ApiController<span class="token punctuation">]</span>
+<span class="token punctuation">[</span><span class="token attribute"><span class="token class-name">Route</span><span class="token attribute-arguments"><span class="token punctuation">(</span><span class="token string">"api/[controller]"</span><span class="token punctuation">)</span></span></span><span class="token punctuation">]</span>
+<span class="token punctuation">[</span><span class="token attribute"><span class="token class-name">Authorize</span><span class="token attribute-arguments"><span class="token punctuation">(</span>Roles <span class="token operator">=</span> <span class="token string">"admin"</span><span class="token punctuation">)</span></span></span><span class="token punctuation">]</span> <span class="token comment">// Chỉ admin mới truy cập</span>
+<span class="token keyword keyword-public">public</span> <span class="token keyword keyword-class">class</span> <span class="token class-name">UsersController</span> <span class="token punctuation">:</span> <span class="token type-list"><span class="token class-name">ControllerBase</span></span>
+<span class="token punctuation">{</span>
+    <span class="token keyword keyword-private">private</span> <span class="token keyword keyword-readonly">readonly</span> <span class="token class-name">IUserService</span> _userService<span class="token punctuation">;</span>
+
+    <span class="token punctuation">[</span><span class="token attribute"><span class="token class-name">HttpGet</span><span class="token attribute-arguments"><span class="token punctuation">(</span><span class="token string">"staffs"</span><span class="token punctuation">)</span></span></span><span class="token punctuation">]</span>
+    <span class="token keyword keyword-public">public</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>IActionResult<span class="token punctuation">&gt;</span></span> <span class="token function">GetStaffs</span><span class="token punctuation">(</span><span class="token punctuation">[</span><span class="token attribute"><span class="token class-name">FromQuery</span></span><span class="token punctuation">]</span> <span class="token class-name"><span class="token keyword keyword-int">int</span></span> page <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">,</span> <span class="token punctuation">[</span><span class="token attribute"><span class="token class-name">FromQuery</span></span><span class="token punctuation">]</span> <span class="token class-name"><span class="token keyword keyword-int">int</span></span> pageSize <span class="token operator">=</span> <span class="token number">10</span><span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> result <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> _userService<span class="token punctuation">.</span><span class="token function">GetStaffsAsync</span><span class="token punctuation">(</span>page<span class="token punctuation">,</span> pageSize<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword keyword-return">return</span> <span class="token function">Ok</span><span class="token punctuation">(</span>result<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token punctuation">[</span><span class="token attribute"><span class="token class-name">HttpGet</span><span class="token attribute-arguments"><span class="token punctuation">(</span><span class="token string">"{id}"</span><span class="token punctuation">)</span></span></span><span class="token punctuation">]</span>
+    <span class="token keyword keyword-public">public</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>IActionResult<span class="token punctuation">&gt;</span></span> <span class="token function">GetUserById</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> user <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> _userService<span class="token punctuation">.</span><span class="token function">GetUserByIdAsync</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword keyword-if">if</span> <span class="token punctuation">(</span>user <span class="token operator">==</span> <span class="token keyword keyword-null">null</span><span class="token punctuation">)</span> <span class="token keyword keyword-return">return</span> <span class="token function">NotFound</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword keyword-return">return</span> <span class="token function">Ok</span><span class="token punctuation">(</span>user<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token punctuation">[</span><span class="token attribute"><span class="token class-name">HttpPut</span><span class="token attribute-arguments"><span class="token punctuation">(</span><span class="token string">"{id}"</span><span class="token punctuation">)</span></span></span><span class="token punctuation">]</span>
+    <span class="token keyword keyword-public">public</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>IActionResult<span class="token punctuation">&gt;</span></span> <span class="token function">UpdateUser</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">,</span> <span class="token punctuation">[</span><span class="token attribute"><span class="token class-name">FromBody</span></span><span class="token punctuation">]</span> <span class="token class-name">UpdateUserDTO</span> dto<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> updated <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> _userService<span class="token punctuation">.</span><span class="token function">UpdateUserAsync</span><span class="token punctuation">(</span>id<span class="token punctuation">,</span> dto<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword keyword-if">if</span> <span class="token punctuation">(</span>updated <span class="token operator">==</span> <span class="token keyword keyword-null">null</span><span class="token punctuation">)</span> <span class="token keyword keyword-return">return</span> <span class="token function">NotFound</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword keyword-return">return</span> <span class="token function">Ok</span><span class="token punctuation">(</span>updated<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token punctuation">[</span><span class="token attribute"><span class="token class-name">HttpPatch</span><span class="token attribute-arguments"><span class="token punctuation">(</span><span class="token string">"{id}/status"</span><span class="token punctuation">)</span></span></span><span class="token punctuation">]</span>
+    <span class="token keyword keyword-public">public</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>IActionResult<span class="token punctuation">&gt;</span></span> <span class="token function">UpdateStatus</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">,</span> <span class="token punctuation">[</span><span class="token attribute"><span class="token class-name">FromQuery</span></span><span class="token punctuation">]</span> <span class="token class-name"><span class="token keyword keyword-bool">bool</span></span> isActive<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> updated <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> _userService<span class="token punctuation">.</span><span class="token function">UpdateUserStatusAsync</span><span class="token punctuation">(</span>id<span class="token punctuation">,</span> isActive<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword keyword-if">if</span> <span class="token punctuation">(</span>updated <span class="token operator">==</span> <span class="token keyword keyword-null">null</span><span class="token punctuation">)</span> <span class="token keyword keyword-return">return</span> <span class="token function">NotFound</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword keyword-return">return</span> <span class="token function">Ok</span><span class="token punctuation">(</span>updated<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token punctuation">[</span><span class="token attribute"><span class="token class-name">HttpDelete</span><span class="token attribute-arguments"><span class="token punctuation">(</span><span class="token string">"{id}"</span><span class="token punctuation">)</span></span></span><span class="token punctuation">]</span>
+    <span class="token keyword keyword-public">public</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>IActionResult<span class="token punctuation">&gt;</span></span> <span class="token function">DeleteUser</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token keyword keyword-await">await</span> _userService<span class="token punctuation">.</span><span class="token function">DeleteUserAsync</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword keyword-return">return</span> <span class="token function">NoContent</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><h4 id="2-service-layer"><strong>2. Service Layer</strong> </h4>
+<pre data-role="codeBlock" data-info="csharp" class="language-csharp csharp"><code><span class="token comment">// filepath: StoreApp/Services/UserService.cs</span>
+<span class="token keyword keyword-public">public</span> <span class="token keyword keyword-interface">interface</span> <span class="token class-name">IUserService</span>
+<span class="token punctuation">{</span>
+    <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>PaginationResult<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span><span class="token punctuation">&gt;</span></span> <span class="token function">GetStaffsAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> page<span class="token punctuation">,</span> <span class="token class-name"><span class="token keyword keyword-int">int</span></span> pageSize<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">?</span><span class="token punctuation">&gt;</span></span> <span class="token function">GetUserByIdAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">?</span><span class="token punctuation">&gt;</span></span> <span class="token function">UpdateUserAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">,</span> <span class="token class-name">UpdateUserDTO</span> dto<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">?</span><span class="token punctuation">&gt;</span></span> <span class="token function">UpdateUserStatusAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">,</span> <span class="token class-name"><span class="token keyword keyword-bool">bool</span></span> isActive<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token return-type class-name">Task</span> <span class="token function">DeleteUserAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword keyword-public">public</span> <span class="token keyword keyword-class">class</span> <span class="token class-name">UserService</span> <span class="token punctuation">:</span> <span class="token type-list"><span class="token class-name">IUserService</span></span>
+<span class="token punctuation">{</span>
+    <span class="token keyword keyword-private">private</span> <span class="token keyword keyword-readonly">readonly</span> <span class="token class-name">AppDbContext</span> _context<span class="token punctuation">;</span>
+    <span class="token keyword keyword-private">private</span> <span class="token keyword keyword-readonly">readonly</span> <span class="token class-name">ILogger<span class="token punctuation">&lt;</span>UserService<span class="token punctuation">&gt;</span></span> _logger<span class="token punctuation">;</span>
+
+    <span class="token keyword keyword-public">public</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>PaginationResult<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span><span class="token punctuation">&gt;</span></span> <span class="token function">GetStaffsAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> page<span class="token punctuation">,</span> <span class="token class-name"><span class="token keyword keyword-int">int</span></span> pageSize<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> query <span class="token operator">=</span> _context<span class="token punctuation">.</span>Users
+            <span class="token punctuation">.</span><span class="token function">Where</span><span class="token punctuation">(</span>u <span class="token operator">=&gt;</span> u<span class="token punctuation">.</span>Role <span class="token operator">==</span> <span class="token string">"staff"</span> <span class="token operator">||</span> u<span class="token punctuation">.</span>Role <span class="token operator">==</span> <span class="token string">"admin"</span><span class="token punctuation">)</span>
+            <span class="token punctuation">.</span><span class="token function">OrderByDescending</span><span class="token punctuation">(</span>u <span class="token operator">=&gt;</span> u<span class="token punctuation">.</span>CreatedAt<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> totalItems <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> query<span class="token punctuation">.</span><span class="token function">CountAsync</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> items <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> query
+            <span class="token punctuation">.</span><span class="token function">Skip</span><span class="token punctuation">(</span><span class="token punctuation">(</span>page <span class="token operator">-</span> <span class="token number">1</span><span class="token punctuation">)</span> <span class="token operator">*</span> pageSize<span class="token punctuation">)</span>
+            <span class="token punctuation">.</span><span class="token function">Take</span><span class="token punctuation">(</span>pageSize<span class="token punctuation">)</span>
+            <span class="token punctuation">.</span><span class="token function">Select</span><span class="token punctuation">(</span>u <span class="token operator">=&gt;</span> <span class="token keyword keyword-new">new</span> <span class="token constructor-invocation class-name">UserDTO</span>
+            <span class="token punctuation">{</span>
+                Id <span class="token operator">=</span> u<span class="token punctuation">.</span>Id<span class="token punctuation">,</span>
+                FullName <span class="token operator">=</span> u<span class="token punctuation">.</span>FullName<span class="token punctuation">,</span>
+                Email <span class="token operator">=</span> u<span class="token punctuation">.</span>Email<span class="token punctuation">,</span>
+                Username <span class="token operator">=</span> u<span class="token punctuation">.</span>Username<span class="token punctuation">,</span>
+                Role <span class="token operator">=</span> u<span class="token punctuation">.</span>Role<span class="token punctuation">,</span>
+                Active <span class="token operator">=</span> u<span class="token punctuation">.</span>Active<span class="token punctuation">,</span>
+                CreatedAt <span class="token operator">=</span> u<span class="token punctuation">.</span>CreatedAt<span class="token punctuation">,</span>
+                LastLogin <span class="token operator">=</span> u<span class="token punctuation">.</span>LastLogin
+            <span class="token punctuation">}</span><span class="token punctuation">)</span>
+            <span class="token punctuation">.</span><span class="token function">ToListAsync</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+        <span class="token keyword keyword-return">return</span> <span class="token keyword keyword-new">new</span> <span class="token constructor-invocation class-name">PaginationResult<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">&gt;</span></span>
+        <span class="token punctuation">{</span>
+            Items <span class="token operator">=</span> items<span class="token punctuation">,</span>
+            TotalItems <span class="token operator">=</span> totalItems<span class="token punctuation">,</span>
+            CurrentPage <span class="token operator">=</span> page<span class="token punctuation">,</span>
+            PageSize <span class="token operator">=</span> pageSize<span class="token punctuation">,</span>
+            TotalPages <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token keyword keyword-int">int</span><span class="token punctuation">)</span>Math<span class="token punctuation">.</span><span class="token function">Ceiling</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token keyword keyword-double">double</span><span class="token punctuation">)</span>totalItems <span class="token operator">/</span> pageSize<span class="token punctuation">)</span>
+        <span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword keyword-public">public</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">?</span><span class="token punctuation">&gt;</span></span> <span class="token function">UpdateUserAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">,</span> <span class="token class-name">UpdateUserDTO</span> dto<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> user <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> _context<span class="token punctuation">.</span>Users<span class="token punctuation">.</span><span class="token function">FindAsync</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword keyword-if">if</span> <span class="token punctuation">(</span>user <span class="token operator">==</span> <span class="token keyword keyword-null">null</span><span class="token punctuation">)</span> <span class="token keyword keyword-return">return</span> <span class="token keyword keyword-null">null</span><span class="token punctuation">;</span>
+
+        <span class="token comment">// Cập nhật thông tin</span>
+        user<span class="token punctuation">.</span>FullName <span class="token operator">=</span> dto<span class="token punctuation">.</span>FullName<span class="token punctuation">;</span>
+        user<span class="token punctuation">.</span>Email <span class="token operator">=</span> dto<span class="token punctuation">.</span>Email<span class="token punctuation">;</span>
+        user<span class="token punctuation">.</span>Username <span class="token operator">=</span> dto<span class="token punctuation">.</span>Username<span class="token punctuation">;</span>
+        user<span class="token punctuation">.</span>Role <span class="token operator">=</span> dto<span class="token punctuation">.</span>Role<span class="token punctuation">;</span>
+        user<span class="token punctuation">.</span>Active <span class="token operator">=</span> dto<span class="token punctuation">.</span>Active<span class="token punctuation">;</span>
+
+        <span class="token comment">// Cập nhật password nếu có</span>
+        <span class="token keyword keyword-if">if</span> <span class="token punctuation">(</span><span class="token operator">!</span><span class="token keyword keyword-string">string</span><span class="token punctuation">.</span><span class="token function">IsNullOrWhiteSpace</span><span class="token punctuation">(</span>dto<span class="token punctuation">.</span>Password<span class="token punctuation">)</span><span class="token punctuation">)</span>
+        <span class="token punctuation">{</span>
+            user<span class="token punctuation">.</span>Password <span class="token operator">=</span> BCrypt<span class="token punctuation">.</span>Net<span class="token punctuation">.</span>BCrypt<span class="token punctuation">.</span><span class="token function">HashPassword</span><span class="token punctuation">(</span>dto<span class="token punctuation">.</span>Password<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+
+        <span class="token keyword keyword-await">await</span> _context<span class="token punctuation">.</span><span class="token function">SaveChangesAsync</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        
+        <span class="token keyword keyword-return">return</span> <span class="token keyword keyword-new">new</span> <span class="token constructor-invocation class-name">UserDTO</span> <span class="token punctuation">{</span> <span class="token range operator">..</span><span class="token punctuation">.</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword keyword-public">public</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>UserDTO<span class="token punctuation">?</span><span class="token punctuation">&gt;</span></span> <span class="token function">UpdateUserStatusAsync</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-int">int</span></span> id<span class="token punctuation">,</span> <span class="token class-name"><span class="token keyword keyword-bool">bool</span></span> isActive<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> user <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> _context<span class="token punctuation">.</span>Users<span class="token punctuation">.</span><span class="token function">FindAsync</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword keyword-if">if</span> <span class="token punctuation">(</span>user <span class="token operator">==</span> <span class="token keyword keyword-null">null</span><span class="token punctuation">)</span> <span class="token keyword keyword-return">return</span> <span class="token keyword keyword-null">null</span><span class="token punctuation">;</span>
+
+        user<span class="token punctuation">.</span>Active <span class="token operator">=</span> isActive<span class="token punctuation">;</span>
+        <span class="token keyword keyword-await">await</span> _context<span class="token punctuation">.</span><span class="token function">SaveChangesAsync</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+        <span class="token keyword keyword-return">return</span> <span class="token keyword keyword-new">new</span> <span class="token constructor-invocation class-name">UserDTO</span> <span class="token punctuation">{</span> <span class="token range operator">..</span><span class="token punctuation">.</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><h4 id="3-dtos"><strong>3. DTOs</strong> </h4>
+<pre data-role="codeBlock" data-info="csharp" class="language-csharp csharp"><code><span class="token comment">// filepath: StoreApp.Shared/DTOs/UserDTO.cs</span>
+<span class="token keyword keyword-public">public</span> <span class="token keyword keyword-class">class</span> <span class="token class-name">UserDTO</span>
+<span class="token punctuation">{</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-int">int</span></span> Id <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-string">string</span></span> FullName <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword keyword-string">string</span><span class="token punctuation">.</span>Empty<span class="token punctuation">;</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-string">string</span></span> Email <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword keyword-string">string</span><span class="token punctuation">.</span>Empty<span class="token punctuation">;</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-string">string</span></span> Username <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword keyword-string">string</span><span class="token punctuation">.</span>Empty<span class="token punctuation">;</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-string">string</span></span> Role <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword keyword-string">string</span><span class="token punctuation">.</span>Empty<span class="token punctuation">;</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-bool">bool</span></span> Active <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name">DateTime</span> CreatedAt <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name">DateTime<span class="token punctuation">?</span></span> LastLogin <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword keyword-public">public</span> <span class="token keyword keyword-class">class</span> <span class="token class-name">UpdateUserDTO</span>
+<span class="token punctuation">{</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-string">string</span></span> FullName <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword keyword-string">string</span><span class="token punctuation">.</span>Empty<span class="token punctuation">;</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-string">string</span></span> Email <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword keyword-string">string</span><span class="token punctuation">.</span>Empty<span class="token punctuation">;</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-string">string</span></span> Username <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword keyword-string">string</span><span class="token punctuation">.</span>Empty<span class="token punctuation">;</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-string">string</span></span> Role <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword keyword-string">string</span><span class="token punctuation">.</span>Empty<span class="token punctuation">;</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-string">string</span><span class="token punctuation">?</span></span> Password <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-bool">bool</span></span> Active <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword keyword-public">public</span> <span class="token keyword keyword-class">class</span> <span class="token class-name">PaginationResult<span class="token punctuation">&lt;</span>T<span class="token punctuation">&gt;</span></span>
+<span class="token punctuation">{</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name">List<span class="token punctuation">&lt;</span>T<span class="token punctuation">&gt;</span></span> Items <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword keyword-new">new</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-int">int</span></span> TotalItems <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-int">int</span></span> CurrentPage <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-int">int</span></span> PageSize <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+    <span class="token keyword keyword-public">public</span> <span class="token return-type class-name"><span class="token keyword keyword-int">int</span></span> TotalPages <span class="token punctuation">{</span> <span class="token keyword keyword-get">get</span><span class="token punctuation">;</span> <span class="token keyword keyword-set">set</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><hr>
+<h2 id="-bảo-mật">🔐 Bảo mật </h2>
+<h3 id="1-jwt-authentication"><strong>1. JWT Authentication</strong> </h3>
+<pre data-role="codeBlock" data-info="csharp" class="language-csharp csharp"><code><span class="token comment">// filepath: StoreApp.Client/Middlewares/JwtAuthorizationMessageHandler.cs</span>
+<span class="token keyword keyword-public">public</span> <span class="token keyword keyword-class">class</span> <span class="token class-name">JwtAuthorizationMessageHandler</span> <span class="token punctuation">:</span> <span class="token type-list"><span class="token class-name">DelegatingHandler</span></span>
+<span class="token punctuation">{</span>
+    <span class="token keyword keyword-private">private</span> <span class="token keyword keyword-readonly">readonly</span> <span class="token class-name">ILocalStorageService</span> _localStorage<span class="token punctuation">;</span>
+
+    <span class="token keyword keyword-protected">protected</span> <span class="token keyword keyword-override">override</span> <span class="token keyword keyword-async">async</span> <span class="token return-type class-name">Task<span class="token punctuation">&lt;</span>HttpResponseMessage<span class="token punctuation">&gt;</span></span> <span class="token function">SendAsync</span><span class="token punctuation">(</span>
+        <span class="token class-name">HttpRequestMessage</span> request<span class="token punctuation">,</span> <span class="token class-name">CancellationToken</span> cancellationToken<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token class-name"><span class="token keyword keyword-var">var</span></span> token <span class="token operator">=</span> <span class="token keyword keyword-await">await</span> _localStorage<span class="token punctuation">.</span><span class="token function">GetItemAsStringAsync</span><span class="token punctuation">(</span><span class="token string">"authToken"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        
+        <span class="token keyword keyword-if">if</span> <span class="token punctuation">(</span><span class="token operator">!</span><span class="token keyword keyword-string">string</span><span class="token punctuation">.</span><span class="token function">IsNullOrWhiteSpace</span><span class="token punctuation">(</span>token<span class="token punctuation">)</span><span class="token punctuation">)</span>
+        <span class="token punctuation">{</span>
+            token <span class="token operator">=</span> token<span class="token punctuation">.</span><span class="token function">Trim</span><span class="token punctuation">(</span><span class="token char">'"'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            request<span class="token punctuation">.</span>Headers<span class="token punctuation">.</span>Authorization <span class="token operator">=</span> 
+                <span class="token keyword keyword-new">new</span> <span class="token constructor-invocation class-name">AuthenticationHeaderValue</span><span class="token punctuation">(</span><span class="token string">"Bearer"</span><span class="token punctuation">,</span> token<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+
+        <span class="token keyword keyword-return">return</span> <span class="token keyword keyword-await">await</span> <span class="token keyword keyword-base">base</span><span class="token punctuation">.</span><span class="token function">SendAsync</span><span class="token punctuation">(</span>request<span class="token punctuation">,</span> cancellationToken<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre><h3 id="2-authorization-policy"><strong>2. Authorization Policy</strong> </h3>
+<ul>
+<li><strong>Frontend</strong>: Chỉ Admin mới truy cập <code>/admin/users</code></li>
+<li><strong>Backend</strong>: <code>[Authorize(Roles = "admin")]</code> trên controller</li>
+<li><strong>JWT Claims</strong>: Token chứa <code>role</code> claim để xác thực</li>
+</ul>
+<hr>
+<h2 id="-flow-hoạt-động">📊 Flow hoạt động </h2>
+<h3 id="1-load-danh-sách-nhân-viên"><strong>1. Load danh sách nhân viên</strong> </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>User → UserManagement.razor → LoadUsers()
+  ↓
+IUserClientService.GetStaffsAsync(page, pageSize)
+  ↓
+HTTP GET /api/users/staffs?page=1&amp;pageSize=10
+  + Header: Authorization: Bearer &lt;JWT_TOKEN&gt;
+  ↓
+UsersController.GetStaffs()
+  → Check [Authorize(Roles = "admin")]
+  → UserService.GetStaffsAsync()
+  → Query Database
+  ↓
+Return PaginationResult&lt;UserDTO&gt;
+</code></pre><h3 id="2-chỉnh-sửa-nhân-viên"><strong>2. Chỉnh sửa nhân viên</strong> </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>User clicks "Sửa" → OpenEditModal(user)
+  ↓
+User edits form → SubmitEditAsync()
+  ↓
+Validation (FullName not empty, Role valid)
+  ↓
+IUserClientService.UpdateUserAsync(id, dto)
+  ↓
+HTTP PUT /api/users/{id}
+  + Body: { FullName, Email, Username, Role, Active }
+  + Header: Authorization: Bearer &lt;JWT_TOKEN&gt;
+  ↓
+UsersController.UpdateUser()
+  → UserService.UpdateUserAsync()
+  → Update database
+  ↓
+Return updated UserDTO
+  ↓
+Reload list + Show success alert
+</code></pre><h3 id="3-đặt-lại-mật-khẩu"><strong>3. Đặt lại mật khẩu</strong> </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>User clicks "Đặt lại MK" → OpenResetModal(user)
+  ↓
+User enters password → SubmitResetAsync()
+  ↓
+Validation (min 6 chars, passwords match)
+  ↓
+IUserClientService.ResetPasswordAsync(id, newPassword)
+  ↓
+  1. GET /api/users/{id} → Get current user data
+  2. PUT /api/users/{id} → Update with new hashed password
+  ↓
+Return success
+  ↓
+Show alert "Đặt lại mật khẩu thành công"
+</code></pre><h3 id="4-khóamở-khóa-tài-khoản"><strong>4. Khóa/Mở khóa tài khoản</strong> </h3>
+<pre data-role="codeBlock" data-info="" class="language-text"><code>User clicks "Khóa/Mở" → ToggleStatus(user)
+  ↓
+Confirm dialog → await ConfirmAsync("Bạn có chắc?")
+  ↓
+IUserClientService.ToggleUserStatusAsync(id, !user.Active)
+  ↓
+HTTP PATCH /api/users/{id}/status?isActive=false
+  + Header: Authorization: Bearer &lt;JWT_TOKEN&gt;
+  ↓
+UsersController.UpdateStatus()
+  → UserService.UpdateUserStatusAsync()
+  → Update database: user.Active = isActive
+  ↓
+Reload list + Show success alert
+</code></pre><hr>
+<h2 id="-uiux-features">🎨 UI/UX Features </h2>
+<h3 id="1-modal-states"><strong>1. Modal States</strong> </h3>
+<ul>
+<li><strong>Detail Modal</strong>: Chỉ xem (read-only)</li>
+<li><strong>Edit Modal</strong>: Sửa họ tên + vai trò (không sửa password/status)</li>
+<li><strong>Reset Password Modal</strong>: Chỉ đổi mật khẩu</li>
+</ul>
+<h3 id="2-alert-handling"><strong>2. Alert Handling</strong> </h3>
+<pre data-role="codeBlock" data-info="razor" class="language-razor razor"><code><span class="token block"><span class="token keyword keyword-@if">@if</span> <span class="token csharp language-csharp"><span class="token punctuation">(</span><span class="token operator">!</span><span class="token keyword keyword-string">string</span><span class="token punctuation">.</span><span class="token function">IsNullOrWhiteSpace</span><span class="token punctuation">(</span>AlertMessage<span class="token punctuation">)</span> <span class="token operator">&amp;&amp;</span> <span class="token operator">!</span>ShowEditModal <span class="token operator">&amp;&amp;</span> <span class="token operator">!</span>ShowResetModal<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+    <span class="token html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>alert <span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp">AlertCss</span></span><span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token value variable"><span class="token keyword keyword-@">@</span><span class="token csharp language-csharp">AlertMessage</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span></span>
+<span class="token punctuation">}</span></span></span>
+</code></pre><ul>
+<li>✅ Lỗi validation → Hiển thị <strong>TRONG modal</strong></li>
+<li>✅ Thành công/Thất bại → Hiển thị <strong>NGOÀI</strong> (sau khi đóng modal)</li>
+</ul>
+<h3 id="3-badges"><strong>3. Badges</strong> </h3>
+<pre data-role="codeBlock" data-info="csharp" class="language-csharp csharp"><code><span class="token keyword keyword-private">private</span> <span class="token keyword keyword-static">static</span> <span class="token return-type class-name"><span class="token keyword keyword-string">string</span></span> <span class="token function">RoleBadge</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-string">string</span><span class="token punctuation">?</span></span> role<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> role<span class="token punctuation">?.</span><span class="token function">ToLower</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword keyword-switch">switch</span>
+<span class="token punctuation">{</span>
+    <span class="token string">"admin"</span> <span class="token operator">=&gt;</span> <span class="token string">"bg-danger"</span><span class="token punctuation">,</span>
+    <span class="token string">"staff"</span> <span class="token operator">=&gt;</span> <span class="token string">"bg-primary"</span><span class="token punctuation">,</span>
+    _ <span class="token operator">=&gt;</span> <span class="token string">"bg-secondary"</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token keyword keyword-private">private</span> <span class="token keyword keyword-static">static</span> <span class="token return-type class-name"><span class="token keyword keyword-string">string</span></span> <span class="token function">StatusBadge</span><span class="token punctuation">(</span><span class="token class-name"><span class="token keyword keyword-bool">bool</span></span> active<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> active 
+    <span class="token punctuation">?</span> <span class="token string">"bg-success"</span> 
+    <span class="token punctuation">:</span> <span class="token string">"bg-secondary"</span><span class="token punctuation">;</span>
+</code></pre><hr>
+<h2 id="-các-vấn-đề-đã-sửa">✅ Các vấn đề đã sửa </h2>
+<h3 id="1-lỗi-401-unauthorized-khi-gọi-api"><strong>1. Lỗi 401 Unauthorized khi gọi API</strong> </h3>
+<ul>
+<li><strong>Nguyên nhân</strong>: Inject <code>HttpClient</code> trực tiếp không có JWT handler</li>
+<li><strong>Giải pháp</strong>: Dùng <code>IHttpClientFactory.CreateClient("ApiWithAuth")</code></li>
+</ul>
+<h3 id="2-alert-hiển-thị-ngoài-modal-thay-vì-trong"><strong>2. Alert hiển thị ngoài modal thay vì trong</strong> </h3>
+<ul>
+<li><strong>Nguyên nhân</strong>: Dùng chung 1 biến <code>AlertMessage</code> cho cả trang và modal</li>
+<li><strong>Giải pháp</strong>:
+<ul>
+<li>Alert <strong>TRONG modal</strong>: Hiển thị khi modal đang mở</li>
+<li>Alert <strong>NGOÀI</strong>: Chỉ hiển thị khi không có modal nào mở</li>
+</ul>
+</li>
+</ul>
+<h3 id="3-không-toggle-được-trạng-thái"><strong>3. Không toggle được trạng thái</strong> </h3>
+<ul>
+<li><strong>Nguyên nhân</strong>: API endpoint sai <code>PUT /api/users/{id}/toggle</code></li>
+<li><strong>Giải pháp</strong>: Đổi thành <code>PATCH /api/users/{id}/status?isActive={value}</code></li>
+</ul>
+<h3 id="4-không-reset-được-password"><strong>4. Không reset được password</strong> </h3>
+<ul>
+<li><strong>Nguyên nhân</strong>: Chỉ gửi password, thiếu các field khác</li>
+<li><strong>Giải pháp</strong>: Lấy user hiện tại → update password → gửi đầy đủ DTO</li>
+</ul>
+<h3 id="5-modal-edit-trùng-lặp-chức-năng"><strong>5. Modal Edit trùng lặp chức năng</strong> </h3>
+<ul>
+<li><strong>Nguyên nhân</strong>: Modal có cả password và status (đã có nút riêng)</li>
+<li><strong>Giải pháp</strong>: Bỏ 2 field này, chỉ giữ họ tên + vai trò</li>
+</ul>
+<hr>
+<h2 id="-cải-tiến-trong-tương-lai">🚀 Cải tiến trong tương lai </h2>
+<ol>
+<li><strong>Tìm kiếm nhân viên</strong>: Thêm search box theo email/username</li>
+<li><strong>Lọc theo vai trò</strong>: Dropdown lọc Staff/Admin</li>
+<li><strong>Export Excel</strong>: Xuất danh sách nhân viên</li>
+<li><strong>Audit logs</strong>: Lưu lịch sử thay đổi</li>
+<li><strong>Soft delete</strong>: Xóa mềm thay vì xóa cứng</li>
+<li><strong>Email notification</strong>: Gửi email khi reset password</li>
+</ol>
+<hr>
+<h2 id="-notes">📝 Notes </h2>
+<ul>
+<li>Tất cả password đều được hash bằng <strong>BCrypt</strong> trước khi lưu DB</li>
+<li>JWT token có thời hạn, cần refresh khi hết hạn</li>
+<li>Admin không thể tự khóa tài khoản của mính h</li>
+<li>Validation ở cả frontend và backend (defense in depth)</li>
+</ul>
+
+      </div>
+      
+      
+    
+    
+    
+    
+    
+    
+  
+    </body></html>
