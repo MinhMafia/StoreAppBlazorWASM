@@ -4,6 +4,7 @@ using StoreApp.Shared;
 public interface ISupplierClientService
 {
     Task<List<SupplierDTO>> GetAllSuppliers();
+    Task<List<SupplierDTO>> GetSuppliersAsync();
 }
 
 public class SupplierClientService : ISupplierClientService
@@ -19,5 +20,10 @@ public class SupplierClientService : ISupplierClientService
     {
         return await _http.GetFromJsonAsync<List<SupplierDTO>>("api/suppliers")
                ?? new List<SupplierDTO>();
+    }
+
+    public async Task<List<SupplierDTO>> GetSuppliersAsync()
+    {
+        return await GetAllSuppliers();
     }
 }

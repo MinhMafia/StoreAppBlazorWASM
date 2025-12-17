@@ -11,6 +11,7 @@ public interface IProductClientService
     Task<ProductDTO?> CreateProduct(ProductDTO product);
     Task<ProductDTO?> UpdateProduct(int id, ProductDTO product);
     Task<string?> UploadProductImage(int productId, IBrowserFile file); // ← THÊM
+    Task<List<ProductDTO>> GetProductsAsync(int? supplierId = null);
 }
 
 public class ProductClientService : IProductClientService
@@ -118,6 +119,23 @@ public class ProductClientService : IProductClientService
         {
             return null;
         }
+    }
+
+    public async Task<List<ProductDTO>> GetProductsAsync(int? supplierId = null)
+    {
+        var queryParams = new Dictionary<string, string?>
+        {
+            ["page"] = "1",
+            ["pageSize"] = "1000"
+        };
+
+        if (supplierId.HasValue)
+            queryParams["supplierId"] = supplierId.ToString();
+
+        var url = QueryHelpers.AddQueryString("api/products/paginated", queryParams);
+
+        var result = await _http.GetFromJsonAsync<PaginationResult<ProductDTO>>(url);
+        return result?.Items ?? new List<ProductDTO>();
     }
 
     private class UploadImageResponse

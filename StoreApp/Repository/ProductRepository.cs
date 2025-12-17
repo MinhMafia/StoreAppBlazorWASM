@@ -62,6 +62,8 @@ namespace StoreApp.Repository
             product.CreatedAt = DateTime.UtcNow;
             product.UpdatedAt = DateTime.UtcNow;
 
+            product.IsActive = false;
+
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 

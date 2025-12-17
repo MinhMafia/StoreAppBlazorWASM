@@ -51,6 +51,7 @@ AddHttpClientWithAuth<IAuditClientService, AuditClientService>();
 AddHttpClientWithAuth<IInventoryClientService, InventoryClientService>();
 AddHttpClientWithAuth<ISupplierClientService, SupplierClientService>();
 AddHttpClientWithAuth<IUnitClientService, UnitClientService>();
+AddHttpClientWithAuth<IImportClientService, ImportClientService>();
 
 // Giữ nguyên vì không cần gắn header
 // AI Chat Service

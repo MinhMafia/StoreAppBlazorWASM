@@ -11,11 +11,16 @@ namespace StoreApp.Services
     {
         private readonly InventoryRepository _inventoryRepo;
         private readonly AppDbContext _context;
+        private readonly ImportReceiptService _importReceiptService;
 
-        public InventoryService(InventoryRepository inventoryRepo, AppDbContext context)
+        public InventoryService(
+            InventoryRepository inventoryRepo,
+            AppDbContext context,
+            ImportReceiptService importReceiptService)
         {
             _inventoryRepo = inventoryRepo;
             _context = context;
+            _importReceiptService = importReceiptService;
         }
 
         public async Task<bool> ReduceInventoryAsync(List<ReduceInventoryDto> items)
@@ -98,6 +103,12 @@ namespace StoreApp.Services
                 inventory.Product.UpdatedAt = DateTime.UtcNow;
             }
 
+            if (changeAmount > 0 && inventory.Product != null)
+            {
+                inventory.Product.IsActive = false;
+                inventory.Product.UpdatedAt = DateTime.UtcNow;
+            }
+
             var userId = GetUserId(user);
 
             var reasonText = string.IsNullOrWhiteSpace(reason)
@@ -120,6 +131,36 @@ namespace StoreApp.Services
 
             _context.InventoryAdjustments.Add(adjustment);
             await _context.SaveChangesAsync();
+
+            // TỰ ĐỘNG TẠO PHIẾU NHẬP KHI NHẬP HÀNG (changeAmount > 0)
+            if (changeAmount > 0 && inventory.Product != null)
+            {
+                try
+                {
+                    var createImportDto = new CreateImportDTO
+                    {
+                        SupplierId = inventory.Product.SupplierId,
+                        StaffId = userId,
+                        Note = $"Phiếu nhập tự động từ chức năng nhập hàng. {reasonText}",
+                        Items = new List<CreateImportItemDTO>
+                        {
+                            new CreateImportItemDTO
+                            {
+                                ProductId = inventory.ProductId,
+                                Quantity = changeAmount,
+                                UnitCost = newCost ?? inventory.Product.Cost ?? 0
+                            }
+                        }
+                    };
+
+                    await _importReceiptService.CreateImportAsync(createImportDto);
+                }
+                catch (Exception ex)
+                {
+                    // Log error nhưng không throw để không ảnh hưởng đến việc nhập hàng
+                    System.Diagnostics.Debug.WriteLine($"Lỗi khi tạo phiếu nhập tự động: {ex.Message}");
+                }
+            }
         }
 
         /// <summary>

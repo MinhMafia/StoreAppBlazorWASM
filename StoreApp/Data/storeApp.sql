@@ -18,6 +18,8 @@ DROP TABLE IF EXISTS promotion_redemptions;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS `orders`;
+DROP TABLE IF EXISTS import_items;
+DROP TABLE IF EXISTS imports;
 DROP TABLE IF EXISTS inventory_adjustments;
 DROP TABLE IF EXISTS inventory;
 DROP TABLE IF EXISTS products;
@@ -176,6 +178,39 @@ CREATE TABLE inventory_adjustments (
   CONSTRAINT fk_inv_adj_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
   INDEX idx_inv_adj_product (product_id),
   INDEX idx_inv_adj_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Imports (Phiếu nhập hàng) - giống Orders
+CREATE TABLE imports (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  import_number VARCHAR(100) NOT NULL UNIQUE,
+  supplier_id INT DEFAULT NULL,
+  staff_id INT DEFAULT NULL,
+  status ENUM('pending','completed','cancelled') NOT NULL DEFAULT 'pending',
+  total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+  note TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_imports_supplier FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT fk_imports_staff FOREIGN KEY (staff_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX idx_imports_supplier (supplier_id),
+  INDEX idx_imports_staff (staff_id),
+  INDEX idx_imports_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Import Items (Chi tiết phiếu nhập) - giống Order Items
+CREATE TABLE import_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  import_id INT NOT NULL,
+  product_id INT NOT NULL,
+  quantity INT NOT NULL DEFAULT 1,
+  unit_cost DECIMAL(12,2) NOT NULL DEFAULT 0,
+  total_cost DECIMAL(12,2) NOT NULL DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_import_items_import FOREIGN KEY (import_id) REFERENCES imports(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_import_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  INDEX idx_ii_import (import_id),
+  INDEX idx_ii_product (product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

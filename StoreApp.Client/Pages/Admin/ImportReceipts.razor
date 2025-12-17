@@ -1,0 +1,870 @@
+@page "/admin/import-receipts"
+@using StoreApp.Shared
+@inject IImportClientService ImportService
+@inject ISupplierClientService SupplierService
+@inject IProductClientService ProductService
+
+<PageTitle>Quản lý phiếu nhập hàng</PageTitle>
+
+<div class="container-fluid px-4 py-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+            <i class="bi bi-file-earmark-text text-primary"></i>
+            Quản lý phiếu nhập hàng
+        </h1>
+
+        <div class="flex items-center gap-3">
+            <button class="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-semibold flex items-center gap-2"
+                    @onclick="OpenCreateModal">
+                <i class="bi bi-plus-lg"></i>
+                Tạo phiếu nhập
+            </button>
+            <div class="relative">
+                <input class="pl-10 pr-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary text-sm min-w-[220px]"
+                       placeholder="Tìm kiếm phiếu nhập..."
+                       @bind="search"
+                       @bind:event="oninput"
+                       @onkeyup="OnSearchKeyUp" />
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <i class="bi bi-search"></i>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 p-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">Trạng thái</label>
+                <select class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                        @bind="status"
+                        @bind:after="OnFilterChanged">
+                    <option value="">Tất cả</option>
+                    <option value="pending">Chờ xử lý</option>
+                    <option value="completed">Hoàn thành</option>
+                    <option value="cancelled">Đã hủy</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">Sắp xếp theo</label>
+                <select class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                        @bind="sortBy"
+                        @bind:after="OnFilterChanged">
+                    <option value="">Mới nhất</option>
+                    <option value="amount_desc">Giá trị (Cao → Thấp)</option>
+                    <option value="amount_asc">Giá trị (Thấp → Cao)</option>
+                    <option value="created_at_desc">Ngày tạo (Mới → Cũ)</option>
+                    <option value="created_at_asc">Ngày tạo (Cũ → Mới)</option>
+                    <option value="supplier">Nhà cung cấp</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    @if (!string.IsNullOrEmpty(notificationMessage))
+    {
+        <div class="mb-4 px-4 py-3 rounded-lg text-sm @GetNotificationCss()" style="white-space: pre-line;">
+            @notificationMessage
+        </div>
+    }
+
+    <!-- Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="min-w-full">
+            <thead class="bg-gray-50 border-b border-gray-100">
+                <tr>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-left">Mã phiếu</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-left">Nhà cung cấp</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-left">Nhân viên</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-right">Tổng tiền</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-center">SL sản phẩm</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-center">Tổng số lượng</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-center">Trạng thái</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-left">Ngày tạo</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-center">Hành động</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @if (loading)
+                {
+                    <tr>
+                        <td colspan="9" class="py-8 text-center text-gray-500">
+                            <div class="flex flex-col items-center gap-2">
+                                <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                <span>Đang tải dữ liệu...</span>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                else if (!string.IsNullOrEmpty(error))
+                {
+                    <tr>
+                        <td colspan="9" class="py-8 text-center text-red-600">@error</td>
+                    </tr>
+                }
+                else if (items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="9" class="py-8 text-center text-gray-500">
+                            Không có phiếu nhập nào.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var item in items)
+                    {
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">@item.ImportNumber</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">@(item.SupplierName ?? "—")</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">@(item.StaffName ?? "—")</td>
+                            <td class="px-4 py-3 text-sm text-right text-indigo-600 font-semibold">
+                                @item.TotalAmount.ToString("N0") ₫
+                            </td>
+                            <td class="px-4 py-3 text-sm text-center text-gray-700">@item.TotalItems</td>
+                            <td class="px-4 py-3 text-sm text-center text-gray-700 font-semibold">@item.TotalQuantity</td>
+                            <td class="px-4 py-3 text-sm text-center">
+                                @GetStatusBadge(item.Status)
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-600">
+                                @FormatDate(item.CreatedAt)
+                            </td>
+                            <td class="px-4 py-3 text-sm text-center">
+                                <button class="px-3 py-1 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-semibold flex items-center gap-1 mx-auto"
+                                        @onclick="() => OpenDetailModal(item.Id)">
+                                    <i class="bi bi-eye"></i>
+                                    Xem chi tiết
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages > 1)
+    {
+        <div class="flex justify-between items-center mt-6">
+            <div class="text-sm text-gray-600">
+                Trang @currentPage / @totalPages (@totalItems phiếu nhập)
+            </div>
+            <div class="flex gap-2">
+                <button class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm disabled:opacity-50"
+                        @onclick="() => ChangePage(1)"
+                        disabled="@(currentPage == 1 || loading)">
+                    <i class="bi bi-chevron-double-left"></i>
+                </button>
+                <button class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm disabled:opacity-50"
+                        @onclick="() => ChangePage(currentPage - 1)"
+                        disabled="@(currentPage == 1 || loading)">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                
+                @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                {
+                    var pageNum = i;
+                    <button class="px-3 py-2 rounded-lg text-sm @(currentPage == pageNum ? "bg-primary text-white" : "bg-gray-100 hover:bg-gray-200")"
+                            @onclick="() => ChangePage(pageNum)"
+                            disabled="@loading">
+                        @pageNum
+                    </button>
+                }
+                
+                <button class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm disabled:opacity-50"
+                        @onclick="() => ChangePage(currentPage + 1)"
+                        disabled="@(currentPage == totalPages || loading)">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+                <button class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm disabled:opacity-50"
+                        @onclick="() => ChangePage(totalPages)"
+                        disabled="@(currentPage == totalPages || loading)">
+                    <i class="bi bi-chevron-double-right"></i>
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@* Modal chi tiết phiếu nhập *@
+@if (detailModalOpen && detailData != null)
+{
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
+                <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                    <i class="bi bi-file-earmark-text text-blue-600"></i>
+                    Chi tiết phiếu nhập: @detailData.ImportNumber
+                </h2>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-6">
+                <!-- Thông tin phiếu -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600">Nhà cung cấp:</span>
+                            <span class="ml-2 font-semibold text-blue-600">@(detailData.SupplierName ?? "—")</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Nhân viên:</span>
+                            <span class="ml-2 font-semibold">@(detailData.StaffName ?? "—")</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Trạng thái:</span>
+                            <span class="ml-2">@GetStatusBadge(detailData.Status)</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Ngày tạo:</span>
+                            <span class="ml-2 font-medium">@FormatDate(detailData.CreatedAt)</span>
+                        </div>
+                        <div class="col-span-2">
+                            <span class="text-gray-600">Ghi chú:</span>
+                            <span class="ml-2">@(detailData.Note ?? "—")</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Danh sách sản phẩm -->
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-600 text-left">Sản phẩm</th>
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-600 text-left">SKU</th>
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-600 text-center">Đơn vị</th>
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-600 text-center">Số lượng</th>
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-600 text-right">Đơn giá</th>
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-600 text-right">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @foreach (var item in detailData.Items)
+                            {
+                                <tr>
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900">@item.ProductName</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">@(item.ProductSku ?? "—")</td>
+                                    <td class="px-4 py-3 text-sm text-center text-gray-600">@(item.UnitName ?? "—")</td>
+                                    <td class="px-4 py-3 text-sm text-center font-semibold text-gray-900">@item.Quantity</td>
+                                    <td class="px-4 py-3 text-sm text-right text-gray-700">@item.UnitCost.ToString("N0") ₫</td>
+                                    <td class="px-4 py-3 text-sm text-right font-semibold text-indigo-600">@item.TotalCost.ToString("N0") ₫</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="bg-gray-50">
+                            <tr>
+                                <td colspan="5" class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">Tổng cộng:</td>
+                                <td class="px-4 py-3 text-sm font-bold text-indigo-600 text-right text-lg">@detailData.TotalAmount.ToString("N0") ₫</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+                <button class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm"
+                        @onclick="CloseDetailModal">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* Modal tạo phiếu nhập mới *@
+@if (createModalOpen)
+{
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+                <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                    <i class="bi bi-plus-circle text-green-600"></i>
+                    Tạo phiếu nhập hàng mới
+                </h2>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-6">
+                @if (createStep == 1)
+                {
+                    <!-- Bước 1: Chọn nhà cung cấp -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Bước 1: Chọn nhà cung cấp</h3>
+                        
+                        @if (loadingSuppliers)
+                        {
+                            <div class="text-center py-8">
+                                <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                <p class="mt-2 text-gray-600">Đang tải danh sách nhà cung cấp...</p>
+                            </div>
+                        }
+                        else if (suppliers.Count == 0)
+                        {
+                            <div class="text-center py-8 text-gray-500">
+                                Không có nhà cung cấp nào.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                @foreach (var supplier in suppliers)
+                                {
+                                    <div class="border rounded-lg p-4 cursor-pointer transition-all @(selectedSupplierId == supplier.Id ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-green-300")"
+                                         @onclick="() => SelectSupplier(supplier.Id)">
+                                        <div class="flex items-start justify-between">
+                                            <div class="flex-1">
+                                                <h4 class="font-semibold text-gray-900">@supplier.Name</h4>
+                                                @if (!string.IsNullOrEmpty(supplier.ContactName))
+                                                {
+                                                    <p class="text-sm text-gray-600 mt-1">Liên hệ: @supplier.ContactName</p>
+                                                }
+                                                @if (!string.IsNullOrEmpty(supplier.Phone))
+                                                {
+                                                    <p class="text-sm text-gray-600">SĐT: @supplier.Phone</p>
+                                                }
+                                            </div>
+                                            @if (selectedSupplierId == supplier.Id)
+                                            {
+                                                <i class="bi bi-check-circle-fill text-green-600 text-xl"></i>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else if (createStep == 2)
+                {
+                    <!-- Bước 2: Chọn sản phẩm -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Bước 2: Chọn sản phẩm nhập hàng</h3>
+                        
+                        @if (loadingProducts)
+                        {
+                            <div class="text-center py-8">
+                                <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                <p class="mt-2 text-gray-600">Đang tải danh sách sản phẩm...</p>
+                            </div>
+                        }
+                        else if (availableProducts.Count == 0)
+                        {
+                            <div class="text-center py-8 text-gray-500">
+                                Nhà cung cấp này chưa có sản phẩm nào.
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Danh sách sản phẩm có sẵn -->
+                            <div class="mb-6">
+                                <h4 class="font-medium text-gray-700 mb-3">Chọn sản phẩm:</h4>
+                                <div class="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto border border-gray-200 rounded-lg p-3">
+                                    @foreach (var product in availableProducts)
+                                    {
+                                        var isSelected = selectedProducts.ContainsKey(product.Id);
+                                        <div class="border rounded-lg p-3 cursor-pointer transition-all @(isSelected ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-green-300")"
+                                             @onclick="() => ToggleProduct(product)">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex-1">
+                                                    <h5 class="font-semibold text-gray-900">@product.ProductName</h5>
+                                                    <div class="flex gap-4 text-sm text-gray-600 mt-1">
+                                                        <span>SKU: @(product.Sku ?? "—")</span>
+                                                        <span>Giá bán: @product.Price.ToString("N0")₫</span>
+                                                        <span>Giá vốn hiện tại: @((product.Cost ?? 0).ToString("N0"))₫</span>
+                                                    </div>
+                                                </div>
+                                                @if (isSelected)
+                                                {
+                                                    <i class="bi bi-check-circle-fill text-green-600 text-xl"></i>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Bảng sản phẩm đã chọn -->
+                            @if (selectedProducts.Count > 0)
+                            {
+                                <div>
+                                    <h4 class="font-medium text-gray-700 mb-3">Sản phẩm đã chọn (@selectedProducts.Count):</h4>
+                                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                        <table class="min-w-full">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="px-4 py-2 text-xs font-semibold text-gray-600 text-left">Sản phẩm</th>
+                                                    <th class="px-4 py-2 text-xs font-semibold text-gray-600 text-center">Số lượng</th>
+                                                    <th class="px-4 py-2 text-xs font-semibold text-gray-600 text-right">Giá vốn</th>
+                                                    <th class="px-4 py-2 text-xs font-semibold text-gray-600 text-right">Thành tiền</th>
+                                                    <th class="px-4 py-2 text-xs font-semibold text-gray-600 text-center">Xóa</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-200">
+                                                @foreach (var item in selectedProducts.Values)
+                                                {
+                                                    <tr>
+                                                        <td class="px-4 py-2 text-sm text-gray-900">@item.ProductName</td>
+                                                        <td class="px-4 py-2">
+                                                            <input type="number" 
+                                                                   min="1" 
+                                                                   class="w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+                                                                   @bind="item.Quantity"
+                                                                   @bind:event="oninput" />
+                                                        </td>
+                                                        <td class="px-4 py-2">
+                                                            <input type="number" 
+                                                                   min="0" 
+                                                                   step="1000"
+                                                                   class="w-32 px-2 py-1 border border-gray-300 rounded text-right text-sm"
+                                                                   @bind="item.UnitCost"
+                                                                   @bind:event="oninput" />
+                                                        </td>
+                                                        <td class="px-4 py-2 text-sm text-right font-semibold text-indigo-600">
+                                                            @((item.Quantity * item.UnitCost).ToString("N0"))₫
+                                                        </td>
+                                                        <td class="px-4 py-2 text-center">
+                                                            <button class="text-red-600 hover:text-red-800"
+                                                                    @onclick="() => RemoveProduct(item.ProductId)">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                            <tfoot class="bg-gray-50">
+                                                <tr>
+                                                    <td colspan="3" class="px-4 py-2 text-sm font-semibold text-gray-900 text-right">Tổng cộng:</td>
+                                                    <td class="px-4 py-2 text-sm font-bold text-indigo-600 text-right">@CalculateTotal().ToString("N0")₫</td>
+                                                    <td></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Ghi chú -->
+                                <div class="mt-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú (tùy chọn)</label>
+                                    <textarea class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                              rows="2"
+                                              @bind="createNote"
+                                              placeholder="Nhập ghi chú cho phiếu nhập..."></textarea>
+                                </div>
+
+                                <!-- Cảnh báo -->
+                                @if (selectedProducts.Count > 0)
+                                {
+                                    <div class="mt-4 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200">
+                                        <div class="flex gap-2">
+                                            <i class="bi bi-exclamation-triangle-fill text-amber-600 text-lg"></i>
+                                            <div class="text-sm text-amber-800">
+                                                <div class="font-semibold mb-1">Lưu ý quan trọng:</div>
+                                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                                    <li>Sau khi nhập hàng, <strong>tất cả sản phẩm sẽ tự động bị ẨN</strong> (không hiển thị cho khách hàng)</li>
+                                                    <li>Giá vốn sản phẩm sẽ được cập nhật theo giá nhập</li>
+                                                    <li>Hệ thống sẽ tự động tăng số lượng tồn kho</li>
+                                                    <li>Bạn cần vào <strong>Quản lý sản phẩm</strong> để kiểm tra giá bán và <strong>BẬT LẠI</strong> sản phẩm</li>
+                                                    <li>Chỉ bật sản phẩm khi: <strong>Giá bán ≥ Giá vốn × 1.1</strong></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        }
+
+                        @if (!string.IsNullOrEmpty(createError))
+                        {
+                            <div class="mt-4 px-3 py-2 rounded-lg bg-red-100 text-red-700 text-sm">
+                                @createError
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between">
+                <button class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm"
+                        @onclick="CloseCreateModal"
+                        disabled="@creating">
+                    Hủy
+                </button>
+                <div class="flex gap-2">
+                    @if (createStep == 2)
+                    {
+                        <button class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm"
+                                @onclick="() => createStep = 1"
+                                disabled="@creating">
+                            <i class="bi bi-arrow-left"></i>
+                            Quay lại
+                        </button>
+                    }
+                    @if (createStep == 1)
+                    {
+                        <button class="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm disabled:opacity-50"
+                                @onclick="GoToStep2"
+                                disabled="@(selectedSupplierId == null)">
+                            Tiếp theo
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    }
+                    else if (createStep == 2)
+                    {
+                        <button class="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm disabled:opacity-50 flex items-center gap-2"
+                                @onclick="CreateImport"
+                                disabled="@(selectedProducts.Count == 0 || creating)">
+                            @if (creating)
+                            {
+                                <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                <span>Đang tạo...</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-check-lg"></i>
+                                <span>Tạo phiếu nhập</span>
+                            }
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ImportListItemDTO> items = new();
+
+    private int currentPage = 1;
+    private int pageSize = 20;
+    private int totalItems;
+    private int totalPages = 1;
+
+    private string? search;
+    private string? status;
+    private string? sortBy;
+
+    private bool loading;
+    private string? error;
+
+    private string? notificationMessage;
+    private bool notificationIsSuccess = true;
+
+    // Modal state
+    private bool detailModalOpen;
+    private ImportDetailDTO? detailData;
+
+    // Create modal state
+    private bool createModalOpen;
+    private int createStep = 1; // 1: chọn supplier, 2: chọn products
+    private int? selectedSupplierId;
+    private List<SupplierDTO> suppliers = new();
+    private List<ProductDTO> availableProducts = new();
+    private Dictionary<int, CreateImportItemDTO> selectedProducts = new();
+    private string? createNote;
+    private string? createError;
+    private bool loadingSuppliers;
+    private bool loadingProducts;
+    private bool creating;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        loading = true;
+        error = null;
+        try
+        {
+            var result = await ImportService.GetImportsAsync(
+                currentPage,
+                pageSize,
+                string.IsNullOrWhiteSpace(search) ? null : search,
+                status,
+                sortBy);
+
+            items = result.Items ?? new List<ImportListItemDTO>();
+            totalItems = result.TotalItems;
+            totalPages = result.TotalPages > 0 ? result.TotalPages : 1;
+        }
+        catch (Exception ex)
+        {
+            error = $"Không thể tải danh sách phiếu nhập: {ex.Message}";
+            items = new();
+            totalItems = 0;
+            totalPages = 1;
+        }
+        finally
+        {
+            loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ChangePage(int newPage)
+    {
+        if (newPage < 1 || newPage > totalPages || newPage == currentPage) return;
+        currentPage = newPage;
+        await LoadDataAsync();
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            currentPage = 1;
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task OnFilterChanged()
+    {
+        currentPage = 1;
+        await LoadDataAsync();
+    }
+
+    private string FormatDate(DateTime date)
+    {
+        return date.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+    }
+
+    private RenderFragment GetStatusBadge(string status) => builder =>
+    {
+        var (bg, text, label) = status switch
+        {
+            "completed" => ("bg-green-100", "text-green-800", "Hoàn thành"),
+            "pending" => ("bg-yellow-100", "text-yellow-800", "Chờ xử lý"),
+            "cancelled" => ("bg-red-100", "text-red-800", "Đã hủy"),
+            _ => ("bg-gray-100", "text-gray-800", status)
+        };
+
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", $"px-2 py-1 rounded-full text-xs font-medium {bg} {text}");
+        builder.AddContent(2, label);
+        builder.CloseElement();
+    };
+
+    private async Task OpenDetailModal(int id)
+    {
+        detailModalOpen = true;
+        detailData = null;
+
+        try
+        {
+            detailData = await ImportService.GetImportDetailAsync(id);
+        }
+        catch (Exception ex)
+        {
+            ShowNotification($"Lỗi khi tải chi tiết: {ex.Message}", false);
+            detailModalOpen = false;
+        }
+    }
+
+    private void CloseDetailModal()
+    {
+        detailModalOpen = false;
+        detailData = null;
+    }
+
+    private void ShowNotification(string message, bool isSuccess)
+    {
+        notificationMessage = message;
+        notificationIsSuccess = isSuccess;
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3000);
+            await InvokeAsync(() =>
+            {
+                notificationMessage = null;
+                StateHasChanged();
+            });
+        });
+    }
+
+    private string GetNotificationCss()
+    {
+        return notificationIsSuccess
+            ? "bg-green-100 text-green-800 border border-green-200"
+            : "bg-red-100 text-red-800 border border-red-200";
+    }
+
+    // ===== CREATE IMPORT METHODS =====
+
+    private async Task OpenCreateModal()
+    {
+        createModalOpen = true;
+        createStep = 1;
+        selectedSupplierId = null;
+        selectedProducts.Clear();
+        createNote = null;
+        createError = null;
+        loadingSuppliers = true;
+
+        try
+        {
+            suppliers = await SupplierService.GetSuppliersAsync();
+        }
+        catch (Exception ex)
+        {
+            createError = $"Lỗi khi tải nhà cung cấp: {ex.Message}";
+        }
+        finally
+        {
+            loadingSuppliers = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseCreateModal()
+    {
+        createModalOpen = false;
+        selectedProducts.Clear();
+        availableProducts.Clear();
+        suppliers.Clear();
+    }
+
+    private void SelectSupplier(int supplierId)
+    {
+        selectedSupplierId = supplierId;
+    }
+
+    private async Task GoToStep2()
+    {
+        if (selectedSupplierId == null) return;
+
+        createStep = 2;
+        loadingProducts = true;
+        availableProducts.Clear();
+        selectedProducts.Clear();
+
+        try
+        {
+            // Lấy tất cả sản phẩm của supplier
+            availableProducts = await ProductService.GetProductsAsync(selectedSupplierId);
+        }
+        catch (Exception ex)
+        {
+            createError = $"Lỗi khi tải sản phẩm: {ex.Message}";
+        }
+        finally
+        {
+            loadingProducts = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleProduct(ProductDTO product)
+    {
+        if (selectedProducts.ContainsKey(product.Id))
+        {
+            selectedProducts.Remove(product.Id);
+        }
+        else
+        {
+            selectedProducts[product.Id] = new CreateImportItemDTO
+            {
+                ProductId = product.Id,
+                ProductName = product.ProductName,
+                Quantity = 1,
+                UnitCost = product.Cost ?? 0
+            };
+        }
+    }
+
+    private void RemoveProduct(int productId)
+    {
+        selectedProducts.Remove(productId);
+    }
+
+    private decimal CalculateTotal()
+    {
+        return selectedProducts.Values.Sum(p => p.Quantity * p.UnitCost);
+    }
+
+    private async Task CreateImport()
+    {
+        createError = null;
+
+        if (selectedSupplierId == null)
+        {
+            createError = "Vui lòng chọn nhà cung cấp.";
+            return;
+        }
+
+        if (selectedProducts.Count == 0)
+        {
+            createError = "Vui lòng chọn ít nhất 1 sản phẩm.";
+            return;
+        }
+
+        // Validate chi tiết
+        foreach (var item in selectedProducts.Values)
+        {
+            if (item.Quantity <= 0)
+            {
+                createError = $"Số lượng của [{item.ProductName}] phải lớn hơn 0.";
+                return;
+            }
+            if (item.UnitCost < 0)
+            {
+                createError = $"Giá vốn của [{item.ProductName}] không được âm.";
+                return;
+            }
+            if (item.UnitCost == 0)
+            {
+                createError = $"Vui lòng nhập giá vốn cho [{item.ProductName}].";
+                return;
+            }
+        }
+
+        creating = true;
+        try
+        {
+            var dto = new CreateImportDTO
+            {
+                SupplierId = selectedSupplierId,
+                StaffId = null, // Server sẽ lấy từ JWT
+                Note = createNote,
+                Items = selectedProducts.Values.Select(p => new CreateImportItemDTO
+                {
+                    ProductId = p.ProductId,
+                    Quantity = p.Quantity,
+                    UnitCost = p.UnitCost
+                }).ToList()
+            };
+
+            await ImportService.CreateImportAsync(dto);
+
+            var productCount = selectedProducts.Count;
+            var totalQuantity = selectedProducts.Values.Sum(p => p.Quantity);
+            var successMessage = $"✓ Tạo phiếu nhập thành công!\n" +
+                               $"• {productCount} sản phẩm, tổng {totalQuantity} đơn vị\n" +
+                               $"• Tất cả sản phẩm đã được ẨN tự động\n" +
+                               $"• Vui lòng kiểm tra giá bán và BẬT LẠI sản phẩm trong Quản lý sản phẩm";
+            
+            ShowNotification(successMessage, true);
+            createModalOpen = false;
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            createError = $"Lỗi khi tạo phiếu nhập: {ex.Message}";
+        }
+        finally
+        {
+            creating = false;
+            StateHasChanged();
+        }
+    }
+}

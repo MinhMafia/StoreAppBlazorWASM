@@ -124,6 +124,38 @@ namespace StoreApp.Services
             if (product.Price <= 0)
                 ve.AddError(nameof(product.Price), "Giá phải là số lớn hơn 0.");
 
+            // Kiểm tra giá bán phải lớn hơn giá vốn ít nhất 10%
+            if (product.Cost.HasValue && product.Cost.Value > 0)
+            {
+                var minimumPrice = product.Cost.Value * 1.10m; // Giá vốn + 10%
+                if (product.Price < minimumPrice)
+                {
+                    ve.AddError(nameof(product.Price),
+                        $"Giá bán phải lớn hơn giá vốn ít nhất 10%. Giá tối thiểu: {minimumPrice:N0}₫ (Giá vốn: {product.Cost.Value:N0}₫)");
+                }
+            }
+
+            // Nếu muốn BẬT sản phẩm (IsActive = true), kiểm tra điều kiện
+            if (product.IsActive)
+            {
+                // Kiểm tra phải có giá vốn
+                if (!product.Cost.HasValue || product.Cost.Value <= 0)
+                {
+                    ve.AddError(nameof(product.IsActive),
+                        "Không thể bật trạng thái sản phẩm: Chưa có giá vốn.");
+                }
+                // Kiểm tra giá bán phải > giá vốn + 10%
+                else
+                {
+                    var minimumPrice = product.Cost.Value * 1.10m;
+                    if (product.Price < minimumPrice)
+                    {
+                        ve.AddError(nameof(product.IsActive),
+                            $"Không thể bật trạng thái sản phẩm: Giá bán ({product.Price:N0}₫) phải lớn hơn giá vốn ({product.Cost.Value:N0}₫) ít nhất 10%. Giá tối thiểu: {minimumPrice:N0}₫");
+                    }
+                }
+            }
+
             // SKU: optional but if provided must be alphanumeric and unique
             if (!string.IsNullOrWhiteSpace(product.Sku))
             {
@@ -147,44 +179,6 @@ namespace StoreApp.Services
             {
                 if (product.Inventory.Quantity < 0)
                     ve.AddError("Inventory.Quantity", "Số lượng tồn phải >= 0.");
-            }
-
-            // Category existence (if provided)
-            if (product.CategoryId.HasValue)
-            {
-                // if CategoryRepository available
-                if (_categoryRepository != null)
-                {
-                    var existsCat = await _categoryRepository.GetByIdAsync(product.CategoryId.Value);
-                    if (existsCat == null)
-                        ve.AddError(nameof(product.CategoryId), "Danh mục không tồn tại.");
-                }
-                // otherwise, you could skip or add repository method in ProductRepository to check
-            }
-
-            // Supplier existence (if provided)
-            if (product.SupplierId.HasValue)
-            {
-                if (_supplierRepository != null)
-                {
-                    var existsSup = await _supplierRepository.GetByIdAsync(product.SupplierId.Value);
-                    if (existsSup == null)
-                        ve.AddError(nameof(product.SupplierId), "Nhà cung cấp không tồn tại.");
-                }
-            }
-
-            // Image validation (optional)
-            if (imageFile != null)
-            {
-                // allowed types
-                var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
-                if (!allowed.Contains(imageFile.ContentType))
-                    ve.AddError("imageFile", "Chỉ chấp nhận ảnh JPG/PNG/WEBP.");
-
-                // size limit 5MB
-                const long maxBytes = 5 * 1024 * 1024;
-                if (imageFile.Length > maxBytes)
-                    ve.AddError("imageFile", "Kích thước ảnh phải <= 5MB.");
             }
 
             return ve;
@@ -269,7 +263,7 @@ namespace StoreApp.Services
         }
 
         // Search using repository filtered query for efficiency
-        public async Task<PaginationResult<ProductDTO>> SearchProductsAsync(string keyword, int page = 1, int PageSize=20)
+        public async Task<PaginationResult<ProductDTO>> SearchProductsAsync(string keyword, int page = 1, int PageSize = 20)
         {
             // use filtered API: page=1, pageSize=maxResults, search=keyword
             var filtered = await _productRepository.GetFilteredAsync(page, PageSize, null, null, null, null, null, keyword);

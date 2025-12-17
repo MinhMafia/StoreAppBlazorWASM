@@ -213,11 +213,13 @@
 
                                 <!-- Row 5: Trạng thái & Buttons -->
                                 <div class="flex items-center justify-between pt-4 border-t border-gray-200">
-                                    <label class="inline-flex items-center gap-2 cursor-pointer">
-                                        <InputCheckbox @bind-Value="product.IsActive" 
-                                                    class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" />
-                                        <span class="text-sm font-medium text-gray-700">Đang hoạt động</span>
-                                    </label>
+                                    @* <label class="inline-flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" 
+                                            checked="@product.IsActive"
+                                            @onchange="HandleIsActiveChange"
+                                            class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500" />
+                                        <span class="text-sm font-medium text-gray-700">Hiển thị sản phẩm</span>
+                                    </label> *@
                                     <div class="flex items-center gap-3">
                                         <button type="button" 
                                                 @onclick="OnCancel"
@@ -263,7 +265,7 @@
 
     private ProductDTO product = new() 
     { 
-        IsActive = true,
+        IsActive = false,
         Price = 0
     };
 
@@ -380,5 +382,35 @@
         {
             OnCancel.InvokeAsync();
         }
+    }
+
+    private async Task HandleIsActiveChange(ChangeEventArgs e)
+    {
+        var newValue = (bool)e.Value!;
+        
+        if (newValue && !product.IsActive)
+        {
+            if (!product.Cost.HasValue || product.Cost.Value <= 0)
+            {
+                await JS.InvokeVoidAsync("alert", "⚠️ Không thể bật trạng thái sản phẩm!\n\n❌ Lý do: Chưa có giá vốn (Cost).\n\n💡 Vui lòng nhập giá vốn trước khi bật trạng thái.");
+                return;
+            }
+            
+            var minimumPrice = product.Cost.Value * 1.10m;
+            if (product.Price < minimumPrice)
+            {
+                await JS.InvokeVoidAsync("alert", 
+                    $"⚠️ Không thể bật trạng thái sản phẩm!\n\n" +
+                    $"❌ Lý do: Giá bán phải lớn hơn giá vốn ít nhất 10%.\n\n" +
+                    $"📊 Thông tin hiện tại:\n" +
+                    $"• Giá vốn: {product.Cost.Value:N0}₫\n" +
+                    $"• Giá bán hiện tại: {product.Price:N0}₫\n" +
+                    $"• Giá bán tối thiểu: {minimumPrice:N0}₫\n\n" +
+                    $"💡 Vui lòng tăng giá bán lên ít nhất {minimumPrice:N0}₫ hoặc giảm giá vốn.");
+                return;
+            }
+        }
+        
+        product.IsActive = newValue;
     }
 }

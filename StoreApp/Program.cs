@@ -98,6 +98,8 @@ builder.Services.AddScoped<ImportService>(sp =>
         sp.GetRequiredService<UnitRepository>()
     );
 });
+builder.Services.AddScoped<ImportReceiptService>();
+builder.Services.AddScoped<ImportRepository>();
 builder.Services.AddScoped<SupplierService>();
 builder.Services.AddScoped<StoreApp.Services.ReportsService>();
 builder.Services.AddScoped<JwtService>();

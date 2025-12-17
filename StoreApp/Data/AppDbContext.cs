@@ -12,6 +12,8 @@ namespace StoreApp.Data
         public DbSet<Payment> Payments { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<Order> Orders { get; set; }
+        public DbSet<Import> Imports { get; set; }
+        public DbSet<ImportItem> ImportItems { get; set; }
         public DbSet<InventoryAdjustment> InventoryAdjustments { get; set; }
         public DbSet<Inventory> Inventory { get; set; }
         public DbSet<Unit> Units { get; set; }
