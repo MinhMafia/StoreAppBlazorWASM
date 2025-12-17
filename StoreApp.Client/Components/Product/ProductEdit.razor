@@ -22,8 +22,10 @@
                         <!-- Left: Image -->
                         <div class="col-span-12 md:col-span-4">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Hình ảnh sản phẩm</label>
-                            <div class="aspect-square rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden">
-                                @if (string.IsNullOrEmpty(editProduct.ImageUrl))
+                            
+                            <!-- Image Preview -->
+                            <div class="aspect-square rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden relative group">
+                                @if (string.IsNullOrEmpty(previewImageUrl))
                                 {
                                     <div class="text-center text-gray-400">
                                         <i class="bi bi-image text-6xl mb-2"></i>
@@ -32,21 +34,84 @@
                                 }
                                 else
                                 {
-                                    <img src="@editProduct.ImageUrl" alt="Preview" class="w-full h-full object-cover" />
+                                    <img src="@previewImageUrl" alt="Preview" class="w-full h-full object-cover" />
+                                    
+                                    <!-- Delete Image Button (Overlay) -->
+                                    <button type="button"
+                                            @onclick="ClearImage"
+                                            class="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                                        <i class="bi bi-x-lg text-sm"></i>
+                                    </button>
                                 }
                             </div>
-                            <div class="mt-3">
-                                <button type="button" class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2">
-                                    <i class="bi bi-image"></i>
-                                    Chọn ảnh từ máy
-                                </button>
+
+                            <!-- Upload Options -->
+                            <div class="mt-3 space-y-2">
+                                <!-- Chọn file từ máy -->
+                                <div>
+                                    <InputFile OnChange="HandleImageSelected" 
+                                               accept="image/*" 
+                                               class="hidden" 
+                                               id="imageUploadEdit"
+                                               disabled="@hasUrlInput" />
+                                    <label for="imageUploadEdit" 
+                                           class="@(hasUrlInput ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-gray-50") w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 flex items-center justify-center gap-2">
+                                        <i class="bi bi-upload"></i>
+                                        Chọn ảnh từ máy
+                                    </label>
+                                </div>
+
+                                <!-- Divider -->
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-1 border-t border-gray-300"></div>
+                                    <span class="text-xs text-gray-500 font-medium">HOẶC</span>
+                                    <div class="flex-1 border-t border-gray-300"></div>
+                                </div>
+
+                                <!-- URL Input -->
+                                <div class="relative">
+                                    <input type="text"
+                                           @bind="urlInput"
+                                           @bind:event="oninput"
+                                           @bind:after="HandleUrlInput"
+                                           disabled="@hasFileInput"
+                                           class="@(hasFileInput ? "opacity-50 cursor-not-allowed" : "") w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                           placeholder="Nhập URL ảnh..." />
+                                    @if (!string.IsNullOrEmpty(urlInput))
+                                    {
+                                        <button type="button"
+                                                @onclick="ClearUrl"
+                                                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                            <i class="bi bi-x-circle-fill"></i>
+                                        </button>
+                                    }
+                                </div>
                             </div>
-                            <div class="mt-2">
-                                <InputText @bind-Value="editProduct.ImageUrl" 
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                           placeholder="Hoặc nhập URL ảnh..." />
-                            </div>
-                            <p class="mt-2 text-xs text-gray-500">Chọn ảnh từ máy hoặc nhập URL hình ảnh</p>
+
+                            <!-- Helper Text -->
+                            <p class="mt-2 text-xs text-gray-500">
+                                @if (hasFileInput)
+                                {
+                                    <span>✓ Ảnh từ máy đã chọn. Xóa ảnh để nhập URL.</span>
+                                }
+                                else if (hasUrlInput)
+                                {
+                                    <span>✓ URL đã nhập. Xóa để chọn ảnh từ máy.</span>
+                                }
+                                else
+                                {
+                                    <span>Chọn ảnh từ máy hoặc nhập URL ảnh</span>
+                                }
+                            </p>
+
+                            <!-- Error Message -->
+                            @if (!string.IsNullOrEmpty(uploadError))
+                            {
+                                <div class="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                                    <i class="bi bi-exclamation-triangle-fill text-red-500 text-sm mt-0.5"></i>
+                                    <p class="text-xs text-red-600">@uploadError</p>
+                                </div>
+                            }
                         </div>
 
                         <!-- Right: Form Fields -->
@@ -60,16 +125,18 @@
                                             Tên sản phẩm <span class="text-red-500">*</span>
                                         </label>
                                         <InputText @bind-Value="editProduct.ProductName" 
-                                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500"
-                                                   placeholder="" />
-                                        <ValidationMessage For="@(() => editProduct.ProductName)" class="text-red-500 text-xs mt-1" />
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                   placeholder="Nhập tên sản phẩm" />
+                                        <ValidationMessage For="@(() => editProduct.ProductName)" class="text-red-500 text-xs mt-1 block" />
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">SKU</label>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                                            SKU <span class="text-red-500">*</span>
+                                        </label>
                                         <InputText @bind-Value="editProduct.Sku" 
                                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-100 cursor-not-allowed"
-                                                   placeholder=""
                                                    disabled />
+                                        <p class="text-xs text-gray-500 mt-1">SKU không thể thay đổi</p>
                                     </div>
                                 </div>
 
@@ -77,26 +144,26 @@
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">
-                                            Giá <span class="text-red-500">*</span>
+                                            Giá bán <span class="text-red-500">*</span>
                                         </label>
                                         <InputNumber @bind-Value="editProduct.Price" 
-                                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500"
+                                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                                      placeholder="0" />
-                                        <ValidationMessage For="@(() => editProduct.Price)" class="text-xs text-red-500 mt-1" />
+                                        <ValidationMessage For="@(() => editProduct.Price)" class="text-red-500 text-xs mt-1 block" />
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">
                                             Đơn vị <span class="text-red-500">*</span>
                                         </label>
                                         <InputSelect @bind-Value="editProduct.UnitId" 
-                                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500">
-                                            <option value="">-- Chọn đơn vị --</option>
+                                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="0">-- Chọn đơn vị --</option>
                                             @foreach (var unit in Units ?? Enumerable.Empty<UnitDTO>())
                                             {
                                                 <option value="@unit.Id">@unit.Name</option>
                                             }
                                         </InputSelect>
-                                        <ValidationMessage For="@(() => editProduct.UnitId)" class="text-xs text-red-500 mt-1" />
+                                        <ValidationMessage For="@(() => editProduct.UnitId)" class="text-red-500 text-xs mt-1 block" />
                                     </div>
                                 </div>
 
@@ -107,28 +174,28 @@
                                             Nhà cung cấp <span class="text-red-500">*</span>
                                         </label>
                                         <InputSelect @bind-Value="editProduct.SupplierId" 
-                                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500">
-                                            <option value="">-- Chọn nhà cung cấp --</option>
+                                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="0">-- Chọn nhà cung cấp --</option>
                                             @foreach (var sup in Suppliers ?? Enumerable.Empty<SupplierDTO>())
                                             {
                                                 <option value="@sup.Id">@sup.Name</option>
                                             }
                                         </InputSelect>
-                                        <ValidationMessage For="@(() => editProduct.SupplierId)" class="text-xs text-red-500 mt-1" />
+                                        <ValidationMessage For="@(() => editProduct.SupplierId)" class="text-red-500 text-xs mt-1 block" />
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">
                                             Danh mục <span class="text-red-500">*</span>
                                         </label>
                                         <InputSelect @bind-Value="editProduct.CategoryId" 
-                                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500">
-                                            <option value="">-- Chọn danh mục --</option>
+                                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="0">-- Chọn danh mục --</option>
                                             @foreach (var cat in Categories ?? Enumerable.Empty<CategoryDTO>())
                                             {
                                                 <option value="@cat.Id">@cat.Name</option>
                                             }
                                         </InputSelect>
-                                        <ValidationMessage For="@(() => editProduct.CategoryId)" class="text-xs text-red-500 mt-1" />
+                                        <ValidationMessage For="@(() => editProduct.CategoryId)" class="text-red-500 text-xs mt-1 block" />
                                     </div>
                                 </div>
 
@@ -137,53 +204,44 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
                                     <InputTextArea @bind-Value="editProduct.Description" 
                                                    rows="4"
-                                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 resize-none"
-                                                   placeholder="" />
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                                   placeholder="Mô tả chi tiết về sản phẩm" />
+                                    <ValidationMessage For="@(() => editProduct.Description)" class="text-red-500 text-xs mt-1 block" />
                                 </div>
 
-                                <!-- Row 5: Trạng thái -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái hoạt động</label>
+                                <!-- Row 5: Trạng thái & Buttons -->
+                                <div class="flex items-center justify-between pt-4 border-t border-gray-200">
                                     <label class="inline-flex items-center gap-2 cursor-pointer">
                                         <InputCheckbox @bind-Value="editProduct.IsActive" 
-                                                       class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" />
-                                        <span class="text-sm text-gray-700">Đang hoạt động</span>
+                                                    class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" />
+                                        <span class="text-sm font-medium text-gray-700">Đang hoạt động</span>
                                     </label>
+                                    <div class="flex items-center gap-3">
+                                        <button type="button" 
+                                                @onclick="HandleCancel"
+                                                disabled="@Saving"
+                                                class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 text-sm font-medium disabled:opacity-50">
+                                            Hủy
+                                        </button>
+                                        <button type="submit" 
+                                                disabled="@Saving"
+                                                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium disabled:opacity-50 flex items-center gap-2">
+                                            @if (Saving)
+                                            {
+                                                <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                                <span>Đang lưu...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Cập nhật</span>
+                                            }
+                                        </button>
+                                    </div>
                                 </div>
 
                             </div>
                         </div>
 
-                    </div>
-                </div>
-
-                <!-- Footer -->
-                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-                    <button type="button"
-                            @onclick="HandleDelete"
-                            class="px-4 py-2 text-red-600 text-sm font-medium hover:text-red-700">
-                        @(editProduct.IsActive ? "Vô hiệu hóa" : "Khôi phục")
-                    </button>
-                    <div class="flex items-center gap-3">
-                        <button type="button" 
-                                @onclick="HandleCancel"
-                                disabled="@Saving"
-                                class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 text-sm font-medium disabled:opacity-50">
-                            Hủy
-                        </button>
-                        <button type="submit" 
-                                disabled="@Saving"
-                                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium disabled:opacity-50 flex items-center gap-2">
-                            @if (Saving)
-                            {
-                                <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                                <span>Đang lưu...</span>
-                            }
-                            else
-                            {
-                                <span>Cập nhật</span>
-                            }
-                        </button>
                     </div>
                 </div>
 
@@ -204,6 +262,18 @@
     [Parameter] public EventCallback<(int, bool)> OnDelete { get; set; }
 
     private ProductDTO editProduct = new();
+    private string? previewImageUrl = null;
+    private IBrowserFile? selectedImageFile = null;
+    private string? urlInput = null;
+    private string? uploadError = null;
+    private string? originalImageUrl = null; // Lưu URL ảnh gốc
+
+    // Flags để kiểm soát UI
+    private bool hasFileInput => selectedImageFile != null;
+    private bool hasUrlInput => !string.IsNullOrWhiteSpace(urlInput);
+
+    // Public property để ProductList lấy file
+    public IBrowserFile? SelectedImageFile => selectedImageFile;
 
     protected override void OnParametersSet()
     {
@@ -223,11 +293,106 @@
                 ImageUrl = Product.ImageUrl,
                 IsActive = Product.IsActive
             };
+
+            // Khởi tạo preview từ ảnh hiện tại
+            originalImageUrl = Product.ImageUrl;
+            previewImageUrl = Product.ImageUrl;
         }
+    }
+
+    private async Task HandleImageSelected(InputFileChangeEventArgs e)
+    {
+        uploadError = null;
+        selectedImageFile = null;
+        previewImageUrl = null;
+
+        try
+        {
+            var file = e.File;
+
+            if (file.Size > 5 * 1024 * 1024)
+            {
+                uploadError = "Kích thước file không được vượt quá 5MB";
+                return;
+            }
+
+            var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+            if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            {
+                uploadError = "Chỉ chấp nhận file ảnh (JPEG, PNG, GIF, WebP)";
+                return;
+            }
+
+            selectedImageFile = file;
+
+            // Generate preview
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream(5 * 1024 * 1024).ReadAsync(buffer);
+            var base64 = Convert.ToBase64String(buffer);
+            previewImageUrl = $"data:{file.ContentType};base64,{base64}";
+        }
+        catch (Exception ex)
+        {
+            uploadError = $"Lỗi: {ex.Message}";
+        }
+    }
+
+    private void HandleUrlInput()
+    {
+        uploadError = null;
+        
+        if (string.IsNullOrWhiteSpace(urlInput))
+        {
+            // Nếu xóa URL, quay về ảnh gốc
+            previewImageUrl = originalImageUrl;
+            return;
+        }
+
+        // Validate URL format
+        if (!Uri.TryCreate(urlInput, UriKind.Absolute, out var uri) && 
+            !urlInput.StartsWith("/"))
+        {
+            uploadError = "URL không hợp lệ";
+            previewImageUrl = originalImageUrl;
+            return;
+        }
+
+        // Set preview to URL
+        previewImageUrl = urlInput;
+    }
+
+    private void ClearImage()
+    {
+        selectedImageFile = null;
+        previewImageUrl = originalImageUrl; // Quay về ảnh gốc
+        uploadError = null;
+    }
+
+    private void ClearUrl()
+    {
+        urlInput = null;
+        previewImageUrl = originalImageUrl; // Quay về ảnh gốc
+        uploadError = null;
     }
 
     private async Task HandleSubmit()
     {
+        // Nếu có file từ máy
+        if (selectedImageFile != null)
+        {
+            editProduct.ImageUrl = "PENDING_UPLOAD";
+        }
+        // Nếu có URL mới
+        else if (!string.IsNullOrWhiteSpace(urlInput))
+        {
+            editProduct.ImageUrl = urlInput.Trim();
+        }
+        // Giữ nguyên ảnh cũ (không thay đổi)
+        else
+        {
+            editProduct.ImageUrl = originalImageUrl;
+        }
+        
         await OnSave.InvokeAsync(editProduct);
     }
 

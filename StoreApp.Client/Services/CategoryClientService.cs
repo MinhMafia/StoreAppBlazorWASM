@@ -6,6 +6,7 @@ using StoreApp.Shared;
 public interface ICategoryClientService
 {
     Task<ResultPaginatedDTO<CategoryResponseDTO>> GetCategories(int page, int pageSize, string? keyword, string? status);
+    Task<List<CategoryDTO>> GetAllCategories();
     Task<CategoryResponseDTO?> GetCategoryById(int id);
     Task<CategoryResponseDTO> CreateCategory(CategoryCreateDTO dto);
     Task<CategoryResponseDTO> UpdateCategory(int id, CategoryUpdateDTO dto);
@@ -23,9 +24,9 @@ public class CategoryClientService : ICategoryClientService
 
     // GET - Lấy danh sách có phân trang và filter
     public async Task<ResultPaginatedDTO<CategoryResponseDTO>> GetCategories(
-        int page, 
-        int pageSize, 
-        string? keyword, 
+        int page,
+        int pageSize,
+        string? keyword,
         string? status)
     {
         var queryParams = new Dictionary<string, string?>
@@ -36,13 +37,19 @@ public class CategoryClientService : ICategoryClientService
 
         if (!string.IsNullOrEmpty(keyword))
             queryParams["keyword"] = keyword;
-        
+
         if (!string.IsNullOrEmpty(status) && status != "all")
             queryParams["status"] = status;
 
         var url = QueryHelpers.AddQueryString("api/categories", queryParams);
-        return await _http.GetFromJsonAsync<ResultPaginatedDTO<CategoryResponseDTO>>(url) 
+        return await _http.GetFromJsonAsync<ResultPaginatedDTO<CategoryResponseDTO>>(url)
                ?? new ResultPaginatedDTO<CategoryResponseDTO>();
+    }
+
+    public async Task<List<CategoryDTO>> GetAllCategories()
+    {
+        return await _http.GetFromJsonAsync<List<CategoryDTO>>("api/categories/all")
+               ?? new List<CategoryDTO>();
     }
 
     // GET - Lấy chi tiết
@@ -63,7 +70,7 @@ public class CategoryClientService : ICategoryClientService
     {
         var response = await _http.PostAsJsonAsync("api/categories", dto);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<CategoryResponseDTO>() 
+        return await response.Content.ReadFromJsonAsync<CategoryResponseDTO>()
                ?? throw new Exception("Failed to create category");
     }
 
@@ -72,7 +79,7 @@ public class CategoryClientService : ICategoryClientService
     {
         var response = await _http.PatchAsJsonAsync($"api/categories/{id}", dto);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<CategoryResponseDTO>() 
+        return await response.Content.ReadFromJsonAsync<CategoryResponseDTO>()
                ?? throw new Exception("Failed to update category");
     }
 
@@ -82,7 +89,7 @@ public class CategoryClientService : ICategoryClientService
         var dto = new CategoryUpdateActiveDTO { IsActive = isActive };
         var response = await _http.PutAsJsonAsync($"api/categories/{id}", dto);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<CategoryResponseDTO>() 
+        return await response.Content.ReadFromJsonAsync<CategoryResponseDTO>()
                ?? throw new Exception("Failed to update category status");
     }
 }

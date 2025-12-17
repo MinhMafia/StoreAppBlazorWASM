@@ -19,11 +19,11 @@ namespace StoreApp.Repository
             var yesterday = today.AddDays(-1);
 
             var todayRevenue = await _context.Orders
-                .Where(o => o.Status == "paid" && o.CreatedAt.Date == today)
+                .Where(o => (o.Status == "paid" || o.Status == "completed") && o.CreatedAt.Date == today)
                 .SumAsync(o => o.TotalAmount);
 
             var yesterdayRevenue = await _context.Orders
-                .Where(o => o.Status == "paid" && o.CreatedAt.Date == yesterday)
+                .Where(o => (o.Status == "paid" || o.Status == "completed") && o.CreatedAt.Date == yesterday)
                 .SumAsync(o => o.TotalAmount);
 
             var revenueChange = yesterdayRevenue > 0
@@ -44,7 +44,7 @@ namespace StoreApp.Repository
 
             var todayProductsSold = await _context.OrderItems
                 .Include(oi => oi.Order)
-                .Where(oi => oi.Order != null && oi.Order.CreatedAt.Date == today && oi.Order.Status == "paid")
+                .Where(oi => oi.Order != null && oi.Order.CreatedAt.Date == today && (oi.Order.Status == "paid" || oi.Order.Status == "completed"))
                 .SumAsync(oi => oi.Quantity);
 
             var avgOrderValue = todayOrders > 0 ? todayRevenue / todayOrders : 0;
@@ -80,7 +80,7 @@ namespace StoreApp.Repository
             var startDate = DateTime.UtcNow.Date.AddDays(-days + 1);
 
             var data = await _context.Orders
-                .Where(o => o.Status == "paid" && o.CreatedAt.Date >= startDate)
+                .Where(o => (o.Status == "paid" || o.Status == "completed") && o.CreatedAt.Date >= startDate)
                 .GroupBy(o => o.CreatedAt.Date)
                 .Select(g => new
                 {
@@ -105,7 +105,7 @@ namespace StoreApp.Repository
 
             var data = await _context.OrderItems
                 .Include(oi => oi.Order)
-                .Where(oi => oi.Order != null && oi.Order.Status == "paid" && oi.Order.CreatedAt >= startDate)
+                .Where(oi => oi.Order != null && (oi.Order.Status == "paid" || oi.Order.Status == "completed") && oi.Order.CreatedAt >= startDate)
                 .GroupBy(oi => oi.ProductId)
                 .Select(g => new
                 {

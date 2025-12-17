@@ -1,6 +1,10 @@
 @inherits LayoutComponentBase
 @using StoreApp.Client.Components.AI
 
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -8,7 +12,48 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <!-- User Dropdown -->
+            <div class="dropdown">
+                <button class="btn-user-menu" @onclick="ToggleDropdown">
+                    <div class="user-avatar">
+                        <i class="bi bi-person-circle"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name">@userName</span>
+                        <span class="user-role">@userRole</span>
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+
+                @if (dropdownOpen)
+                {
+                    <div class="dropdown-menu-custom show">
+                        <div class="dropdown-header">
+                            <div class="user-avatar-large">
+                                <i class="bi bi-person-circle"></i>
+                            </div>
+                            <div>
+                                <div class="dropdown-user-name">@userName</div>
+                                <div class="dropdown-user-role">@userRole</div>
+                            </div>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item" @onclick="NavigateToProfile">
+                            <i class="bi bi-person"></i>
+                            <span>Thông tin cá nhân</span>
+                        </button>
+                        <button class="dropdown-item" @onclick="NavigateToSettings">
+                            <i class="bi bi-gear"></i>
+                            <span>Cài đặt</span>
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item logout" @onclick="HandleLogout">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Đăng xuất</span>
+                        </button>
+                    </div>
+                }
+            </div>
         </div>
 
         <article class="content px-4" style="background-color: #f9fafb;">
@@ -34,8 +79,6 @@
     };
 
     window.openMoMoPayment = function (payUrl) {
-
-        // reset trạng thái
         window.momoPopup.closed = false;
 
         const popup = window.open(
@@ -50,10 +93,8 @@
             return;
         }
 
-        // ✅ LƯU POPUP
         window.momoPopup.popup = popup;
 
-        // ✅ THEO DÕI ĐÓNG POPUP
         window.momoPopup.timer = setInterval(() => {
             if (window.momoPopup.popup.closed) {
                 window.momoPopup.closed = true;
@@ -65,5 +106,220 @@
     window.isMoMoPopupClosed = function () {
         return window.momoPopup.closed;
     };
+
+    // Close dropdown when clicking outside
+    window.addEventListener('click', function(e) {
+        if (!e.target.closest('.dropdown')) {
+            DotNet.invokeMethodAsync('StoreApp.Client', 'CloseDropdown');
+        }
+    });
 </script>
 
+<style>
+    .dropdown {
+        position: relative;
+    }
+
+    .btn-user-menu {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 16px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-user-menu:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        color: white;
+        font-size: 20px;
+    }
+
+    .user-info {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .user-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .user-role {
+        font-size: 12px;
+        color: #6b7280;
+        text-transform: capitalize;
+    }
+
+    .dropdown-menu-custom {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        min-width: 280px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        animation: slideDown 0.2s ease-out;
+    }
+
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .dropdown-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px 12px 0 0;
+    }
+
+    .user-avatar-large {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        color: white;
+        font-size: 28px;
+    }
+
+    .dropdown-user-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: white;
+    }
+
+    .dropdown-user-role {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.9);
+        text-transform: capitalize;
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background: #e5e7eb;
+        margin: 8px 0;
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 12px 16px;
+        background: none;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+        transition: background 0.2s;
+        color: #374151;
+        font-size: 14px;
+    }
+
+    .dropdown-item:hover {
+        background: #f3f4f6;
+    }
+
+    .dropdown-item i {
+        font-size: 18px;
+        width: 20px;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    .dropdown-item.logout {
+        color: #dc2626;
+    }
+
+    .dropdown-item.logout:hover {
+        background: #fef2f2;
+    }
+
+    .dropdown-item.logout i {
+        color: #dc2626;
+    }
+</style>
+
+@code {
+    private string userName = "Admin";
+    private string userRole = "Administrator";
+    private bool dropdownOpen = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        userName = await LocalStorage.GetItemAsStringAsync("userName") ?? "User";
+        userRole = await LocalStorage.GetItemAsStringAsync("userRole") ?? "Guest";
+        
+        // Remove quotes if present
+        userName = userName.Trim('"');
+        userRole = userRole.Trim('"');
+    }
+
+    private void ToggleDropdown()
+    {
+        dropdownOpen = !dropdownOpen;
+    }
+
+    [JSInvokable]
+    public static void CloseDropdown()
+    {
+        // This will be called from JS
+    }
+
+    private void NavigateToProfile()
+    {
+        dropdownOpen = false;
+        Nav.NavigateTo("/admin/profile");
+    }
+
+    private void NavigateToSettings()
+    {
+        dropdownOpen = false;
+        Nav.NavigateTo("/admin/settings");
+    }
+
+    private async Task HandleLogout()
+    {
+        dropdownOpen = false;
+        
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Bạn có chắc chắn muốn đăng xuất?");
+        if (confirmed)
+        {
+            await LocalStorage.RemoveItemAsync("authToken");
+            await LocalStorage.RemoveItemAsync("userName");
+            await LocalStorage.RemoveItemAsync("userRole");
+            Nav.NavigateTo("/login", forceLoad: true);
+        }
+    }
+}

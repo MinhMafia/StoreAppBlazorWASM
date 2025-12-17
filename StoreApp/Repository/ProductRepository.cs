@@ -26,6 +26,7 @@ namespace StoreApp.Repository
             return await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
+                .Include(p => p.Unit)
                 .Include(p => p.Inventory)
                 .Include(p => p.OrderItems) // nếu cần thống kê
                 .FirstOrDefaultAsync(p => p.Id == id);
@@ -85,16 +86,16 @@ namespace StoreApp.Repository
             const string prefix = "89000000000";
             var idString = productId.ToString();
             var remainingDigits = 13 - prefix.Length;
-            
+
             var paddedId = idString.PadLeft(remainingDigits, '0');
-            
+
             if (idString.Length > remainingDigits)
             {
                 var adjustedPrefixLength = 13 - idString.Length;
                 var adjustedPrefix = prefix.Substring(0, adjustedPrefixLength);
                 return adjustedPrefix + idString;
             }
-            
+
             return prefix + paddedId;
         }
 
@@ -140,6 +141,7 @@ namespace StoreApp.Repository
                 .AsQueryable()
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
+                .Include(p => p.Unit)
                 .Include(p => p.Inventory);
 
             // Filter supplier
@@ -149,8 +151,8 @@ namespace StoreApp.Repository
             // Filter category - chỉ lấy sản phẩm thuộc category active
             if (categoryId.HasValue)
             {
-                query = query.Where(p => p.CategoryId == categoryId.Value && 
-                                         p.Category != null && 
+                query = query.Where(p => p.CategoryId == categoryId.Value &&
+                                         p.Category != null &&
                                          p.Category.IsActive);
             }
 
@@ -260,7 +262,7 @@ namespace StoreApp.Repository
         }
 
         // === Phương thức cho Semantic Search ===
-        
+
         public async Task<int> GetTotalCountAsync()
         {
             return await _context.Products.CountAsync();

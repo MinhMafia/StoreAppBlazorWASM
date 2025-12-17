@@ -19,7 +19,6 @@ namespace StoreApp.Controllers
             _productService = productService;
         }
 
-        // GET api/products/paginated
         // GET api/products/paginated - ENDPOINT CHÍNH
 
         [HttpGet("paginated")]
@@ -82,6 +81,8 @@ namespace StoreApp.Controllers
             try
             {
                 // Map DTO -> Entity (only required fields)
+                var vietnamTime = DateTime.UtcNow.AddHours(7);
+
                 var product = new Product
                 {
                     ProductName = productDto.ProductName,
@@ -95,8 +96,8 @@ namespace StoreApp.Controllers
                     Description = productDto.Description,
                     ImageUrl = productDto.ImageUrl,
                     IsActive = productDto.IsActive,
-                    CreatedAt = productDto.CreatedAt ?? DateTime.UtcNow,
-                    UpdatedAt = productDto.UpdatedAt ?? DateTime.UtcNow
+                    CreatedAt = vietnamTime,
+                    UpdatedAt = vietnamTime
                 };
 
                 var createdDto = await _productService.CreateProductAsync(product);
@@ -113,12 +114,26 @@ namespace StoreApp.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ProductDTO>> UpdateProduct(int id, [FromBody] Product product)
+        public async Task<ActionResult<ProductDTO>> UpdateProduct(int id, [FromBody] ProductDTO productDto)
         {
             try
             {
-                product.Id = id;
-                product.UpdatedAt = DateTime.UtcNow;
+                // Map DTO -> Entity
+                var product = new Product
+                {
+                    Id = id,
+                    ProductName = productDto.ProductName,
+                    Sku = productDto.Sku,
+                    CategoryId = productDto.CategoryId,
+                    SupplierId = productDto.SupplierId,
+                    Price = productDto.Price,
+                    Cost = productDto.Cost,
+                    UnitId = productDto.UnitId,
+                    Description = productDto.Description,
+                    ImageUrl = productDto.ImageUrl,  // ← ĐÂY LÀ QUAN TRỌNG!
+                    IsActive = productDto.IsActive,
+                    UpdatedAt = DateTime.UtcNow.AddHours(7)
+                };
 
                 var updatedProduct = await _productService.UpdateProductAsync(product);
                 return updatedProduct;
@@ -149,6 +164,7 @@ namespace StoreApp.Controllers
         }
 
         [HttpPost("upload-image")]
+        [AllowAnonymous]
         public async Task<IActionResult> UploadImage([FromForm] IFormFile image, [FromQuery] int? productId)
         {
             if (image == null || image.Length == 0)
@@ -214,7 +230,7 @@ namespace StoreApp.Controllers
 
         // ĐỪNG XÓA LÀM ƠN = lẤY DANH SÁCH SẢN PHẨM CÒN HÀNG TRONG CỬA HÀNG
 
-// ĐỪNG XÓA LÀM ƠN = lẤY DANH SÁCH SẢN PHẨM CÒN HÀNG TRONG CỬA HÀNG
+        // ĐỪNG XÓA LÀM ƠN = lẤY DANH SÁCH SẢN PHẨM CÒN HÀNG TRONG CỬA HÀNG
 
         [HttpGet("available")]
         [AllowAnonymous]

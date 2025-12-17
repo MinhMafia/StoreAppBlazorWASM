@@ -12,11 +12,11 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
-        <div class="nav-item px-3">
+        @* <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
-        </div>
+        </div> *@
 
         @if (IsAdmin)
         {
@@ -95,11 +95,6 @@
         }
 
     </nav>
-<div class="nav-item px-3">
-    <button class="btn btn-danger w-100" @onclick="HandleLogout">
-        <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
-    </button>
-</div>
 </div>
 
 
@@ -112,11 +107,5 @@
         IsAdmin = string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase);
     }
 
-    private async Task HandleLogout()
-    {
-        await LocalStorage.RemoveItemAsync("authToken");
-        await LocalStorage.RemoveItemAsync("userName");
-        await LocalStorage.RemoveItemAsync("userRole");
-        Nav.NavigateTo("/login", forceLoad: true);
-    }
+    
 }
