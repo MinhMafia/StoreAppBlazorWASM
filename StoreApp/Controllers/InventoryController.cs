@@ -76,7 +76,7 @@ namespace StoreApp.Controllers
 
             try
             {
-                await _inventoryService.AdjustInventoryAsync(request.InventoryId, request.NewQuantity, request.Reason, User);
+                await _inventoryService.AdjustInventoryAsync(request.InventoryId, request.NewQuantity, request.Reason, User, request.NewCost, request.ProductId);
                 return Ok(new { message = "Cập nhật tồn kho thành công" });
             }
             catch (ArgumentException ex)
@@ -86,6 +86,24 @@ namespace StoreApp.Controllers
             catch (InvalidOperationException ex)
             {
                 return NotFound(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Kiểm kê sản phẩm có giá vốn > giá bán
+        /// </summary>
+        [HttpGet("audit")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<InventoryAuditResultDTO>> AuditInventory([FromQuery] bool autoDeactivate = false)
+        {
+            try
+            {
+                var result = await _inventoryService.AuditInventoryAsync(autoDeactivate);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Lỗi khi kiểm kê: {ex.Message}" });
             }
         }
     }

@@ -59,9 +59,15 @@ namespace StoreApp.Services
         }
 
         /// <summary>
-        /// Điều chỉnh tồn kho thủ công (set quantity mới) và ghi log inventory_adjustments.
+        /// Điều chỉnh tồn kho thủ công (set quantity mới) và tùy chọn cập nhật cost, ghi log inventory_adjustments.
         /// </summary>
-        public async Task AdjustInventoryAsync(int inventoryId, int newQuantity, string? reason, ClaimsPrincipal? user)
+        public async Task AdjustInventoryAsync(
+            int inventoryId,
+            int newQuantity,
+            string? reason,
+            ClaimsPrincipal? user,
+            decimal? newCost = null,
+            int? productId = null)
         {
             if (newQuantity < 0)
                 throw new ArgumentException("Số lượng phải >= 0", nameof(newQuantity));
@@ -74,7 +80,7 @@ namespace StoreApp.Services
                 throw new InvalidOperationException("Không tìm thấy bản ghi tồn kho.");
 
             var oldQuantity = inventory.Quantity;
-            if (oldQuantity == newQuantity)
+            if (oldQuantity == newQuantity && !newCost.HasValue)
             {
                 // Không có thay đổi, bỏ qua
                 return;
@@ -85,15 +91,29 @@ namespace StoreApp.Services
             inventory.Quantity = newQuantity;
             inventory.UpdatedAt = DateTime.UtcNow;
 
+            // Cập nhật cost của product nếu có
+            if (newCost.HasValue && newCost.Value >= 0 && inventory.Product != null)
+            {
+                inventory.Product.Cost = newCost.Value;
+                inventory.Product.UpdatedAt = DateTime.UtcNow;
+            }
+
             var userId = GetUserId(user);
+
+            var reasonText = string.IsNullOrWhiteSpace(reason)
+                ? $"Điều chỉnh thủ công từ {oldQuantity} -> {newQuantity}"
+                : reason;
+
+            if (newCost.HasValue)
+            {
+                reasonText += $" | Cập nhật giá vốn: {newCost.Value:N0}₫";
+            }
 
             var adjustment = new InventoryAdjustment
             {
                 ProductId = inventory.ProductId,
                 ChangeAmount = changeAmount,
-                Reason = string.IsNullOrWhiteSpace(reason)
-                    ? $"Điều chỉnh thủ công từ {oldQuantity} -> {newQuantity}"
-                    : reason,
+                Reason = reasonText,
                 UserId = userId,
                 CreatedAt = DateTime.UtcNow
             };
@@ -102,15 +122,37 @@ namespace StoreApp.Services
             await _context.SaveChangesAsync();
         }
 
+        /// <summary>
+        /// Kiểm kê và lấy danh sách sản phẩm có vấn đề về giá
+        /// </summary>
+        public async Task<InventoryAuditResultDTO> AuditInventoryAsync(bool autoDeactivate = false)
+        {
+            var invalidProducts = await _inventoryRepo.GetInvalidPriceProductsAsync();
+
+            int deactivatedCount = 0;
+            if (autoDeactivate && invalidProducts.Any(p => p.IsActive))
+            {
+                deactivatedCount = await _inventoryRepo.DeactivateInvalidPriceProductsAsync();
+
+                // Reload data sau khi deactivate
+                invalidProducts = await _inventoryRepo.GetInvalidPriceProductsAsync();
+            }
+
+            return new InventoryAuditResultDTO
+            {
+                InvalidProducts = invalidProducts,
+                TotalInvalid = invalidProducts.Count,
+                TotalDeactivated = deactivatedCount
+            };
+        }
+
         private int? GetUserId(ClaimsPrincipal? user)
         {
             if (user == null) return null;
-
-            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? user.FindFirst("id");
-            if (idClaim == null) return null;
-
-            return int.TryParse(idClaim.Value, out var id) ? id : null;
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out var userId))
+                return userId;
+            return null;
         }
     }
 }
-

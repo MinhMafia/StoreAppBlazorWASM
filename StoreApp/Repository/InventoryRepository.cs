@@ -64,6 +64,7 @@ namespace StoreApp.Repository
             var query = _context.Inventory
                 .Include(i => i.Product)!.ThenInclude(p => p!.Category)
                 .Include(i => i.Product)!.ThenInclude(p => p!.Unit)
+                .Include(i => i.Product)!.ThenInclude(p => p!.Supplier)
                 .AsQueryable();
 
             // Tìm kiếm theo tên SP, SKU
@@ -121,7 +122,9 @@ namespace StoreApp.Repository
                 ProductName = i.Product?.ProductName ?? string.Empty,
                 Sku = i.Product?.Sku,
                 CategoryName = i.Product?.Category?.Name,
+                SupplierName = i.Product?.Supplier?.Name,
                 Price = i.Product?.Price ?? 0,
+                Cost = i.Product?.Cost,
                 Unit = i.Product?.Unit?.Name,
                 Quantity = i.Quantity,
                 UpdatedAt = i.UpdatedAt
@@ -156,6 +159,52 @@ namespace StoreApp.Repository
                 LowStock = lowStock,
                 InStock = inStock
             };
+        }
+
+        /// <summary>
+        /// Lấy danh sách sản phẩm có giá vốn > giá bán
+        /// </summary>
+        public async Task<List<InvalidPriceProductDTO>> GetInvalidPriceProductsAsync()
+        {
+            var products = await _context.Products
+                .Include(p => p.Supplier)
+                .Include(p => p.Inventory)
+                .Where(p => p.Cost.HasValue && p.Cost.Value > p.Price)
+                .OrderByDescending(p => p.Cost.Value - p.Price)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return products.Select(p => new InvalidPriceProductDTO
+            {
+                ProductId = p.Id,
+                ProductName = p.ProductName,
+                Sku = p.Sku,
+                SupplierName = p.Supplier?.Name,
+                Price = p.Price,
+                Cost = p.Cost ?? 0,
+                PriceDifference = (p.Cost ?? 0) - p.Price,
+                Quantity = p.Inventory?.Quantity ?? 0,
+                IsActive = p.IsActive
+            }).ToList();
+        }
+
+        /// <summary>
+        /// Ẩn tất cả sản phẩm có giá vốn > giá bán
+        /// </summary>
+        public async Task<int> DeactivateInvalidPriceProductsAsync()
+        {
+            var products = await _context.Products
+                .Where(p => p.Cost.HasValue && p.Cost.Value > p.Price && p.IsActive)
+                .ToListAsync();
+
+            foreach (var product in products)
+            {
+                product.IsActive = false;
+                product.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+            return products.Count;
         }
     }
 

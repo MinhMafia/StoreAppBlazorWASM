@@ -73,6 +73,19 @@ namespace StoreApp.Repository
                 await _context.SaveChangesAsync();
             }
 
+            // Tự động tạo inventory với quantity = 0
+            var inventory = new Inventory
+            {
+                ProductId = product.Id,
+                Quantity = 0,
+                LastCheckedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.Inventory.Add(inventory);
+            await _context.SaveChangesAsync();
+
+            product.Inventory = inventory;
+
             return product;
         }
 

@@ -15,7 +15,8 @@ public interface IInventoryClientService
 
     Task<InventoryStatsDTO?> GetStatsAsync();
 
-    Task<bool> AdjustInventoryAsync(int inventoryId, int newQuantity, string? reason);
+    Task<bool> AdjustInventoryAsync(int inventoryId, int newQuantity, string? reason, decimal? newCost = null, int? productId = null);
+    Task<InventoryAuditResultDTO?> AuditInventoryAsync(bool autoDeactivate = false);
 }
 
 public class InventoryClientService : IInventoryClientService
@@ -58,18 +59,29 @@ public class InventoryClientService : IInventoryClientService
         return await _http.GetFromJsonAsync<InventoryStatsDTO>("api/inventory/stats");
     }
 
-    public async Task<bool> AdjustInventoryAsync(int inventoryId, int newQuantity, string? reason)
+    public async Task<bool> AdjustInventoryAsync(
+        int inventoryId,
+        int newQuantity,
+        string? reason,
+        decimal? newCost = null,
+        int? productId = null)
     {
         var payload = new AdjustInventoryRequestDTO
         {
             InventoryId = inventoryId,
             NewQuantity = newQuantity,
-            Reason = reason
+            Reason = reason,
+            NewCost = newCost,
+            ProductId = productId ?? 0
         };
 
         var response = await _http.PostAsJsonAsync("api/inventory/adjust", payload);
         return response.IsSuccessStatusCode;
     }
+
+    public async Task<InventoryAuditResultDTO?> AuditInventoryAsync(bool autoDeactivate = false)
+    {
+        var url = $"api/inventory/audit?autoDeactivate={autoDeactivate}";
+        return await _http.GetFromJsonAsync<InventoryAuditResultDTO>(url);
+    }
 }
-
-
