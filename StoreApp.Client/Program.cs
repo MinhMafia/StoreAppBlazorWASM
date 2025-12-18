@@ -4,8 +4,13 @@ using StoreApp.Client.Middlewares;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components;
 using System.Net.Http;
+using Microsoft.Extensions.Logging;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
+
+// Tắt log HTTP request
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
+builder.Logging.AddFilter("System.Net.Http", LogLevel.Warning);
 // LocalStorage (Nên đặt lên đầu vì các service khác cần nó)
 builder.Services.AddBlazoredLocalStorage();
 

@@ -38,6 +38,7 @@ public interface IOrdersClientService
     Task<PaymentResult> PayWithMomoWitOnlineOrderAsync(int orderId, decimal amount);
     Task<OrderDTO?> GetOrderDTOAsync(int orderId);
     Task<List<OrderDTO>> GetMyOrdersAsync();
+    Task<bool> CancelMyOrderAsync(int orderId);
 
 
 
@@ -525,7 +526,7 @@ public class OrdersClientService : IOrdersClientService
         if (response.IsSuccessStatusCode)
         {
             bool result = await response.Content.ReadFromJsonAsync<bool>();
-            return result; 
+            return result;
         }
 
         return false;
@@ -582,15 +583,23 @@ public class OrdersClientService : IOrdersClientService
         }
     }
 
+    public async Task<bool> CancelMyOrderAsync(int orderId)
+    {
+        try
+        {
+            var response = await _http.PutAsync($"api/orders/cancel/{orderId}", null);
 
+            if (!response.IsSuccessStatusCode)
+                return false;
 
-
-
-
-
-
+            return await response.Content.ReadFromJsonAsync<bool>();
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }
-
 
 
 

@@ -147,9 +147,14 @@
                                             Giá bán <span class="text-red-500">*</span>
                                         </label>
                                         <InputNumber @bind-Value="editProduct.Price" 
+                                                     @bind-Value:after="ValidatePriceChange"
                                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                                      placeholder="0" />
                                         <ValidationMessage For="@(() => editProduct.Price)" class="text-red-500 text-xs mt-1 block" />
+                                        @if (!string.IsNullOrEmpty(priceValidationMessage))
+                                        {
+                                            <p class="text-red-600 text-xs mt-1 font-medium">@priceValidationMessage</p>
+                                        }
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -269,6 +274,7 @@
     private string? urlInput = null;
     private string? uploadError = null;
     private string? originalImageUrl = null; // Lưu URL ảnh gốc
+    private string? priceValidationMessage = null; // Thông báo validation giá bán
 
     // Flags để kiểm soát UI
     private bool hasFileInput => selectedImageFile != null;
@@ -299,6 +305,24 @@
             // Khởi tạo preview từ ảnh hiện tại
             originalImageUrl = Product.ImageUrl;
             previewImageUrl = Product.ImageUrl;
+            
+            // Reset validation khi mở modal
+            priceValidationMessage = null;
+        }
+    }
+
+    private void ValidatePriceChange()
+    {
+        priceValidationMessage = null;
+        
+        // Chỉ validate khi sản phẩm đang active
+        if (editProduct.IsActive && editProduct.Cost.HasValue && editProduct.Cost.Value > 0)
+        {
+            var minimumPrice = editProduct.Cost.Value * 1.10m;
+            if (editProduct.Price < minimumPrice)
+            {
+                priceValidationMessage = $"Giá bán tối thiểu là {minimumPrice:N0}₫ (giá vốn + 10%)";
+            }
         }
     }
 
@@ -379,6 +403,36 @@
 
     private async Task HandleSubmit()
     {
+        priceValidationMessage = null;
+        
+        // Validate giá bán nếu sản phẩm đang active
+        if (editProduct.IsActive)
+        {
+            // Kiểm tra có giá vốn không
+            if (!editProduct.Cost.HasValue || editProduct.Cost.Value <= 0)
+            {
+                priceValidationMessage = "❌ Không thể lưu: Sản phẩm đang bật nhưng chưa có giá vốn. Vui lòng nhập giá vốn hoặc tắt trạng thái sản phẩm.";
+                await JS.InvokeVoidAsync("alert", "Không thể lưu sản phẩm!\n\nSản phẩm đang ở trạng thái BẬT nhưng chưa có giá vốn.\n\nVui lòng nhập giá vốn hoặc tắt trạng thái sản phẩm.");
+                return;
+            }
+            
+            // Kiểm tra giá bán phải > giá vốn + 10%
+            var minimumPrice = editProduct.Cost.Value * 1.10m;
+            if (editProduct.Price < minimumPrice)
+            {
+                priceValidationMessage = $"❌ Không thể lưu: Giá bán phải ≥ {minimumPrice:N0}₫ (giá vốn {editProduct.Cost.Value:N0}₫ + 10%). Hiện tại: {editProduct.Price:N0}₫";
+                await JS.InvokeVoidAsync("alert", 
+                    @* $"Không thể lưu sản phẩm!\n\n" +
+                    $"Giá bán không hợp lệ:\n" +
+                    $"• Giá vốn hiện tại: {editProduct.Cost.Value:N0}₫\n" +
+                    $"• Giá bán hiện tại: {editProduct.Price:N0}₫\n" +
+                    $"• Giá bán tối thiểu: {minimumPrice:N0}₫\n\n" +
+                    $"Giá bán phải lớn hơn giá vốn ít nhất 10%.\n\n" + *@
+                    $"Vui lòng tăng giá bán lên ít nhất {minimumPrice:N0}₫.");
+                return;
+            }
+        }
+
         // Nếu có file từ máy
         if (selectedImageFile != null)
         {
@@ -429,7 +483,7 @@
             // Kiểm tra có giá vốn không
             if (!editProduct.Cost.HasValue || editProduct.Cost.Value <= 0)
             {
-                await JS.InvokeVoidAsync("alert", "⚠️ Không thể bật trạng thái sản phẩm!\n\n❌ Lý do: Chưa có giá vốn (Cost).\n\n💡 Vui lòng nhập giá vốn trước khi bật trạng thái.");
+                await JS.InvokeVoidAsync("alert", "Vui lòng nhập giá vốn trước khi bật trạng thái sản phẩm.");
                 return; // Không cho thay đổi
             }
             
@@ -437,14 +491,7 @@
             var minimumPrice = editProduct.Cost.Value * 1.10m;
             if (editProduct.Price < minimumPrice)
             {
-                await JS.InvokeVoidAsync("alert", 
-                    $"⚠️ Không thể bật trạng thái sản phẩm!\n\n" +
-                    $"❌ Lý do: Giá bán phải lớn hơn giá vốn ít nhất 10%.\n\n" +
-                    $"📊 Thông tin hiện tại:\n" +
-                    $"• Giá vốn: {editProduct.Cost.Value:N0}₫\n" +
-                    $"• Giá bán hiện tại: {editProduct.Price:N0}₫\n" +
-                    $"• Giá bán tối thiểu: {minimumPrice:N0}₫\n\n" +
-                    $"💡 Vui lòng tăng giá bán lên ít nhất {minimumPrice:N0}₫ hoặc giảm giá vốn.");
+                await JS.InvokeVoidAsync("alert", $"Giá bán tối thiểu là {minimumPrice:N0}₫. Vui lòng điều chỉnh giá bán.");
                 return; // Không cho thay đổi
             }
         }

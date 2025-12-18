@@ -122,7 +122,7 @@
                     // Nếu đã đăng nhập, redirect về trang phù hợp
                     if (role == "admin" || role == "staff")
                     {
-                        Nav.NavigateTo("/admin/home", forceLoad: true);
+                        Nav.NavigateTo("/admin/dashboard", forceLoad: true);
                     }
                     else
                     {
@@ -172,7 +172,7 @@
                     Console.WriteLine($"✅ Admin/Staff authenticated successfully");
 
                     // Redirect về trang admin
-                    Nav.NavigateTo("/admin/home", forceLoad: true);
+                    Nav.NavigateTo("/admin/dashboard", forceLoad: true);
                 }
             }
             else

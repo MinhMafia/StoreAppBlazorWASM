@@ -161,6 +161,7 @@ namespace StoreApp.Controllers
             return Ok(orders);
         }
 
+        [Authorize(Roles = "customer")]
         [HttpPut("cancel/{orderId}")]
         public async Task<IActionResult> CancelOrderCustomer(int orderId)
         {

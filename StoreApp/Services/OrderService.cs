@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using StoreApp.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace StoreApp.Services
 {
@@ -13,6 +14,7 @@ namespace StoreApp.Services
     {
         private readonly AppDbContext _context;
         private readonly OrderRepository _orderRepo;
+        private readonly OrderItemRepository _orderItemRepo;
         private readonly ActivityLogService _logService;
         private readonly UserRepository _userRepo;
         private readonly CustomerRepository _customerRepo;
@@ -22,6 +24,7 @@ namespace StoreApp.Services
 
         public OrderService(
             OrderRepository orderRepo,
+            OrderItemRepository orderItemRepo,
             ActivityLogService logService,
             UserRepository userRepo,
             CustomerRepository customerRepo,
@@ -31,6 +34,7 @@ namespace StoreApp.Services
         {
             _context = context;
             _orderRepo = orderRepo;
+            _orderItemRepo = orderItemRepo;
             _logService = logService;
             _customerRepo = customerRepo;
             _userRepo = userRepo;
@@ -60,21 +64,87 @@ namespace StoreApp.Services
 
             throw new InvalidOperationException("Không tìm thấy user_id trong token");
         }
-        
+
         //Huy Don
         public async Task<bool> CancelOrderAsyncCustomer(int orderId)
         {
-            var order = await _context.Orders.FindAsync(orderId);
-            if (order == null) return false;
+            try
+            {
+                Console.WriteLine($"🔄 Customer hủy đơn hàng #{orderId}");
 
-            if (order.Status != "pending")
+                int currentCustomerId;
+                try
+                {
+                    currentCustomerId = GetCurrentCustomerId();
+                }
+                catch
+                {
+                    Console.WriteLine("❌ Không lấy được customerId từ token");
+                    return false;
+                }
+
+                // 1. Lấy thông tin order
+                var order = await _orderRepo.GetByIdAsync(orderId);
+                if (order == null)
+                {
+                    Console.WriteLine($"❌ Không tìm thấy đơn hàng #{orderId}");
+                    return false;
+                }
+
+                // 2. Kiểm tra order có thuộc về customer này không
+                if (order.CustomerId != currentCustomerId)
+                {
+                    Console.WriteLine($"❌ Đơn hàng #{orderId} không thuộc về customer #{currentCustomerId}");
+                    return false;
+                }
+
+                // 3. Chỉ cho phép hủy đơn hàng pending
+                if (order.Status != "pending")
+                {
+                    Console.WriteLine($"❌ Không thể hủy đơn hàng với trạng thái: {order.Status}");
+                    return false;
+                }
+
+                // 4. Hoàn tác promotion nếu có (inventory được hoàn tác trong repository)
+                if (order.PromotionId.HasValue)
+                {
+                    Console.WriteLine($"🎟️ Hoàn tác khuyến mãi #{order.PromotionId.Value}");
+
+                    var redemption = await _context.PromotionRedemptions
+                        .Where(r => r.OrderId == orderId)
+                        .FirstOrDefaultAsync();
+
+                    if (redemption != null)
+                    {
+                        _context.PromotionRedemptions.Remove(redemption);
+
+                        // Giảm UsedCount của promotion
+                        var promotion = await _context.Promotions
+                            .Where(p => p.Id == order.PromotionId.Value)
+                            .FirstOrDefaultAsync();
+
+                        if (promotion != null && promotion.UsedCount > 0)
+                        {
+                            promotion.UsedCount--;
+                            Console.WriteLine($"  ✅ Giảm UsedCount của promotion xuống {promotion.UsedCount}");
+                        }
+                    }
+                }
+
+                // 5. Hủy đơn hàng (bao gồm hoàn tác inventory trong repository)
+                var result = await _orderRepo.CancelOrderAsync(orderId);
+
+                // 6. Lưu promotion changes
+                await _context.SaveChangesAsync();
+
+                Console.WriteLine($"✅ Customer đã hủy đơn hàng #{orderId} thành công");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi khi customer hủy đơn hàng: {ex.Message}");
                 return false;
-
-            order.Status = "cancelled";
-            order.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-            return true;
+            }
         }
 
         // 
@@ -98,7 +168,7 @@ namespace StoreApp.Services
             // int newId = maxId + 1;
             string orderCode = Guid.NewGuid().ToString();
 
-            
+
             int staffId = 2;
             try
             {
@@ -130,7 +200,7 @@ namespace StoreApp.Services
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CustomerName = "Khách hàng vãng lai",
-                StaffName =  staffName,
+                StaffName = staffName,
                 PromotionCode = null,
                 PaymentMethod = "cash",
                 PaymentStatus = "pending",
@@ -208,9 +278,20 @@ namespace StoreApp.Services
             {
                 dto.OrderNumber = Guid.NewGuid().ToString();
             }
+
+            // Xử lý CustomerId
             if (dto.CustomerId == null || dto.CustomerId == 0)
             {
-                try { dto.CustomerId = GetCurrentCustomerId(); } catch { }
+                try
+                {
+                    dto.CustomerId = GetCurrentCustomerId();
+                }
+                catch
+                {
+                    // Nếu không lấy được customerId (vì là admin/staff tạo cho khách vãng lai)
+                    // Set về null thay vì 0
+                    dto.CustomerId = null;
+                }
             }
 
             // StaffId: only set when admin/staff creates the order; customer orders keep StaffId null
@@ -234,9 +315,8 @@ namespace StoreApp.Services
 
             var order = new Order
             {
-                // Id = dto.Id, 
                 OrderNumber = dto.OrderNumber,
-                CustomerId = dto.CustomerId,
+                CustomerId = dto.CustomerId, // Bây giờ sẽ là null thay vì 0
                 StaffId = dto.StaffId,
                 Status = dto.Status,
                 Subtotal = dto.Subtotal,
@@ -457,13 +537,48 @@ namespace StoreApp.Services
 
             }
 
+            // 1. Lấy thông tin order
             var order = await _orderRepo.GetByIdAsync(orderId);
             if (order == null)
                 return false;
 
+            // 2. Kiểm tra trạng thái order - chỉ hủy được pending/paid
+            if (order.Status != "pending" && order.Status != "paid")
+                return false;
+
+            // 3. Hoàn tác promotion nếu có (inventory được hoàn tác trong repository)
+            if (order.PromotionId.HasValue)
+            {
+                var redemption = await _context.PromotionRedemptions
+                    .Where(r => r.OrderId == orderId)
+                    .FirstOrDefaultAsync();
+
+                if (redemption != null)
+                {
+                    _context.PromotionRedemptions.Remove(redemption);
+
+                    // Giảm UsedCount của promotion
+                    var promotion = await _context.Promotions
+                        .Where(p => p.Id == order.PromotionId.Value)
+                        .FirstOrDefaultAsync();
+
+                    if (promotion != null && promotion.UsedCount > 0)
+                    {
+                        promotion.UsedCount--;
+                    }
+                }
+            }
+
+            // 4. Cập nhật staff
             await _orderRepo.UpdateOrderStaffAsync(orderId, currentUserId);
 
-            return await _orderRepo.CancelOrderAsync(orderId);
+            // 5. Hủy đơn hàng (bao gồm hoàn tác inventory trong repository)
+            var result = await _orderRepo.CancelOrderAsync(orderId);
+
+            // 6. Lưu promotion changes
+            await _context.SaveChangesAsync();
+
+            return result;
         }
 
         public async Task<OrderDTO?> GetOrderDtoByIdAsync_MA(int orderId)

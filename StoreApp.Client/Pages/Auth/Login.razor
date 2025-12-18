@@ -108,7 +108,7 @@
                     var role = await LocalStorage.GetItemAsStringAsync("userRole");
                     if (role == "admin" || role == "staff")
                     {
-                        Nav.NavigateTo("/admin/home", forceLoad: true);
+                        Nav.NavigateTo("/admin/dashboard", forceLoad: true);
                     }
                     else
                     {

@@ -469,8 +469,8 @@
                                                 <div class="font-semibold mb-1">Lưu ý quan trọng:</div>
                                                 <ul class="list-disc list-inside space-y-1 text-xs">
                                                     <li>Sau khi nhập hàng, <strong>tất cả sản phẩm sẽ tự động bị ẨN</strong> (không hiển thị cho khách hàng)</li>
-                                                    <li>Giá vốn sản phẩm sẽ được cập nhật theo giá nhập</li>
-                                                    <li>Hệ thống sẽ tự động tăng số lượng tồn kho</li>
+                                                    @* <li>Giá vốn sản phẩm sẽ được cập nhật theo giá nhập</li>
+                                                    <li>Hệ thống sẽ tự động tăng số lượng tồn kho</li> *@
                                                     <li>Bạn cần vào <strong>Quản lý sản phẩm</strong> để kiểm tra giá bán và <strong>BẬT LẠI</strong> sản phẩm</li>
                                                     <li>Chỉ bật sản phẩm khi: <strong>Giá bán ≥ Giá vốn × 1.1</strong></li>
                                                 </ul>
@@ -853,7 +853,8 @@
                                $"• Tất cả sản phẩm đã được ẨN tự động\n" +
                                $"• Vui lòng kiểm tra giá bán và BẬT LẠI sản phẩm trong Quản lý sản phẩm";
             
-            ShowNotification(successMessage, true);
+            @* ShowNotification(successMessage, true); *@
+            ShowNotification("Tạo phiếu nhập thành công!", true);
             createModalOpen = false;
             await LoadDataAsync();
         }

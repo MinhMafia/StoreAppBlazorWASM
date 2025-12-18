@@ -25,9 +25,6 @@ namespace StoreApp.Repository
             string? sortBy)
         {
             var query = _context.Imports
-                .Include(i => i.Supplier)
-                .Include(i => i.Staff)
-                .Include(i => i.ImportItems)
                 .AsQueryable();
 
             // Filter by search (import_number, supplier name)
@@ -58,28 +55,27 @@ namespace StoreApp.Repository
             var totalItems = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-            var imports = await query
+            var dtoItems = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(i => new ImportListItemDTO
+                {
+                    Id = i.Id,
+                    ImportNumber = i.ImportNumber,
+                    SupplierId = i.SupplierId,
+                    SupplierName = i.Supplier != null ? i.Supplier.Name : null,
+                    StaffId = i.StaffId,
+                    StaffName = i.Staff != null ? i.Staff.FullName : null,
+                    Status = i.Status,
+                    TotalAmount = i.TotalAmount,
+                    TotalItems = i.ImportItems.Count,
+                    TotalQuantity = i.ImportItems.Sum(item => item.Quantity),
+                    Note = i.Note,
+                    CreatedAt = i.CreatedAt,
+                    UpdatedAt = i.UpdatedAt
+                })
                 .AsNoTracking()
                 .ToListAsync();
-
-            var dtoItems = imports.Select(i => new ImportListItemDTO
-            {
-                Id = i.Id,
-                ImportNumber = i.ImportNumber,
-                SupplierId = i.SupplierId,
-                SupplierName = i.Supplier?.Name,
-                StaffId = i.StaffId,
-                StaffName = i.Staff?.FullName,
-                Status = i.Status,
-                TotalAmount = i.TotalAmount,
-                TotalItems = i.ImportItems.Count,
-                TotalQuantity = i.ImportItems.Sum(item => item.Quantity),
-                Note = i.Note,
-                CreatedAt = i.CreatedAt,
-                UpdatedAt = i.UpdatedAt
-            }).ToList();
 
             return new PaginationResult<ImportListItemDTO>
             {
