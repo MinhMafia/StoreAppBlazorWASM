@@ -803,15 +803,14 @@
         if (string.IsNullOrWhiteSpace(token))
         {
             await JS.InvokeVoidAsync("alert", "Vui lòng đăng nhập để mua hàng.");
-            var returnUrl = Uri.EscapeDataString(Navigation.Uri);
-            Navigation.NavigateTo($"/login?returnUrl={returnUrl}");
-            return;
-        }
-
-        var imageUrl = string.IsNullOrEmpty(product.ImageUrl) ? "/assets/images/products/product.jpg" : product.ImageUrl;
-        var availableQuantity = product.Inventory?.Quantity;
-        await CartService.AddToCart(product.Id, product.ProductName, imageUrl, product.Price, 1, availableQuantity);
+        var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+        Navigation.NavigateTo($"/login?returnUrl={returnUrl}");
+        return;
     }
+
+    var imageUrl = string.IsNullOrEmpty(product.ImageUrl) ? "/assets/images/products/product.jpg" : product.ImageUrl;
+    await CartService.AddToCart(product.Id, product.ProductName, imageUrl, product.Price, 1);
+}
 
     private void ToggleFilters()
     {

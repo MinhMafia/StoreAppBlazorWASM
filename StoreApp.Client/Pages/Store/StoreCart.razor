@@ -4,7 +4,6 @@
 @using StoreApp.Shared
 @inject NavigationManager Navigation
 @inject IStoreCartService CartService
-@inject IProductClientService ProductService
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 @layout StoreLayout
 @implements IDisposable
@@ -206,27 +205,28 @@
         {
             cartItems = await CartService.GetCartItems();
 
-            // Load inventory info cho các sản phẩm trong giỏ
-            await LoadInventoryInfo();
+            var availableItems = cartItems
+                .Where(x => !x.IsOutOfStock && x.Quantity > 0)
+                .ToList();
 
-            // Chỉ tự động chọn tất cả ở lần load đầu tiên
-            if (isInitialLoad && cartItems.Any())
+            if (isInitialLoad)
             {
-                var availableItems = cartItems.Where(x => !x.IsOutOfStock).ToList();
                 if (availableItems.Any())
                 {
                     selectedItems = new HashSet<int>(availableItems.Select(x => x.ProductId));
                     selectAll = true;
                 }
+                else
+                {
+                    selectedItems.Clear();
+                    selectAll = false;
+                }
+
                 isInitialLoad = false;
             }
             else
             {
-                // Giữ nguyên selectedItems nhưng loại bỏ các sản phẩm không còn trong giỏ
-                selectedItems.RemoveWhere(id => !cartItems.Any(x => x.ProductId == id));
-
-                // Cập nhật trạng thái "Chọn tất cả"
-                var availableItems = cartItems.Where(x => !x.IsOutOfStock).ToList();
+                selectedItems.RemoveWhere(id => !availableItems.Any(x => x.ProductId == id));
                 selectAll = availableItems.Count > 0 && availableItems.All(x => selectedItems.Contains(x.ProductId));
             }
         }
@@ -234,28 +234,6 @@
         {
             isLoading = false;
             StateHasChanged();
-        }
-    }
-
-    private async Task LoadInventoryInfo()
-    {
-        foreach (var item in cartItems)
-        {
-            if (!item.AvailableQuantity.HasValue)
-            {
-                try
-                {
-                    var product = await ProductService.GetProductById(item.ProductId);
-                    if (product?.Inventory != null)
-                    {
-                        item.AvailableQuantity = product.Inventory.Quantity;
-                    }
-                }
-                catch
-                {
-                    // Ignore errors when loading inventory
-                }
-            }
         }
     }
 

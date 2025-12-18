@@ -1,4 +1,4 @@
-using StoreApp.Models;
+﻿using StoreApp.Models;
 using StoreApp.Repository;
 using StoreApp.Shared;
 using System;
@@ -203,6 +203,7 @@ namespace StoreApp.Services
 
         public async Task<OrderDTO?> CreateOrderAsync(OrderDTO dto)
         {
+            
             // generate id/order number if missing
             if (string.IsNullOrWhiteSpace(dto.OrderNumber))
             {
@@ -210,7 +211,9 @@ namespace StoreApp.Services
             }
             if (dto.CustomerId == null || dto.CustomerId == 0)
             {
-                try { dto.CustomerId = GetCurrentCustomerId(); } catch { }
+                try { dto.CustomerId = GetCurrentCustomerId(); } catch (Exception ex) { 
+                    dto.CustomerId = null;
+                }
             }
 
             // StaffId: only set when admin/staff creates the order; customer orders keep StaffId null

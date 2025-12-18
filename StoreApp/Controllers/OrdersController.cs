@@ -54,13 +54,27 @@ namespace StoreApp.Controllers
         [HttpPost("create")]
         public async Task<ActionResult<OrderDTO>> CreateOrder([FromBody] OrderDTO dto)
         {
-            if (dto == null) return BadRequest(false);
+            if (dto == null)
+            {
+                return BadRequest(new { message = "Order data is required" });
+            }
 
-            var created = await _orderService.CreateOrderAsync(dto);
 
-            if (created == null) return BadRequest(false);
+            try
+            {
+                var created = await _orderService.CreateOrderAsync(dto);
 
-            return Ok(created); // trả về OrderDTO đã có Id/OrderNumber
+                if (created == null)
+                {
+                    return BadRequest(new { message = "Failed to create order" });
+                }
+
+                return Ok(created);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         // Admin dashboard search

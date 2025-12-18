@@ -409,6 +409,11 @@
             await LocalStorage.RemoveItemAsync("checkoutSelectedIds");
         }
 
+        // Chỉ giữ lại sản phẩm còn hàng và có số lượng hợp lệ
+        checkoutItems = checkoutItems
+            .Where(x => !x.IsOutOfStock && x.Quantity > 0)
+            .ToList();
+
         // Auto-fill customer info if available (skip if token invalid)
         var profile = await MeClient.GetProfileAsync();
         if (profile != null)

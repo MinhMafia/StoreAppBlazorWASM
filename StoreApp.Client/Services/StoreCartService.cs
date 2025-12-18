@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Linq;
 using Blazored.LocalStorage;
 using StoreApp.Shared;
 
@@ -35,6 +36,18 @@ public class StoreCartService : IStoreCartService
         _httpClient = httpClient;
     }
 
+    private async Task<ProductDTO?> FetchProductAsync(int productId)
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<ProductDTO>($"api/products/{productId}");
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private async Task RaiseCartChangedAsync()
     {
         if (OnCartChanged == null) return;
@@ -60,23 +73,23 @@ public class StoreCartService : IStoreCartService
         }
     }
 
-    private async Task<List<CartItemDTO>> LoadCartFromStorage()
+    private async Task<List<CartItemRequest>> LoadStorageItemsAsync()
     {
         try
         {
             var cartJson = await _localStorage.GetItemAsStringAsync(CART_STORAGE_KEY);
             if (string.IsNullOrEmpty(cartJson))
-                return new List<CartItemDTO>();
+                return new List<CartItemRequest>();
 
-            return JsonSerializer.Deserialize<List<CartItemDTO>>(cartJson) ?? new List<CartItemDTO>();
+            return JsonSerializer.Deserialize<List<CartItemRequest>>(cartJson) ?? new List<CartItemRequest>();
         }
         catch
         {
-            return new List<CartItemDTO>();
+            return new List<CartItemRequest>();
         }
     }
 
-    private async Task SaveCartToStorage(List<CartItemDTO> cartItems)
+    private async Task SaveCartToStorage(List<CartItemRequest> cartItems)
     {
         try
         {
@@ -88,7 +101,7 @@ public class StoreCartService : IStoreCartService
         }
     }
 
-    private async Task SaveCartAndBroadcast(List<CartItemDTO> cartItems, bool syncToServer)
+    private async Task SaveCartAndBroadcast(List<CartItemRequest> cartItems, bool syncToServer)
     {
         await SaveCartToStorage(cartItems);
         await RaiseCartChangedAsync();
@@ -105,41 +118,104 @@ public class StoreCartService : IStoreCartService
         }
     }
 
-    public async Task AddToCart(int productId, string productName, string imageUrl, decimal price, int quantity = 1, int? availableQuantity = null)
+    private async Task<List<CartItemDTO>> BuildCartItemsAsync(List<CartItemRequest> storageItems)
     {
-        var cartItems = await LoadCartFromStorage();
-        var existingItem = cartItems.FirstOrDefault(x => x.ProductId == productId);
+        var result = new List<CartItemDTO>();
+        var shouldResave = false;
 
-        if (existingItem != null)
+        foreach (var storageItem in storageItems)
         {
-            var newQuantity = existingItem.Quantity + quantity;
-            if (existingItem.AvailableQuantity.HasValue && newQuantity > existingItem.AvailableQuantity.Value)
+            var quantity = Math.Max(storageItem.Quantity, 0);
+            if (quantity != storageItem.Quantity)
             {
-                newQuantity = existingItem.AvailableQuantity.Value;
+                storageItem.Quantity = quantity;
+                shouldResave = true;
             }
-            existingItem.Quantity = newQuantity;
-        }
-        else
-        {
-            cartItems.Add(new CartItemDTO
+
+            var product = await FetchProductAsync(storageItem.ProductId);
+            if (product == null)
             {
-                ProductId = productId,
-                ProductName = productName,
-                ImageUrl = imageUrl,
-                Price = price,
+                result.Add(new CartItemDTO
+                {
+                    ProductId = storageItem.ProductId,
+                    ProductName = "Sản phẩm không còn tồn tại",
+                    ImageUrl = "/assets/images/products/product.jpg",
+                    Price = 0,
+                    Quantity = quantity,
+                    AvailableQuantity = 0
+                });
+                continue;
+            }
+
+            var available = product.Inventory?.Quantity;
+            var normalizedAvailable = available.HasValue ? Math.Max(available.Value, 0) : (int?)null;
+
+            if (normalizedAvailable.HasValue && normalizedAvailable.Value > 0 && normalizedAvailable.Value < quantity)
+            {
+                quantity = normalizedAvailable.Value;
+                storageItem.Quantity = quantity;
+                shouldResave = true;
+            }
+
+            result.Add(new CartItemDTO
+            {
+                ProductId = storageItem.ProductId,
+                ProductName = product.ProductName,
+                ImageUrl = string.IsNullOrEmpty(product.ImageUrl) ? "/assets/images/products/product.jpg" : product.ImageUrl!,
+                Price = product.Price,
                 Quantity = quantity,
-                AvailableQuantity = availableQuantity
+                AvailableQuantity = normalizedAvailable
             });
         }
 
-        await SaveCartAndBroadcast(cartItems, syncToServer: true);
+        if (shouldResave)
+        {
+            await SaveCartToStorage(storageItems);
+        }
+
+        return result;
+    }
+
+    public async Task AddToCart(int productId, string productName, string imageUrl, decimal price, int quantity = 1, int? availableQuantity = null)
+    {
+        var storageItems = await LoadStorageItemsAsync();
+        var existingItem = storageItems.FirstOrDefault(x => x.ProductId == productId);
+
+        var product = await FetchProductAsync(productId);
+        var available = product?.Inventory?.Quantity;
+        var normalizedAvailable = available.HasValue ? Math.Max(available.Value, 0) : (int?)null;
+
+        var desiredQuantity = (existingItem?.Quantity ?? 0) + Math.Max(quantity, 0);
+        if (normalizedAvailable.HasValue)
+        {
+            desiredQuantity = Math.Min(desiredQuantity, normalizedAvailable.Value);
+        }
+
+        if (desiredQuantity <= 0)
+        {
+            storageItems.RemoveAll(x => x.ProductId == productId);
+        }
+        else if (existingItem != null)
+        {
+            existingItem.Quantity = desiredQuantity;
+        }
+        else
+        {
+            storageItems.Add(new CartItemRequest
+            {
+                ProductId = productId,
+                Quantity = desiredQuantity
+            });
+        }
+
+        await SaveCartAndBroadcast(storageItems, syncToServer: true);
     }
 
     public async Task RemoveFromCart(int productId)
     {
-        var cartItems = await LoadCartFromStorage();
-        cartItems.RemoveAll(x => x.ProductId == productId);
-        await SaveCartAndBroadcast(cartItems, syncToServer: true);
+        var storageItems = await LoadStorageItemsAsync();
+        storageItems.RemoveAll(x => x.ProductId == productId);
+        await SaveCartAndBroadcast(storageItems, syncToServer: true);
     }
 
     public async Task UpdateQuantity(int productId, int quantity)
@@ -150,39 +226,54 @@ public class StoreCartService : IStoreCartService
             return;
         }
 
-        var cartItems = await LoadCartFromStorage();
-        var item = cartItems.FirstOrDefault(x => x.ProductId == productId);
+        var storageItems = await LoadStorageItemsAsync();
+        var item = storageItems.FirstOrDefault(x => x.ProductId == productId);
         if (item != null)
         {
-            if (item.AvailableQuantity.HasValue && quantity > item.AvailableQuantity.Value)
+            var product = await FetchProductAsync(productId);
+            var available = product?.Inventory?.Quantity;
+            var normalizedAvailable = available.HasValue ? Math.Max(available.Value, 0) : (int?)null;
+
+            var newQuantity = quantity;
+            if (normalizedAvailable.HasValue)
             {
-                quantity = item.AvailableQuantity.Value;
+                newQuantity = Math.Min(quantity, normalizedAvailable.Value);
             }
-            item.Quantity = quantity;
-            await SaveCartAndBroadcast(cartItems, syncToServer: true);
+
+            if (newQuantity <= 0)
+            {
+                storageItems.RemoveAll(x => x.ProductId == productId);
+            }
+            else
+            {
+                item.Quantity = newQuantity;
+            }
+
+            await SaveCartAndBroadcast(storageItems, syncToServer: true);
         }
     }
 
     public async Task<List<CartItemDTO>> GetCartItems()
     {
-        return await LoadCartFromStorage();
+        var storageItems = await LoadStorageItemsAsync();
+        return await BuildCartItemsAsync(storageItems);
     }
 
     public async Task ClearCart()
     {
-        await SaveCartAndBroadcast(new List<CartItemDTO>(), syncToServer: true);
+        await SaveCartAndBroadcast(new List<CartItemRequest>(), syncToServer: true);
     }
 
     public async Task ClearLocalCart()
     {
-        await SaveCartToStorage(new List<CartItemDTO>());
+        await SaveCartToStorage(new List<CartItemRequest>());
         await RaiseCartChangedAsync();
     }
 
     public async Task<int> GetCartItemCount()
     {
-        var cartItems = await LoadCartFromStorage();
-        return cartItems.Sum(x => x.Quantity);
+        var storageItems = await LoadStorageItemsAsync();
+        return storageItems.Where(x => x.Quantity > 0).Sum(x => x.Quantity);
     }
 
     public async Task RemovePurchasedItemsFromCart(IEnumerable<int> purchasedProductIds)
@@ -190,9 +281,9 @@ public class StoreCartService : IStoreCartService
         if (purchasedProductIds == null || !purchasedProductIds.Any())
             return;
 
-        var cartItems = await LoadCartFromStorage();
-        cartItems.RemoveAll(item => purchasedProductIds.Contains(item.ProductId));
-        await SaveCartAndBroadcast(cartItems, syncToServer: true);
+        var storageItems = await LoadStorageItemsAsync();
+        storageItems.RemoveAll(item => purchasedProductIds.Contains(item.ProductId));
+        await SaveCartAndBroadcast(storageItems, syncToServer: true);
     }
 
     public async Task SyncToServerAsync()
@@ -200,7 +291,7 @@ public class StoreCartService : IStoreCartService
         if (!await HasCustomerTokenAsync()) return;
         try
         {
-            var items = await LoadCartFromStorage();
+            var items = await LoadStorageItemsAsync();
             await _httpClient.PostAsJsonAsync("api/cart/sync", items);
         }
         catch
@@ -213,10 +304,10 @@ public class StoreCartService : IStoreCartService
         if (!await HasCustomerTokenAsync()) return;
         try
         {
-            var localItems = await LoadCartFromStorage();
+            var localItems = await LoadStorageItemsAsync();
             var overrideFromLocal = await _localStorage.GetItemAsync<bool>("redirectAfterLoginCart");
 
-            // Chỉ ghi đè server khi đây là luồng bấm Mua hàng -> login
+            // Only override server cart when login was triggered from checkout button
             if (overrideFromLocal && localItems.Any())
             {
                 await _httpClient.PostAsJsonAsync("api/cart/sync", localItems);
@@ -225,7 +316,7 @@ public class StoreCartService : IStoreCartService
             }
             else
             {
-                var serverItems = await _httpClient.GetFromJsonAsync<List<CartItemDTO>>("api/cart") ?? new List<CartItemDTO>();
+                var serverItems = await _httpClient.GetFromJsonAsync<List<CartItemRequest>>("api/cart") ?? new List<CartItemRequest>();
                 await SaveCartToStorage(serverItems);
             }
 

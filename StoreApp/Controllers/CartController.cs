@@ -22,28 +22,28 @@ namespace StoreApp.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<CartItemDTO>> GetCart()
+        public ActionResult<IEnumerable<CartItemRequest>> GetCart()
         {
             var customerId = ResolveCustomerId();
             if (customerId == null) return Unauthorized();
 
             var cart = _context.CustomerCarts.FirstOrDefault(c => c.CustomerId == customerId.Value);
             if (cart == null || string.IsNullOrWhiteSpace(cart.CartJson))
-                return Ok(new List<CartItemDTO>());
+                return Ok(new List<CartItemRequest>());
 
             try
             {
-                var items = JsonSerializer.Deserialize<List<CartItemDTO>>(cart.CartJson) ?? new List<CartItemDTO>();
+                var items = JsonSerializer.Deserialize<List<CartItemRequest>>(cart.CartJson) ?? new List<CartItemRequest>();
                 return Ok(items);
             }
             catch
             {
-                return Ok(new List<CartItemDTO>());
+                return Ok(new List<CartItemRequest>());
             }
         }
 
         [HttpPost("sync")]
-        public async Task<ActionResult> SyncCart([FromBody] List<CartItemDTO> items)
+        public async Task<ActionResult> SyncCart([FromBody] List<CartItemRequest> items)
         {
             var customerId = ResolveCustomerId();
             if (customerId == null) return Unauthorized();
@@ -51,7 +51,7 @@ namespace StoreApp.Controllers
             try
             {
                 var cart = _context.CustomerCarts.FirstOrDefault(c => c.CustomerId == customerId.Value);
-                var payload = JsonSerializer.Serialize(items ?? new List<CartItemDTO>());
+                var payload = JsonSerializer.Serialize(items ?? new List<CartItemRequest>());
 
                 if (cart == null)
                 {

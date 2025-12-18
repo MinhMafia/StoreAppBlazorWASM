@@ -1,7 +1,6 @@
 @* Component hiển thị thẻ sản phẩm trong danh sách *@
 @using Blazored.LocalStorage
 @inject IStoreCartService CartService
-@inject IProductClientService ProductService
 @inject NavigationManager Navigation
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JS
@@ -64,19 +63,7 @@
         try
         {
             var imageUrl = string.IsNullOrEmpty(ImageUrl) ? "/assets/images/products/product.jpg" : ImageUrl;
-            // Lấy thông tin inventory nếu có (có thể null nếu không có)
-            int? availableQuantity = null;
-            try
-            {
-                var product = await ProductService.GetProductById(ProductId);
-                availableQuantity = product?.Inventory?.Quantity;
-            }
-            catch
-            {
-                // Ignore nếu không lấy được inventory
-            }
-            await CartService.AddToCart(ProductId, ProductName, imageUrl, Price, 1, availableQuantity);
-            // Có thể thêm thông báo thành công ở đây nếu cần
+            await CartService.AddToCart(ProductId, ProductName, imageUrl, Price, 1);
         }
         finally
         {
